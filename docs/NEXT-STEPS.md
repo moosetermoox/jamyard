@@ -35,7 +35,33 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-01, night: #149 to #159 ALL MERGED and live; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-02: #161 `review-oct1-night` MERGED and live; `small-fixes-oct2` PR open; restart :3000 before using it locally)
+
+**Where things stand.** The inventory's Part 3 is done except the AI narrator loop, which the owner parked on 2026-10-02 ("we'll save the narrator loop for later"). A reviewer walked the night's seven checks and #161 fixed what they found:
+- A second peer reader's pretend answers replied to the first comment instead of the draft (the card itself was right).
+- The feedback return showed Folded Pass's projector line.
+- A four-question hot seat never moved. The Simple view had no turn setting, and a vote's own question never reached a screen.
+- The student screen's late-joiner name update threw, so no find-your-match list ever grew.
+- Empty "…" cards on the projector, and answer-box lines that named the wrong reader.
+- The student leaderboard is now bars too.
+
+Then `small-fixes-oct2`:
+- **The guessing clock survives a refresh.** The estimate step keeps `timerEndsAt`, and the reconnect sends the time left plus `phaseInstanceId`. Proof `scripts/simulate-estimate-refresh.js`, 4 checks.
+- **A Spanish idea's plan reads in Spanish.** The builder's own lines ("The class picked:", "Round 1:", "You wrote:", about 85 of them) follow the plan's `language`. The server reads it off the idea and the plan's words (`withPlanLanguage`), and `COMPILER_TEXT` / `localizeCompiled` in step-suggestions.js swap them after compiling. `tests/designer/compiler-language.test.js` compiles every golden storyboard in Spanish and fails on English left behind. Live: six Spanish ideas, 6 of 6 now fully Spanish (before: English on 4 of 6).
+
+**Next.**
+1. Merge `small-fixes-oct2` after green CI.
+2. When there is a moment, re-check on jamyard.org with pretend students: a late joiner on find your match, a four-student hot seat, the feedback return, a refresh mid-guess, and one Spanish idea through Create.
+3. The narrator loop waits for the owner.
+
+**Noticed, not fixed.** A Spanish hot-seat idea built a vote step before a `hotseat` with pick vote, so the class votes twice. This is the same wobble as 2026-10-01, despite the prompt line; a compiler guard is the likely fix (drop a vote-over-students step right before a hotseat with pick vote).
+
+**Gotchas.**
+- The Create page compiles on the client (`designer.js` builds the storyboard object again from the plan dialog), so a new top-level plan field must be carried there too. `language` nearly got lost that way.
+- A line the builder writes for students must get a row in `COMPILER_TEXT`, or the Spanish test fails.
+- Confidence words are translated when the room starts (`localizeConfidence`), not in the builder.
+
+### Previous START HERE (2026-10-01, night: #149 to #159 ALL MERGED and live; restart :3000 before using it locally)
 
 **Where things stand.** The inventory's Part 3 is done except the AI narrator loop: (1) peer feedback #149, (2) quiet time #150, (3) confidence after the answer #151, (4) instant runoff #152, (5) the hot seat #153, (6) find your match #154. The owner then walked all six on the local server and asked for changes, all shipped the same night: #155 a template's sample answers drop when the question changes (an outside reviewer's natural-selection Snowball answered about fractions), #156 Skip timer on every step of Try it out, #157 feedback in labelled boxes (Star 1 / Star 2 / Wish), a classmate's words on a paper card in a system serif, the confidence answer card as a DIAL plus "Sure but wrong: n of m." with each student's confidence in the report, and the leaderboard as bars, #158 the hot seat rotates every few questions with each question on the projector ("For Maya (2 of 3)"), and find your match is a tap on a classmate's name (no spelling), #159 guesses scored by how close (estimate scoring "distance", smaller over larger) with a speed bonus, a scoreboard after a run. Tests 3366 (one Windows-only CRLF failure). Every slice has a `scripts/simulate-<name>.js` proof on a hidden `games/_sim-*` fixture.
 

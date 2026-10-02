@@ -1898,6 +1898,136 @@
     Object.keys(config.phases).forEach(function (pid) { delete config.phases[pid].timer; });
   }
 
+  // ---- The builder's own lines in the idea's language (2026-10-02) ----
+  // A Spanish idea came back with Spanish words from the AI and English
+  // lines from here ("The class picked:", "Round 1:", "You wrote:"). The
+  // plan carries `language` (the server reads it off the idea and the
+  // plan's words); after compiling, every line this file wrote is swapped
+  // for its translation. Keys are the exact English pieces written above,
+  // longest first at swap time, so the AI's own words (already in the
+  // idea's language) are never touched. A new student- or projector-facing
+  // line in a brick gets a row here (tests/designer/compiler-language.test.js
+  // compiles every brick in Spanish and looks for English).
+  var COMPILER_TEXT = [
+    ['Who said it?', { es: '¿Quién lo dijo?', fr: 'Qui l\'a dit ?', de: 'Wer hat das gesagt?', pt: 'Quem disse isso?', it: 'Chi l\'ha detto?' }],
+    ['Who do you think said: "', { es: '¿Quién crees que dijo: "', fr: 'Qui a dit, selon toi : "', de: 'Wer hat deiner Meinung nach gesagt: "', pt: 'Quem você acha que disse: "', it: 'Chi pensi che abbia detto: "' }],
+    ['How the class guessed:', { es: 'Cómo adivinó la clase:', fr: 'Les réponses de la classe :', de: 'So hat die Klasse geraten:', pt: 'Como a turma adivinhou:', it: 'Come ha indovinato la classe:' }],
+    ['It was {{_current.playerName}}!', { es: '¡Fue {{_current.playerName}}!', fr: 'C\'était {{_current.playerName}} !', de: 'Es war {{_current.playerName}}!', pt: 'Foi {{_current.playerName}}!', it: 'Era {{_current.playerName}}!' }],
+    [', from {{_current.playerName}}!', { es: ', de {{_current.playerName}}!', fr: ', de {{_current.playerName}} !', de: ', von {{_current.playerName}}!', pt: ', de {{_current.playerName}}!', it: ', di {{_current.playerName}}!' }],
+    ['(from {{_current.playerName}})', { es: '(de {{_current.playerName}})', fr: '(de {{_current.playerName}})', de: '(von {{_current.playerName}})', pt: '(de {{_current.playerName}})', it: '(di {{_current.playerName}})' }],
+    ['That one was {{_current.playerName}}’s!', { es: '¡Esa era de {{_current.playerName}}!', fr: 'Celle-là était de {{_current.playerName}} !', de: 'Das war von {{_current.playerName}}!', pt: 'Essa era de {{_current.playerName}}!', it: 'Questa era di {{_current.playerName}}!' }],
+    ['Hands up if you got it!', { es: '¡Manos arriba si acertaste!', fr: 'Levez la main si vous aviez trouvé !', de: 'Hand hoch, wer es wusste!', pt: 'Mão para cima quem acertou!', it: 'Alzi la mano chi ha indovinato!' }],
+    ['It was… ', { es: '¡Era… ', fr: 'C\'était… ', de: 'Es war… ', pt: 'Era… ', it: 'Era… ' }],
+    ['It was ', { es: '¡Era ', fr: 'C\'était ', de: 'Es war ', pt: 'Era ', it: 'Era ' }],
+    ['What do you think?', { es: '¿Qué crees?', fr: 'Qu\'en penses-tu ?', de: 'Was meinst du?', pt: 'O que você acha?', it: 'Che ne pensi?' }],
+    ['Type your guess:', { es: 'Escribe tu respuesta:', fr: 'Écris ta réponse :', de: 'Schreib deine Vermutung:', pt: 'Escreva seu palpite:', it: 'Scrivi la tua ipotesi:' }],
+    ['Round {{', { es: 'Ronda {{', fr: 'Manche {{', de: 'Runde {{', pt: 'Rodada {{', it: 'Turno {{' }],
+    ['}} of {{', { es: '}} de {{', fr: '}} sur {{', de: '}} von {{', pt: '}} de {{', it: '}} di {{' }],
+    ['The answer was: ', { es: 'La respuesta era: ', fr: 'La réponse était : ', de: 'Die Antwort war: ', pt: 'A resposta era: ', it: 'La risposta era: ' }],
+    ['Class picks:', { es: 'Lo que eligió la clase:', fr: 'Les choix de la classe :', de: 'Was die Klasse gewählt hat:', pt: 'O que a turma escolheu:', it: 'Le scelte della classe:' }],
+    ['You wrote:', { es: 'Escribiste:', fr: 'Tu as écrit :', de: 'Du hast geschrieben:', pt: 'Você escreveu:', it: 'Hai scritto:' }],
+    ['What your classmates said:', { es: 'Lo que dijeron tus compañeros:', fr: 'Ce que tes camarades ont dit :', de: 'Was deine Mitschüler gesagt haben:', pt: 'O que seus colegas disseram:', it: 'Cosa hanno detto i tuoi compagni:' }],
+    ['What a classmate said:', { es: 'Lo que dijo un compañero:', fr: 'Ce qu\'un camarade a dit :', de: 'Was jemand aus der Klasse gesagt hat:', pt: 'O que um colega disse:', it: 'Cosa ha detto un compagno:' }],
+    ['Everyone is reading the feedback on their own work. Give it a minute, then ask what someone will change because of it.', { es: 'Todos están leyendo los comentarios sobre su propio trabajo. Denles un minuto y luego pregunten qué cambiaría alguien gracias a ellos.', fr: 'Chacun lit les commentaires sur son propre travail. Laissez une minute, puis demandez ce que quelqu\'un va changer grâce à eux.', de: 'Alle lesen die Rückmeldungen zu ihrer eigenen Arbeit. Gebt ihnen eine Minute und fragt dann, was jemand deswegen ändern wird.', pt: 'Todos estão lendo os comentários sobre o próprio trabalho. Deem um minuto e depois perguntem o que alguém vai mudar por causa deles.', it: 'Tutti stanno leggendo i commenti sul proprio lavoro. Lasciate un minuto, poi chiedete cosa cambierà qualcuno grazie a questi.' }],
+    ['Your partner\'s words are on your own device.', { es: 'Las palabras de tu compañero están en tu propio dispositivo.', fr: 'Les mots de ton partenaire sont sur ton appareil.', de: 'Die Worte deines Partners sind auf deinem eigenen Gerät.', pt: 'As palavras do seu parceiro estão no seu próprio dispositivo.', it: 'Le parole del tuo compagno sono sul tuo dispositivo.' }],
+    ['Everyone is writing to their partner on their own device.', { es: 'Todos están escribiendo a su compañero en su propio dispositivo.', fr: 'Chacun écrit à son partenaire sur son propre appareil.', de: 'Alle schreiben ihrem Partner auf dem eigenen Gerät.', pt: 'Todos estão escrevendo para o parceiro no próprio dispositivo.', it: 'Tutti stanno scrivendo al proprio compagno sul proprio dispositivo.' }],
+    ['Work through the tasks with your group. Anyone can check one off, and the whole group sees it.', { es: 'Hagan las tareas con su grupo. Cualquiera puede marcar una y todo el grupo lo ve.', fr: 'Faites les tâches avec votre groupe. N\'importe qui peut en cocher une, et tout le groupe le voit.', de: 'Erledigt die Aufgaben in eurer Gruppe. Jeder kann eine abhaken, und die ganze Gruppe sieht es.', pt: 'Façam as tarefas com seu grupo. Qualquer um pode marcar uma, e todo o grupo vê.', it: 'Svolgete i compiti con il vostro gruppo. Chiunque può spuntarne uno e tutto il gruppo lo vede.' }],
+    ['The gallery is open. One drawing at a time, artists, be ready to say a word about yours.', { es: 'La galería está abierta. Un dibujo a la vez; artistas, prepárense para decir algo sobre el suyo.', fr: 'La galerie est ouverte. Un dessin à la fois ; artistes, préparez-vous à dire un mot sur le vôtre.', de: 'Die Galerie ist offen. Ein Bild nach dem anderen; Künstler, seid bereit, etwas zu eurem zu sagen.', pt: 'A galeria está aberta. Um desenho de cada vez; artistas, preparem-se para dizer algo sobre o seu.', it: 'La galleria è aperta. Un disegno alla volta; artisti, preparatevi a dire qualcosa sul vostro.' }],
+    ['Here is what the class said, summed up:', { es: 'Esto es lo que dijo la clase, en resumen:', fr: 'Voici ce que la classe a dit, en résumé :', de: 'Das hat die Klasse gesagt, zusammengefasst:', pt: 'Eis o que a turma disse, em resumo:', it: 'Ecco cosa ha detto la classe, in sintesi:' }],
+    ['Write something that uses everything in your hand.', { es: 'Escribe algo que use todo lo que tienes en la mano.', fr: 'Écris quelque chose qui utilise tout ce que tu as en main.', de: 'Schreib etwas, das alles aus deiner Hand verwendet.', pt: 'Escreva algo que use tudo o que está na sua mão.', it: 'Scrivi qualcosa che usi tutto quello che hai in mano.' }],
+    ['Add one thing to the pile: ', { es: 'Añade una cosa al montón: ', fr: 'Ajoute une chose à la pile : ', de: 'Leg eine Sache auf den Stapel: ', pt: 'Acrescente uma coisa à pilha: ', it: 'Aggiungi una cosa al mucchio: ' }],
+    ['Your hand has been dealt.', { es: 'Ya tienes tu mano.', fr: 'Ta main est distribuée.', de: 'Deine Hand ist ausgeteilt.', pt: 'Sua mão foi distribuída.', it: 'La tua mano è servita.' }],
+    ['One dealt hand at a time.', { es: 'Una mano a la vez.', fr: 'Une main à la fois.', de: 'Eine Hand nach der anderen.', pt: 'Uma mão de cada vez.', it: 'Una mano alla volta.' }],
+    ['Here they come, one at a time.', { es: 'Aquí vienen, uno por uno.', fr: 'Les voici, un par un.', de: 'Hier kommen sie, eins nach dem anderen.', pt: 'Aí vêm eles, um de cada vez.', it: 'Eccoli, uno alla volta.' }],
+    ['Who held what:', { es: 'Quién tenía qué:', fr: 'Qui avait quoi :', de: 'Wer was hatte:', pt: 'Quem tinha o quê:', it: 'Chi aveva cosa:' }],
+    ['Your classmates ask:', { es: 'Tus compañeros preguntan:', fr: 'Tes camarades demandent :', de: 'Deine Mitschüler fragen:', pt: 'Seus colegas perguntam:', it: 'I tuoi compagni chiedono:' }],
+    ['Who goes in the hot seat?', { es: '¿Quién se sienta en la silla caliente?', fr: 'Qui passe sur la sellette ?', de: 'Wer kommt auf den heißen Stuhl?', pt: 'Quem vai para a cadeira quente?', it: 'Chi va sulla sedia che scotta?' }],
+    ['First in the hot seat:', { es: 'Primero en la silla caliente:', fr: 'Premier sur la sellette :', de: 'Zuerst auf dem heißen Stuhl:', pt: 'Primeiro na cadeira quente:', it: 'Primo sulla sedia che scotta:' }],
+    ['Which one wins this matchup?', { es: '¿Cuál gana este enfrentamiento?', fr: 'Lequel remporte ce duel ?', de: 'Wer gewinnt dieses Duell?', pt: 'Qual vence este confronto?', it: 'Chi vince questo scontro?' }],
+    ['The winner of the bracket:', { es: 'El ganador del torneo:', fr: 'Le gagnant du tournoi :', de: 'Der Sieger des Turniers:', pt: 'O vencedor do torneio:', it: 'Il vincitore del torneo:' }],
+    ['Write one quiz question on what we learned, with the right answer and some wrong ones that could fool a classmate.', { es: 'Escribe una pregunta de examen sobre lo que aprendimos, con la respuesta correcta y algunas incorrectas que puedan engañar a un compañero.', fr: 'Écris une question de quiz sur ce que nous avons appris, avec la bonne réponse et quelques mauvaises qui pourraient piéger un camarade.', de: 'Schreib eine Quizfrage zu dem, was wir gelernt haben, mit der richtigen Antwort und ein paar falschen, die jemanden aus der Klasse reinlegen könnten.', pt: 'Escreva uma pergunta de quiz sobre o que aprendemos, com a resposta certa e algumas erradas que possam enganar um colega.', it: 'Scrivi una domanda del quiz su quello che abbiamo imparato, con la risposta giusta e alcune sbagliate che potrebbero ingannare un compagno.' }],
+    ['Your question', { es: 'Tu pregunta', fr: 'Ta question', de: 'Deine Frage', pt: 'Sua pergunta', it: 'La tua domanda' }],
+    ['The right answer', { es: 'La respuesta correcta', fr: 'La bonne réponse', de: 'Die richtige Antwort', pt: 'A resposta certa', it: 'La risposta giusta' }],
+    ['One more wrong answer', { es: 'Una respuesta incorrecta más', fr: 'Encore une mauvaise réponse', de: 'Eine weitere falsche Antwort', pt: 'Mais uma resposta errada', it: 'Ancora una risposta sbagliata' }],
+    ['Another wrong answer', { es: 'Otra respuesta incorrecta', fr: 'Une autre mauvaise réponse', de: 'Noch eine falsche Antwort', pt: 'Outra resposta errada', it: 'Un\'altra risposta sbagliata' }],
+    ['A wrong answer', { es: 'Una respuesta incorrecta', fr: 'Une mauvaise réponse', de: 'Eine falsche Antwort', pt: 'Uma resposta errada', it: 'Una risposta sbagliata' }],
+    ['Our quiz', { es: 'Nuestro quiz', fr: 'Notre quiz', de: 'Unser Quiz', pt: 'Nosso quiz', it: 'Il nostro quiz' }],
+    ['Match each item on the left with the right one on the right.', { es: 'Une cada elemento de la izquierda con el que le corresponde a la derecha.', fr: 'Associe chaque élément de gauche à celui qui lui correspond à droite.', de: 'Ordne jedes Element links dem passenden rechts zu.', pt: 'Ligue cada item da esquerda ao correspondente da direita.', it: 'Abbina ogni elemento a sinistra a quello giusto a destra.' }],
+    ['Put each one in the right bucket.', { es: 'Pon cada uno en el grupo correcto.', fr: 'Mets chacun dans la bonne catégorie.', de: 'Ordne jedes der richtigen Gruppe zu.', pt: 'Coloque cada um no grupo certo.', it: 'Metti ognuno nel gruppo giusto.' }],
+    ['Where does each one belong? Class verdict, no wrong answers.', { es: '¿Dónde va cada uno? Decide la clase, no hay respuestas incorrectas.', fr: 'Où va chacun ? La classe décide, pas de mauvaise réponse.', de: 'Wohin gehört was? Die Klasse entscheidet, es gibt keine falschen Antworten.', pt: 'Onde fica cada um? A turma decide, não há respostas erradas.', it: 'Dove va ognuno? Decide la classe, non ci sono risposte sbagliate.' }],
+    ['Rate it on each scale below.', { es: 'Califícalo en cada escala.', fr: 'Note-le sur chaque échelle ci-dessous.', de: 'Bewerte es auf jeder Skala unten.', pt: 'Avalie em cada escala abaixo.', it: 'Valutalo su ogni scala qui sotto.' }],
+    ['Place your bet. Which one is right?', { es: 'Haz tu apuesta. ¿Cuál es la correcta?', fr: 'Place ton pari. Laquelle est la bonne ?', de: 'Setz deinen Einsatz. Welche ist richtig?', pt: 'Faça sua aposta. Qual é a certa?', it: 'Fai la tua puntata. Qual è quella giusta?' }],
+    ['Combine your answers into one stronger answer.', { es: 'Combinen sus respuestas en una respuesta más fuerte.', fr: 'Combinez vos réponses en une réponse plus forte.', de: 'Verbindet eure Antworten zu einer stärkeren Antwort.', pt: 'Combinem suas respostas em uma resposta mais forte.', it: 'Unite le vostre risposte in una risposta più forte.' }],
+    ['Now join another pair: fold both answers into one.', { es: 'Ahora únanse a otra pareja: junten ambas respuestas en una.', fr: 'Rejoignez maintenant une autre paire : fondez les deux réponses en une.', de: 'Jetzt tut euch mit einem anderen Paar zusammen: Macht aus beiden Antworten eine.', pt: 'Agora juntem-se a outra dupla: unam as duas respostas em uma.', it: 'Ora unitevi a un\'altra coppia: fondete le due risposte in una.' }],
+    ['Here is what the pairs built together:', { es: 'Esto es lo que construyeron las parejas:', fr: 'Voici ce que les paires ont construit ensemble :', de: 'Das haben die Paare zusammen gebaut:', pt: 'Eis o que as duplas construíram juntas:', it: 'Ecco cosa hanno costruito insieme le coppie:' }],
+    ['Here is what the groups built together:', { es: 'Esto es lo que construyeron los grupos:', fr: 'Voici ce que les groupes ont construit ensemble :', de: 'Das haben die Gruppen zusammen gebaut:', pt: 'Eis o que os grupos construíram juntos:', it: 'Ecco cosa hanno costruito insieme i gruppi:' }],
+    ['Add the next line. Build on what came before.', { es: 'Añade la siguiente línea. Construye sobre lo anterior.', fr: 'Ajoute la ligne suivante. Construis sur ce qui précède.', de: 'Füg die nächste Zeile hinzu. Bau auf dem auf, was davor kam.', pt: 'Acrescente a próxima linha. Construa sobre o que veio antes.', it: 'Aggiungi la riga successiva. Costruisci su ciò che c\'era prima.' }],
+    ['Here is what we built, one line at a time:', { es: 'Esto es lo que construimos, línea por línea:', fr: 'Voici ce que nous avons construit, ligne par ligne :', de: 'Das haben wir gebaut, Zeile für Zeile:', pt: 'Eis o que construímos, linha por linha:', it: 'Ecco cosa abbiamo costruito, una riga alla volta:' }],
+    ['Your station:', { es: 'Tu estación:', fr: 'Ton atelier :', de: 'Deine Station:', pt: 'Sua estação:', it: 'La tua postazione:' }],
+    ['Work through the list together. Tap each one as you finish it.', { es: 'Hagan la lista juntos. Toquen cada una al terminarla.', fr: 'Faites la liste ensemble. Touchez chaque tâche quand vous la finissez.', de: 'Arbeitet die Liste gemeinsam ab. Tippt jede an, wenn ihr fertig seid.', pt: 'Façam a lista juntos. Toquem cada uma ao terminar.', it: 'Completate la lista insieme. Toccate ogni voce quando la finite.' }],
+    ['Your best one-liner. Make the room laugh.', { es: 'Tu mejor frase. Haz reír a la clase.', fr: 'Ta meilleure réplique. Fais rire la salle.', de: 'Dein bester Spruch. Bring den Raum zum Lachen.', pt: 'Sua melhor frase. Faça a sala rir.', it: 'La tua battuta migliore. Fai ridere la classe.' }],
+    [' still in: answer, then vote. The fewest votes are out.', { es: ' siguen: respondan y luego voten. Los que tengan menos votos quedan fuera.', fr: ' encore en jeu : répondez, puis votez. Les moins votés sortent.', de: ' noch dabei: antworten, dann abstimmen. Wer die wenigsten Stimmen hat, ist raus.', pt: ' ainda no jogo: respondam e depois votem. Os menos votados saem.', it: ' ancora in gioco: rispondete, poi votate. Chi ha meno voti esce.' }],
+    ['Here is what everyone said:', { es: 'Esto es lo que dijeron todos:', fr: 'Voici ce que tout le monde a dit :', de: 'Das haben alle gesagt:', pt: 'Eis o que todos disseram:', it: 'Ecco cosa hanno detto tutti:' }],
+    ['Pick your favorite (not your own). Everyone votes, in or out.', { es: 'Elige tu favorito (no el tuyo). Todos votan, dentro o fuera.', fr: 'Choisis ton préféré (pas le tien). Tout le monde vote, encore en jeu ou non.', de: 'Wähl deinen Favoriten (nicht deinen eigenen). Alle stimmen ab, ob noch dabei oder nicht.', pt: 'Escolha seu favorito (não o seu). Todos votam, dentro ou fora.', it: 'Scegli il tuo preferito (non il tuo). Votano tutti, in gioco o no.' }],
+    ['Write one phrase, title, or thing for a classmate to act out. Keep it clean and guessable.', { es: 'Escribe una frase, un título o una cosa para que un compañero la actúe. Que sea apropiada y fácil de adivinar.', fr: 'Écris une expression, un titre ou une chose qu\'un camarade devra mimer. Reste correct et devinable.', de: 'Schreib einen Ausdruck, Titel oder Begriff, den jemand aus der Klasse vorspielen soll. Anständig und erratbar.', pt: 'Escreva uma frase, título ou coisa para um colega encenar. Que seja apropriada e fácil de adivinhar.', it: 'Scrivi una frase, un titolo o una cosa da far mimare a un compagno. Che sia adatta e indovinabile.' }],
+    ['Act it out, no words! Your team guesses.', { es: '¡Actúalo, sin palabras! Tu equipo adivina.', fr: 'Mime-le, sans un mot ! Ton équipe devine.', de: 'Spiel es vor, ohne Worte! Dein Team rät.', pt: 'Encene, sem palavras! Sua equipe adivinha.', it: 'Mimalo, senza parole! La tua squadra indovina.' }],
+    ['How it went:', { es: 'Cómo nos fue:', fr: 'Comment ça s\'est passé :', de: 'So lief es:', pt: 'Como foi:', it: 'Com\'è andata:' }],
+    ['The target: {{', { es: 'La meta: {{', fr: 'Objectif : {{', de: 'Das Ziel: {{', pt: 'A meta: {{', it: 'L\'obiettivo: {{' }],
+    ['. Attempts: {{', { es: '. Intentos: {{', fr: '. Essais : {{', de: '. Versuche: {{', pt: '. Tentativas: {{', it: '. Tentativi: {{' }],
+    ['. Restarts: {{', { es: '. Reinicios: {{', fr: '. Recommencements : {{', de: '. Neustarts: {{', pt: '. Recomeços: {{', it: '. Ripartenze: {{' }],
+    ['Our longest run as one voice: {{', { es: 'Nuestra racha más larga como una sola voz: {{', fr: 'Notre plus longue série d\'une seule voix : {{', de: 'Unsere längste Serie mit einer Stimme: {{', pt: 'Nossa maior sequência como uma só voz: {{', it: 'La nostra serie più lunga come una sola voce: {{' }],
+    ['Here is who got what.', { es: 'Esto le tocó a cada uno.', fr: 'Voici qui a eu quoi.', de: 'Das hat jeder bekommen.', pt: 'Eis o que cada um recebeu.', it: 'Ecco chi ha avuto cosa.' }],
+    ['Put these in order, your favorite at the top.', { es: 'Ordénalos, tu favorito arriba.', fr: 'Range-les dans l\'ordre, ton préféré en haut.', de: 'Bring sie in eine Reihenfolge, dein Favorit oben.', pt: 'Coloque em ordem, seu favorito no topo.', it: 'Mettili in ordine, il tuo preferito in cima.' }],
+    ['Who do you pick?', { es: '¿A quién eliges?', fr: 'Qui choisis-tu ?', de: 'Wen wählst du?', pt: 'Quem você escolhe?', it: 'Chi scegli?' }],
+    ['What we said, the bigger the more of us said it:', { es: 'Lo que dijimos, cuanto más grande, más lo dijimos:', fr: 'Ce que nous avons dit, plus c\'est grand, plus nous l\'avons dit :', de: 'Was wir gesagt haben, je größer, desto mehr von uns:', pt: 'O que dissemos, quanto maior, mais gente disse:', it: 'Cosa abbiamo detto, più è grande, più lo abbiamo detto:' }],
+    ['Here is what we said:', { es: 'Esto es lo que dijimos:', fr: 'Voici ce que nous avons dit :', de: 'Das haben wir gesagt:', pt: 'Eis o que dissemos:', it: 'Ecco cosa abbiamo detto:' }],
+    ['One of us said:', { es: 'Uno de nosotros dijo:', fr: 'L\'un de nous a dit :', de: 'Jemand von uns hat gesagt:', pt: 'Um de nós disse:', it: 'Uno di noi ha detto:' }],
+    ['What the class passed, most votes first:', { es: 'Lo que aprobó la clase, de más a menos votos:', fr: 'Ce que la classe a adopté, les plus votés d\'abord :', de: 'Was die Klasse angenommen hat, die meisten Stimmen zuerst:', pt: 'O que a turma aprovou, do mais votado ao menos:', it: 'Cosa ha approvato la classe, prima i più votati:' }],
+    ['What the class passed:', { es: 'Lo que aprobó la clase:', fr: 'Ce que la classe a adopté :', de: 'Was die Klasse angenommen hat:', pt: 'O que a turma aprovou:', it: 'Cosa ha approvato la classe:' }],
+    ['Did not pass:', { es: 'No se aprobó:', fr: 'Non adopté :', de: 'Nicht angenommen:', pt: 'Não aprovado:', it: 'Non approvato:' }],
+    ['Most votes first:', { es: 'De más a menos votos:', fr: 'Les plus votés d\'abord :', de: 'Die meisten Stimmen zuerst:', pt: 'Do mais votado ao menos:', it: 'Prima i più votati:' }],
+    ['The class picked:', { es: 'La clase eligió:', fr: 'La classe a choisi :', de: 'Die Klasse hat gewählt:', pt: 'A turma escolheu:', it: 'La classe ha scelto:' }],
+    ['The class order:', { es: 'El orden de la clase:', fr: 'L\'ordre de la classe :', de: 'Die Reihenfolge der Klasse:', pt: 'A ordem da turma:', it: 'L\'ordine della classe:' }],
+    ['The right order:', { es: 'El orden correcto:', fr: 'Le bon ordre :', de: 'Die richtige Reihenfolge:', pt: 'A ordem certa:', it: 'L\'ordine giusto:' }],
+    ['The class put {{', { es: 'La clase puso {{', fr: 'La classe a placé {{', de: 'Die Klasse hat {{', pt: 'A turma colocou {{', it: 'La classe ha messo {{' }],
+    [' in the right slot.', { es: ' en el lugar correcto.', fr: ' à la bonne place.', de: ' an die richtige Stelle gesetzt.', pt: ' no lugar certo.', it: ' al posto giusto.' }],
+    ['The class ranking:', { es: 'La clasificación de la clase:', fr: 'Le classement de la classe :', de: 'Die Rangliste der Klasse:', pt: 'A classificação da turma:', it: 'La classifica della classe:' }],
+    ['That is a wrap! Nice work today, everyone.', { es: '¡Eso es todo! Buen trabajo hoy, todos.', fr: 'C\'est fini ! Beau travail aujourd\'hui, tout le monde.', de: 'Das war\'s! Gute Arbeit heute, alle zusammen.', pt: 'É isso! Bom trabalho hoje, pessoal.', it: 'È tutto! Ottimo lavoro oggi, a tutti.' }]
+  ];
+  // "Round 2:" over a bracket round's results
+  var COMPILER_ROUND = { es: 'Ronda $1:', fr: 'Manche $1 :', de: 'Runde $1:', pt: 'Rodada $1:', it: 'Turno $1:' };
+  var COMPILER_TEXT_FIELDS = ['message', 'prompt', 'template', 'content', 'question', 'instruction',
+    'chainHeading', 'chainGrewHeading', 'hostTemplate', 'playerTemplate'];
+
+  function compilerLine(text, lang) {
+    if (typeof text !== 'string' || !text) return text;
+    var out = text;
+    for (var i = 0; i < COMPILER_TEXT_SORTED.length; i++) {
+      var row = COMPILER_TEXT_SORTED[i];
+      if (out.indexOf(row[0]) !== -1 && row[1][lang]) out = out.split(row[0]).join(row[1][lang]);
+    }
+    return out
+      .replace(/(^|\n)Round (\d+):/g, function (m, lead, n) { return lead + COMPILER_ROUND[lang].replace('$1', n); })
+      // a dealt hand's "YOUR PERSON:" lines: the pile's own label alone
+      .replace(/(^|\n)YOUR ([^:\n]+): \{\{/g, '$1$2: {{');
+  }
+  var COMPILER_TEXT_SORTED = COMPILER_TEXT.slice().sort(function (a, b) { return b[0].length - a[0].length; });
+
+  // Every builder line in a compiled plan, in `lang` (es, fr, de, pt, it;
+  // English and anything else are left as they are). In place.
+  function localizeCompiled(phases, lang) {
+    if (!COMPILER_ROUND[lang]) return;
+    var walk = function (ph) {
+      if (!ph || typeof ph !== 'object') return;
+      COMPILER_TEXT_FIELDS.forEach(function (f) { if (typeof ph[f] === 'string') ph[f] = compilerLine(ph[f], lang); });
+      if (Array.isArray(ph.fields)) {
+        ph.fields.forEach(function (fd) { if (fd && typeof fd.label === 'string') fd.label = compilerLine(fd.label, lang); });
+      }
+      if (ph.subPhases && typeof ph.subPhases === 'object') Object.keys(ph.subPhases).forEach(function (k) { walk(ph.subPhases[k]); });
+    };
+    Object.keys(phases).forEach(function (pid) { walk(phases[pid]); });
+  }
+
   function compileStoryboard(storyboard) {
     var problems = [];
     var steps = (storyboard && Array.isArray(storyboard.steps)) ? storyboard.steps : [];
@@ -2457,6 +2587,9 @@
       });
     });
 
+    // The builder's own lines in the idea's language (the AI's words already are)
+    if (storyboard && typeof storyboard.language === 'string') localizeCompiled(phases, storyboard.language);
+
     var config = {
       name: String((storyboard && storyboard.name) || 'New Activity').slice(0, 60),
       description: String((storyboard && storyboard.description) || '').slice(0, 300),
@@ -2515,6 +2648,7 @@
     moveStep: moveStep,
     buildGuessingRounds: buildGuessingRounds,
     compileStoryboard: compileStoryboard,
+    localizeCompiled: localizeCompiled,
     ASK_TYPES: ASK_TYPES,
     SHOW_DECIDE_TYPES: SHOW_DECIDE_TYPES,
     orderedPhaseIds: orderedPhaseIds,
