@@ -79,6 +79,10 @@
     opts = opts || {};
     var strokes = [];      // committed strokes (normalized)
     var preloaded = 0;     // strokes that arrived via setStrokes (continue mode) — undo never removes them
+    // What Undo takes back, newest last: 'stroke' (one drawn stroke) or
+    // {cleared: [...]} (a Clear, whose strokes Undo puts back; 2026-10-02,
+    // a reviewer cleared by mistake and Undo brought nothing back)
+    var history = [];
     var current = null;    // in-progress stroke
     var color = opts.color || PALETTE[0];
     var width = opts.width || 4;
@@ -118,6 +122,7 @@
     function finishStroke() {
       if (!current) return;
       strokes.push(current);
+      history.push('stroke');
       current = null;
       if (opts.onChange) opts.onChange();
     }
@@ -129,17 +134,25 @@
       setStrokes: function (s) {
         strokes = Array.isArray(s) ? s.slice() : [];
         preloaded = strokes.length;
+        history = [];
         current = null;
         repaint();
       },
       undo: function () {
-        if (strokes.length > preloaded) {
+        var last = history.pop();
+        if (last && last.cleared) {
+          strokes = strokes.concat(last.cleared);
+        } else if (strokes.length > preloaded) {
           strokes.pop();
-          repaint();
-          if (opts.onChange) opts.onChange();
+        } else {
+          return;
         }
+        repaint();
+        if (opts.onChange) opts.onChange();
       },
       clear: function () {
+        var own = strokes.slice(preloaded);
+        if (own.length) history.push({ cleared: own });
         strokes = strokes.slice(0, preloaded); // continue mode keeps the inherited drawing
         current = null;
         repaint();
@@ -151,6 +164,7 @@
       addStrokes: function (s) {
         if (!Array.isArray(s) || !s.length) return;
         strokes = strokes.concat(s);
+        for (var i = 0; i < s.length; i++) history.push('stroke');
         current = null;
         repaint();
       },

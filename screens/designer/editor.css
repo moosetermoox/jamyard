@@ -4840,3 +4840,65 @@ body.editor-page #editor-body > #settings-panel { margin-bottom: 64px; border-bo
 /* A private hand-out's list on the Question card */
 .sv-deal { margin-top: 10px; }
 .sv-deal-lead { color: #6B6250; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+
+/* Review oct2 J (2026-10-02) ------------------------------------------ */
+
+/* The name in the header is a button that opens Settings at the Name box
+   (it was an underlined title that did nothing when clicked) */
+#header-game-name {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  width: auto;
+  cursor: text;
+  text-align: left;
+}
+#header-game-name:hover:not(:disabled)::after {
+  content: ' \270E';
+  font-size: 0.8em;
+  color: #857A66;
+}
+#header-game-name:focus-visible { outline: 3px solid #FFD600; outline-offset: 3px; }
+#header-game-name:disabled { cursor: default; }
+
+/* Add a step and Delete this step without the chat */
+.svb-add-step {
+  display: block;
+  margin: 12px auto 0;
+  font-size: 0.9rem;
+  color: #2A2620;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.sv-delete-step { color: #B3261E; white-space: nowrap; }
+.sv-detail-card .sv-actions { flex-wrap: wrap; align-items: center; }
+
+/* A link to an activity that is not there */
+.load-error {
+  max-width: 560px;
+  margin: 80px auto;
+  padding: 28px 32px;
+  background: #FDF9F0;
+  border: 1px solid rgba(50, 35, 15, 0.18);
+  box-shadow: 0 3px 0 rgba(50, 35, 15, 0.10);
+  text-align: center;
+}
+.load-error h2 { margin: 0 0 10px; color: #2A2620; }
+.load-error p { margin: 0 0 20px; color: #6B6250; }
+.load-error[hidden], #editor-body[hidden], .save-status[hidden] { display: none; }
+#editor-header .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* With the detail card dropped under the stack (narrow, or both side
+   panels open), the stack stops being sticky: the card scrolled over it
+   and covered the steps (a reviewer with Ask AI open) */
+.sv-wrap { container-type: inline-size; }
+@container (max-width: 599.98px) {
+  #sv-stack { position: static; }
+}

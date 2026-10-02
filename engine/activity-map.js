@@ -35,6 +35,25 @@
 const EXCERPT_FIELDS = ['prompt', 'question', 'message', 'instruction'];
 const EXCERPT_MAX = 64;
 
+// Lines become one line without running a title into the text (a reviewer
+// read "STORY BUILDER Everyone..." and "Winnie the Pooh No references!",
+// 2026-10-02): a line that ends without punctuation gets a colon when it
+// is a title in capitals, a full stop otherwise.
+export function joinLines(value) {
+  const lines = String(value).split(/\n+/).map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  let out = '';
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) {
+      const prev = lines[i - 1];
+      if (/[.!?:;,…"”')\]]$/.test(prev)) out += ' ';
+      else if (/[A-Z]/.test(prev) && !/[a-z]/.test(prev)) out += ': ';
+      else out += '. ';
+    }
+    out += lines[i];
+  }
+  return out;
+}
+
 function excerpt(phase) {
   if (!phase) return undefined;
   // An AI step's instruction is a prompt to a model, not words for a
@@ -46,7 +65,7 @@ function excerpt(phase) {
     if (typeof value !== 'string') continue;
     // **bold** markers read as bold on the screens; in a one-line excerpt
     // they would read as stray stars.
-    const text = value.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+    const text = joinLines(value.replace(/^#+\s*/gm, '').replace(/\*\*/g, ''));
     if (text.length === 0) continue;
     if (text.includes('{{')) return undefined; // unresolved refs read as noise
     if (text.length <= EXCERPT_MAX) return text;
@@ -95,6 +114,36 @@ function templateRefsStudentWork(value, phases) {
   return false;
 }
 
+// Steps whose output on a reveal is a count or a score, never a student's
+// own words or drawing: picks, ratings, orders, sorts, matches, buzzes, bets.
+const TALLY_SOURCE_TYPES = new Set([
+  'collect-choice', 'rate', 'rank', 'sort', 'match', 'buzz', 'wager'
+]);
+
+// Every student-source step a reveal reads, through any of its fields.
+function revealSourceIds(phase, phases) {
+  const ids = [];
+  const add = (id) => { if (id && phases[id] && STUDENT_SOURCE_TYPES.has(phases[id].type)) ids.push(id); };
+  for (const field of ['content', 'from']) {
+    const values = Array.isArray(phase[field]) ? phase[field] : [phase[field]];
+    for (const v of values) {
+      if (typeof v === 'string' && !v.includes(' ')) add(refPhaseId(v));
+    }
+  }
+  for (const field of ['template', 'content']) {
+    if (typeof phase[field] !== 'string') continue;
+    for (const m of phase[field].match(/\{\{\s*([A-Za-z0-9_-]+)[.}]/g) || []) {
+      add(m.replace(/^\{\{\s*/, '').replace(/[.}]$/, ''));
+    }
+  }
+  return ids;
+}
+
+function revealsOnlyTallies(phase, phases) {
+  const ids = revealSourceIds(phase, phases);
+  return ids.length > 0 && ids.every((id) => TALLY_SOURCE_TYPES.has(phases[id].type));
+}
+
 // The hand-off arriving at this stop, if any: what student material flows
 // in from earlier steps. Keys, not copy — the renderer owns the wording.
 function carriesFor(phase, phases) {
@@ -117,7 +166,11 @@ function carriesFor(phase, phases) {
     if (refsStudentWork(phase.content, phases) ||
         refsStudentWork(phase.from, phases) ||
         templateRefsStudentWork(phase.template, phases) ||
-        templateRefsStudentWork(phase.content, phases)) return 'work-goes-up-front';
+        templateRefsStudentWork(phase.content, phases)) {
+      // A poll's chart is the class's picks, not anyone's work (a
+      // reviewer read "everyone's work goes up" under Class Poll, 2026-10-02)
+      return revealsOnlyTallies(phase, phases) ? 'results-go-up-front' : 'work-goes-up-front';
+    }
   }
   if (t === 'announce' && phase.drawingFrom !== undefined) return 'work-goes-up-front';
   if (t === 'merge') return 'partners-combine';

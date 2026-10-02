@@ -44,7 +44,7 @@ describe('Idea Chain hands every chain back', () => {
   });
 
   it('the recipe explains the transform instruction must work on any version', () => {
-    expect(getRecipe('idea-chain').parameters.transformPrompt.helper).toContain('never ask for a fresh start');
+    expect(getRecipe('idea-chain').parameters.transformPrompt.helper).toContain('not a new idea'); // teacher words since review oct2 J
   });
 });
 

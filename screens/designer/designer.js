@@ -471,7 +471,7 @@ function buildGameCard(game) {
   favBtn.className = 'game-card-fav' + (isFav ? ' is-fav' : '');
   favBtn.textContent = isFav ? '♥' : '♡';
   favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-  favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
+  favBtn.setAttribute('aria-label', 'Favorite "' + game.name + '"');
   favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
   favBtn.addEventListener('click', function () {
     Favorites.toggle(game.id);
@@ -2415,6 +2415,21 @@ function renderNoMatchView(modal, description, data, overlay) {
   // and none when the first screen already knows the plan would say no
   if (!harm && !offScreen) btnRow.appendChild(storyboardBtn);
 
+  // The close match is a door, not only a sentence (2026-10-02, a reviewer
+  // read the suggestion and found no way to build it): it goes into the
+  // idea box and runs. Never after a refusal on purpose.
+  if (data.suggestion && !harm) {
+    var buildSuggestionBtn = document.createElement('button');
+    buildSuggestionBtn.type = 'button';
+    buildSuggestionBtn.className = 'recipe-create-btn';
+    buildSuggestionBtn.textContent = 'Build the close match';
+    buildSuggestionBtn.title = 'Puts the close match in the idea box and builds from it';
+    buildSuggestionBtn.addEventListener('click', function () {
+      renderAIDescriptionStep(modal, overlay, data.suggestion);
+    });
+    btnRow.appendChild(buildSuggestionBtn);
+  }
+
   var pickBtn = document.createElement('button');
   pickBtn.type = 'button';
   pickBtn.textContent = 'Pick from Recipes';
@@ -2424,7 +2439,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   });
   // Off screen: the close matches are the main choice, so the recipe
   // door is the red one and comes first
-  if (offScreen) {
+  if (offScreen && !data.suggestion) {
     pickBtn.className = 'recipe-create-btn';
     btnRow.appendChild(pickBtn);
   } else {
@@ -2439,7 +2454,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   cancelBtn.addEventListener('click', function () { closeOverlay(overlay); });
   btnRow.appendChild(cancelBtn);
 
-  if (!offScreen) btnRow.appendChild(pickBtn);
+  if (!offScreen || data.suggestion) btnRow.appendChild(pickBtn);
 
   // Deliberately NO whole-config generator here (removed 2026-08-07):
   // if it can't be assembled from the storyboard bricks, it shouldn't be

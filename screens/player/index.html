@@ -137,7 +137,8 @@
         <button id="draw-undo" type="button" class="draw-tool-btn">↩ Undo</button>
         <button id="draw-clear" type="button" class="draw-tool-btn">✕ Clear</button>
       </div>
-      <canvas id="draw-pad" class="draw-pad" width="360" height="360"></canvas>
+      <p id="draw-hint" class="draw-hint">Draw with a finger, a mouse, or a pen. Undo takes back the last stroke or a Clear.</p>
+      <canvas id="draw-pad" class="draw-pad" width="360" height="360" role="img" aria-label="Drawing pad" aria-describedby="draw-hint"></canvas>
     </div>
     <textarea
       id="response-input"
