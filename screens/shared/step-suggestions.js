@@ -1272,10 +1272,10 @@
   // ---- Find your match brick (2026-10-01, the inventory's Part 3) ----
   // Secret pairs that find each other: every pair goes to two students in
   // private (a half each, or the same card twice), they find each other in
-  // the room and type the name, and the projector shows who held what and
+  // the room and tap the name, and the projector shows who held what and
   // how many named their match. The finding is off the screen on purpose.
   //   text     the instruction ("Find the classmate whose card completes
-  //            yours, then type their name.")
+  //            yours, then tap their name.")
   //   pairs    2-30 {left, right}: two halves, one to each student
   //   items    2-30 strings: the same card to two students (when no pairs)
   //   heading  the line over who held what (optional)
@@ -1315,23 +1315,30 @@
       prompt: text + '\n\n**{{' + findId + '.assigned}}**',
       dealItems: list,
       pairItems: true,
-      maxLength: 60,
+      // a tap on a classmate's name, never a spelling test (owner 2026-10-01)
+      inputType: 'classmate',
       next: heldId
     };
     phases[heldId] = { type: 'reveal', template: heading + '\n\n{{' + findId + '.pairsList}}\n\n{{' + findId + '.foundLine}}' };
     return heldId;
   }
 
-  // ---- Hot seat brick (2026-10-01, the inventory's Part 3) ----
-  // One student answers the class's questions out loud: everyone writes a
+  // ---- Hot seat brick (2026-10-01, the inventory's Part 3; reworked the
+  // same day after the owner tried it) ----
+  // Students answer the class's questions out loud: everyone writes a
   // question, the teacher looks them over (a preview gate, since the
-  // questions go to a classmate), then they reach the hot seat's screen
-  // one at a time while the projector shows only the count and the name.
+  // questions go to classmates), then they go up one at a time on the
+  // projector and every screen with who answers, the seat moving to a new
+  // student every few questions.
   //   text      what everyone writes ("Write one question for the hot seat.")
-  //   pick      'random' (default: the hot seat is drawn when the questions
-  //             go out, a surprise) | 'vote' (the class picks first, by name)
+  //   pick      'random' (default: students drawn at random, the first when
+  //             the questions go out) | 'vote' (the class votes by name
+  //             first; the seat moves in vote order)
   //   voteText  the vote's question (pick 'vote')
-  //   heading   the line over the questions on the hot seat's screen
+  //   perSeat   questions per student before the seat moves (default 3)
+  //   heading   the line over the questions
+  var HOT_SEAT_PER_SEAT = 3;
+
   function appendHotSeat(step, stepNo, phases, lastId, problems) {
     var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
     if (!text) {
@@ -1347,10 +1354,13 @@
       phases[pickId] = { type: 'vote', mode: 'pick-one', candidates: 'players', excludeAuthors: true, question: voteText, timer: 45 };
       var namedId = freshId(phases, 'picked');
       phases[pickId].next = namedId;
-      phases[namedId] = { type: 'reveal', template: 'In the hot seat:\n\n**{{' + pickId + '.winnerText}}**' };
+      phases[namedId] = { type: 'reveal', template: 'First in the hot seat:\n\n**{{' + pickId + '.winnerText}}**' };
       lastId = namedId;
       to = '{{' + pickId + '.winnerText}}';
     }
+    // The seat moves every few questions (owner 2026-10-01: one student
+    // with everyone's questions was a lot)
+    var perSeat = (typeof step.perSeat === 'number' && step.perSeat >= 1) ? Math.min(20, Math.round(step.perSeat)) : HOT_SEAT_PER_SEAT;
     var askId = freshId(phases, 'ask');
     var gateId = freshId(phases, 'check');
     var seatId = freshId(phases, 'hot-seat');
@@ -1363,7 +1373,8 @@
       approveNext: seatId,
       rejectNext: askId
     };
-    phases[seatId] = { type: 'reveal-one', message: heading, from: askId + '.responses', to: to };
+    phases[seatId] = { type: 'reveal-one', message: heading, from: askId + '.responses', to: to, rotateEvery: perSeat };
+    if (pickId) phases[seatId].seatOrderFrom = pickId;
     return seatId;
   }
 

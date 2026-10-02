@@ -4,7 +4,7 @@
  * item to TWO students in private, either as two halves ("Romeo | Juliet",
  * a word and its meaning, a question and its answer) or as the same card
  * twice (the same animal sound). Students get up, find the classmate who
- * holds the other half, and type that classmate's name; the close says
+ * holds the other half, and tap that classmate's name; the close says
  * who held what and how many named their match. The finding happens in
  * the room, so the screen only deals and checks.
  *

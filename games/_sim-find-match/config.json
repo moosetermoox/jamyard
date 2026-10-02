@@ -9,14 +9,14 @@
     },
     "find": {
       "type": "collect",
-      "prompt": "Find the classmate whose card goes with yours, then type their name.\n\n**{{find.assigned}}**",
+      "prompt": "Find the classmate whose card goes with yours, then tap their name.\n\n**{{find.assigned}}**",
       "dealItems": [
         "Nucleus | Holds the DNA",
         "Ribosome | Builds proteins",
         "Vacuole | Stores water"
       ],
       "pairItems": true,
-      "maxLength": 60,
+      "inputType": "classmate",
       "next": "held"
     },
     "held": {

@@ -170,6 +170,24 @@ function buildRotationAssignment(ctx) {
   return assignment;
 }
 
+/** text | drawing | classmate (a tap on a classmate's name, 2026-10-01) */
+function inputTypeOf(phase) {
+  return phase.inputType === 'drawing' || phase.inputType === 'classmate' ? phase.inputType : 'text';
+}
+
+/**
+ * The names a student taps to answer an inputType "classmate" step (find
+ * your match, owner 2026-10-01: "what if they can't spell their
+ * classmate's name?"): everyone in the room but them, in alphabetical
+ * order so nothing in the order gives a match away.
+ */
+export function classmatesOf(engine, playerId) {
+  return engine.players.list()
+    .filter(p => p.id !== playerId && typeof p.name === 'string' && p.name.trim() !== '')
+    .map(p => p.name)
+    .sort((a, b) => a.localeCompare(b));
+}
+
 /**
  * The words that started a rotation chain, walked back from one hop's
  * contributor: each earlier step's `assignedFrom` names who handed the
@@ -493,7 +511,7 @@ registerHandler('collect', {
     const rotatedDrawings = phase.rotateFrom
       ? (engine.phaseData[phase.rotateFrom] || {}).assignedDrawing || null
       : null;
-    const inputType = phase.inputType === 'drawing' ? 'drawing' : 'text';
+    const inputType = inputTypeOf(phase);
 
     // drawingFrom: one shared drawing shown to EVERYONE (read-only), distinct
     // from assignedDrawing's per-player rotation. Doodle Bluff's title round.
@@ -551,6 +569,7 @@ registerHandler('collect', {
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, displayDrawing, timer, fields: phase.fields || null,
         inputType,
+        ...(inputType === 'classmate' ? { classmates: classmatesOf(engine, player.id) } : {}),
         // The step id lets Try it out deal the template's sample answers
         // (screens/shared/bot-brain.js); structure only, never a secret.
         phaseId: phase.id,
@@ -575,6 +594,18 @@ registerHandler('collect', {
         ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for other players...' });
       }
     }
+  },
+
+  // A student who joins mid-step joins every other student's class list on
+  // a name-tap step, so their match can tap them (find your match). No
+  // seat to report.
+  onLateJoin(ctx, playerId) {
+    if (inputTypeOf(ctx.phase) !== 'classmate') return null;
+    for (const p of ctx.engine.players.list()) {
+      if (p.id === playerId) continue;
+      ctx.emitToPlayer(p.id, EVENTS.CLASSMATES, { classmates: classmatesOf(ctx.engine, p.id) });
+    }
+    return null;
   },
 
   onReconnect(ctx, socket) {
@@ -618,7 +649,8 @@ registerHandler('collect', {
         ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language, { playerCount: ctx.engine.players.list().length }),
         partnerText: recon.partnerText,
         partnerLine: player ? partnerLineFor(ctx.engine, ctx.phase, player.id) : null,
-        inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
+        inputType: inputTypeOf(ctx.phase),
+        ...(inputTypeOf(ctx.phase) === 'classmate' && player ? { classmates: classmatesOf(ctx.engine, player.id) } : {}),
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
         prefill: reconPrefill,
         appendOnly: !!ctx.phase.appendOnly,

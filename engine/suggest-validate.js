@@ -324,6 +324,8 @@ export function validateSuggestions(raw, ctx) {
             // hotseat: who sits in it (drawn at random, or the class votes)
             pick: s.pick === 'vote' || s.pick === 'random' ? s.pick : undefined,
             voteText: typeof s.voteText === 'string' ? s.voteText.slice(0, 200) : undefined,
+            // hotseat: questions per student before the seat moves (2026-10-01)
+            perSeat: s.brick === 'hotseat' ? num(s.perSeat) : undefined,
             // quiet: the line after the quiet stretch
             talk: typeof s.talk === 'string' ? s.talk.slice(0, 300) : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined,

@@ -2654,12 +2654,13 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       }
       if (step.brick === 'hotseat') {
         if (step.pick === 'vote') {
-          list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who goes in the hot seat, and the name goes up'));
+          list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who goes in the hot seat, and the first name goes up'));
         }
+        var perSeatRow = (typeof step.perSeat === 'number' && step.perSeat >= 1) ? Math.round(step.perSeat) : 3;
         list.appendChild(addedRow(SB_BRICK_LABELS.preview || 'Teacher preview', 'added: you read the questions first and hide any that should not go'));
-        list.appendChild(addedRow(SB_BRICK_LABELS['reveal-one'] || 'Reveal one at a time', step.pick === 'vote'
-          ? 'added: the questions go to that student\'s screen one at a time; the projector shows only how many'
-          : 'added: a student is drawn at random and the questions go to their screen one at a time; the projector shows only how many'));
+        list.appendChild(addedRow(SB_BRICK_LABELS['reveal-one'] || 'Reveal one at a time',
+          'added: the questions go up one at a time on the projector with who answers each; a new student takes the seat every ' + perSeatRow +
+          (step.pick === 'vote' ? ', in vote order' : ', drawn at random')));
       }
       if (step.brick === 'rank' && step.runoff === true && step.correct !== true) {
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the class\'s pick by instant runoff, and every round of the count'));

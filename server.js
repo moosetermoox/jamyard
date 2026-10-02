@@ -132,6 +132,7 @@ import {
   isOwnCandidate
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
+import { hotSeatItem } from './engine/phase-handlers/reveal-one.js';
 import { EVENTS } from './engine/events.js';
 import { resolveVideoEmbed } from './engine/video.js';
 import {
@@ -5899,15 +5900,16 @@ io.on('connection', (socket) => {
 
     console.log(`[reveal-next] Revealed item ${state.revealed}/${state.items.length} in room ${code}`);
 
-    if (state.hotSeatId) {
-      // The hot seat (2026-10-01): the item reaches ONE student's screen;
-      // the projector and the rest of the class get the count and the name
-      io.to(code).except(state.hotSeatId).emit(EVENTS.REVEAL_ONE_ITEM, {
-        item: null, index: state.revealed, total: state.items.length, hotSeat: state.hotSeatName
-      });
-      io.to(state.hotSeatId).emit(EVENTS.REVEAL_ONE_ITEM, {
-        item, index: state.revealed, total: state.items.length
-      });
+    if (Array.isArray(state.seatPlan)) {
+      // The hot seat (2026-10-01, reworked on the owner's call): the
+      // question goes up on the projector and every screen with who answers
+      // it; the student in the seat gets it marked as theirs. The seat
+      // moves with the plan (engine/phases/hot-seat.js).
+      const i = state.revealed - 1;
+      const seatId = state.seatPlan[i].id;
+      state.hotSeatId = seatId;
+      io.to(code).except(seatId).emit(EVENTS.REVEAL_ONE_ITEM, hotSeatItem(state, i, null));
+      io.to(seatId).emit(EVENTS.REVEAL_ONE_ITEM, hotSeatItem(state, i, seatId));
     } else {
       // Send to everyone
       io.to(code).emit(EVENTS.REVEAL_ONE_ITEM, {

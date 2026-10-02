@@ -516,6 +516,13 @@ export function validate(config, gameId, options) {
         }
       }
 
+      // A classmate's name, tapped (find your match): one tap, never boxes
+      if (phase.inputType === 'classmate' && Array.isArray(phase.fields) && phase.fields.length > 0) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (collect) asks for a classmate's name (inputType "classmate") and has answer boxes (fields); a name is one tap, drop the boxes.`
+        );
+      }
+
       // labelAnswers keeps the box labels, so it needs boxes
       if (phase.labelAnswers === true && !(Array.isArray(phase.fields) && phase.fields.length >= 2)) {
         warnings.push(

@@ -1,13 +1,14 @@
 /**
  * simulate-hot-seat.js — the hot seat (2026-10-01, the mechanics
- * inventory's Part 3) through real rooms on two hidden fixtures, each the
- * hotseat brick's own compile:
- *   games/_sim-hot-seat         pick "vote": the class votes Cleo in
- *   games/_sim-hot-seat-random  pick "random": drawn when the questions go
- * Everyone writes a question, the teacher approves them, and each one
- * reaches ONLY the hot seat's screen; the projector and the rest of the
- * class see the count and the name. The seat's own question is left out,
- * and a refresh keeps both sides as they were.
+ * inventory's Part 3, reworked on the owner's call the same day) through
+ * real rooms on two hidden fixtures, each the hotseat brick's own compile:
+ *   games/_sim-hot-seat         pick "vote", two questions per seat: the
+ *                               class votes Cleo first, Ana second
+ *   games/_sim-hot-seat-random  pick "random", a new student every question
+ * Everyone writes a question and the teacher approves them; then each
+ * question goes up on the projector and every screen with who answers it,
+ * marked as theirs on the seat's screen, the seat moving every run, and
+ * nobody answering their own question. A refresh gets the current one.
  *
  *   node scripts/simulate-hot-seat.js    (server running on :3000, or SIM_SERVER)
  */
@@ -46,12 +47,14 @@ async function askAndApprove(host, code, players, names) {
   return preview;
 }
 
+const authorOf = (e) => (String(e && e.item || '').match(/Question from (\w+)\?/) || [])[1];
+
 async function voted() {
   const names = ['Ana', 'Ben', 'Cleo', 'Dev'];
   const { host, code, players, tokens } = await room('_sim-hot-seat', names);
   try {
     host.emit('start-game', { code });
-    // Everyone votes Cleo in; Cleo votes Ana
+    // Cleo gets three votes, Ana one
     const ballots = [];
     for (const p of players) ballots.push(await waitForEvent(p, 'vote-start', 8000));
     const cleoId = players[2]._id;
@@ -60,49 +63,41 @@ async function voted() {
     drainEvent(players, 'vote-start');
     host.emit('close-voting', { code });
     const named = await waitForEvent(host, 'show-results', 8000);
-    check('the class\'s pick goes up by name', /In the hot seat:\s+\*\*Cleo\*\*/.test(String(named.content || '')));
+    check('the first name goes up', /First in the hot seat:\s+\*\*Cleo\*\*/.test(String(named.content || '')));
     host.emit('advance-phase', { code });
 
     const preview = await askAndApprove(host, code, players, names);
     check('the teacher reads every question first', (preview.responses || []).length === 4);
 
-    // The questions go to Cleo only
     const hostStart = await waitForEvent(host, 'reveal-one-start', 8000);
     const starts = [];
     for (const p of players) starts.push(await waitForEvent(p, 'reveal-one-start', 8000));
-    check('the projector knows who sits, and the count leaves out Cleo\'s own question', hostStart.hotSeat === 'Cleo' && hostStart.total === 3);
-    check('Cleo is told they are in the hot seat, nobody else is', starts[2].inHotSeat === true && starts.filter(s => s.inHotSeat).length === 1);
+    check('the projector knows who goes first, and every question is in play', hostStart.hotSeat === 'Cleo' && hostStart.total === 4);
+    check('Cleo is told they are first, nobody else is', starts[2].inHotSeat === true && starts.filter(s => s.inHotSeat).length === 1);
 
     for (let k = 0; k < 2; k++) { host.emit('reveal-next', { code }); await wait(250); }
 
-    // A classmate and the hot seat refresh mid-way
+    // A classmate refreshes after two questions
     players[3].disconnect();
     const devBack = await connect('DEV2');
     players[3] = devBack;
     devBack.emit('join-room', { code, name: 'Dev', token: tokens[3] });
     await waitForEvent(devBack, 'join-success', 4000);
-    players[2].disconnect();
-    const cleoBack = await connect('CLEO2');
-    players[2] = cleoBack;
-    cleoBack.emit('join-room', { code, name: 'Cleo', token: tokens[2] });
-    await waitForEvent(cleoBack, 'join-success', 4000);
     await wait(400);
+    const devNow = (devBack._buffer['reveal-one-item'] || [])[0];
+    check('a refreshed screen gets the question that is up, with who answers', devNow && devNow.index === 2 && devNow.hotSeat === 'Cleo' && typeof devNow.item === 'string');
 
-    host.emit('reveal-next', { code });
-    await wait(500);
+    for (let k = 0; k < 2; k++) { host.emit('reveal-next', { code }); await wait(250); }
 
-    const cleoItems = (cleoBack._buffer['reveal-one-item'] || []).map(e => e.item);
-    const devItems = devBack._buffer['reveal-one-item'] || [];
     const hostItems = host._buffer['reveal-one-item'] || [];
+    check('the projector shows every question in words with who answers it', hostItems.length === 4 && hostItems.every(e => typeof e.item === 'string' && e.hotSeat));
+    check('the seat moves in vote order, two questions each: Cleo, Cleo, Ana, Ana', hostItems.map(e => e.hotSeat).join() === 'Cleo,Cleo,Ana,Ana');
+    check('each run counts its own turns', hostItems.map(e => `${e.turn}/${e.turns}`).join() === '1/2,2/2,1/2,2/2');
+    check('nobody answers their own question', hostItems.every(e => authorOf(e) !== e.hotSeat));
+    const cleoItems = players[2]._buffer['reveal-one-item'] || [];
     const anaItems = players[0]._buffer['reveal-one-item'] || [];
-    check('Cleo, back after a refresh, holds all three questions in words', cleoItems.filter(Boolean).length === 3 && cleoItems.every(t => typeof t === 'string' && /^Question from (Ana|Ben|Dev)\?$/.test(t)));
-    check('Cleo\'s own question never comes back to Cleo',!cleoItems.some(t => /Cleo/.test(String(t))));
-    check('the projector gets the count and the name, never a question', hostItems.length === 3 && hostItems.every(e => e.item === null && e.hotSeat === 'Cleo'));
-    check('a classmate gets the count only, before and after a refresh', anaItems.length === 3 && anaItems.every(e => e.item === null) && devItems.length >= 1 && devItems.every(e => e.item === null && e.hotSeat === 'Cleo'));
-    const devStart = (devBack._buffer['reveal-one-start'] || [])[0];
-    check('the refreshed classmate is not told they are in the hot seat', devStart && devStart.hotSeat === 'Cleo' && devStart.inHotSeat === false);
-    const cleoStart = (cleoBack._buffer['reveal-one-start'] || [])[0];
-    check('the refreshed hot seat is still the hot seat', cleoStart && cleoStart.inHotSeat === true);
+    check('the seat\'s screen marks the question as theirs, and only then', cleoItems.map(e => e.mine).join() === 'true,true,false,false' && anaItems.map(e => e.mine).join() === 'false,false,true,true');
+    check('every screen gets the words too', anaItems.every(e => typeof e.item === 'string'));
   } finally {
     teardown(host, players);
   }
@@ -115,12 +110,11 @@ async function random() {
     host.emit('start-game', { code });
     await askAndApprove(host, code, players, names);
     const hostStart = await waitForEvent(host, 'reveal-one-start', 8000);
-    check('a student is drawn when the questions go out', names.includes(hostStart.hotSeat) && hostStart.total === 2);
-    for (let k = 0; k < 2; k++) { host.emit('reveal-next', { code }); await wait(250); }
-    const seatIdx = names.indexOf(hostStart.hotSeat);
-    const seatItems = (players[seatIdx]._buffer['reveal-one-item'] || []).map(e => e.item);
-    const others = players.filter((_, i) => i !== seatIdx).flatMap(p => p._buffer['reveal-one-item'] || []);
-    check('only the drawn student holds the words', seatItems.length === 2 && seatItems.every(t => typeof t === 'string') && others.every(e => e.item === null));
+    check('a student is drawn to go first', names.includes(hostStart.hotSeat) && hostStart.total === 3);
+    for (let k = 0; k < 3; k++) { host.emit('reveal-next', { code }); await wait(250); }
+    const items = host._buffer['reveal-one-item'] || [];
+    check('a new student every question, all three get a turn', new Set(items.map(e => e.hotSeat)).size === 3);
+    check('nobody answers their own question', items.every(e => authorOf(e) !== e.hotSeat));
   } finally {
     teardown(host, players);
   }

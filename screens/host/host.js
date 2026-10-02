@@ -1723,17 +1723,20 @@ socket.on('leaderboard', ({ standings, teamStandings, style, final, timer, hostT
   }
 });
 
-// The hot seat (2026-10-01): the items go to one student's screen, the
-// projector shows how many have gone and to whom, never the words
-function hotSeatCount(index, total, name) {
-  return UiLang.t('{index} of {total} sent to {name}')
-    .replace('{index}', String(index)).replace('{total}', String(total)).replace('{name}', name);
+// The hot seat (2026-10-01, reworked on the owner's call): one question at
+// a time on the projector, with who answers it and their place in the run;
+// the seat moves every few questions (engine/phases/hot-seat.js)
+function hotSeatFor(name, turn, turns) {
+  return UiLang.t('For {name} ({turn} of {turns})')
+    .replace('{name}', name).replace('{turn}', String(turn)).replace('{turns}', String(turns));
 }
 
 socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, hostTemplate, show }) => {
   showSection(revealOneSection);
   setRichText(revealOneMessage, message || 'Reveal Time!');
-  revealOneCounter.textContent = hotSeat ? hotSeatCount(revealed, total, hotSeat) : revealed + ' of ' + total + ' revealed';
+  revealOneCounter.textContent = hotSeat && !revealed
+    ? UiLang.t('First in the hot seat: {name}').replace('{name}', hotSeat)
+    : revealed + ' of ' + total + ' revealed';
   revealOneItems.innerHTML = '';
   revealOneItems.classList.remove('is-gallery');
   revealOneNextBtn.hidden = revealed >= total;
@@ -1752,11 +1755,19 @@ socket.on('reveal-one-count', ({ total, revealed }) => {
   if (revealed >= total) { revealOneNextBtn.hidden = true; revealOneContinueBtn.hidden = false; }
 });
 
-socket.on('reveal-one-item', ({ item, index, total, hotSeat }) => {
+socket.on('reveal-one-item', ({ item, index, total, hotSeat, turn, turns }) => {
   if (J) J.sound('reveal');
   if (hotSeat) {
-    // Sent to the hot seat's screen: the count moves, the words never show
-    revealOneCounter.textContent = hotSeatCount(index, total, hotSeat);
+    // The current question alone, under who answers it
+    revealOneCounter.textContent = index + ' of ' + total + ' revealed';
+    revealOneItems.textContent = '';
+    const who = document.createElement('p');
+    who.className = 'hot-seat-for';
+    who.textContent = hotSeatFor(hotSeat, turn || index, turns || total);
+    const q = document.createElement('div');
+    q.className = 'reveal-one-item hot-seat-question';
+    setRichText(q, typeof item === 'string' ? item : ((item && (item.text || item.name)) || ''));
+    revealOneItems.append(who, q);
     if (index >= total) {
       revealOneNextBtn.hidden = true;
       revealOneContinueBtn.hidden = false;
