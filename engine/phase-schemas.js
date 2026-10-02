@@ -1081,12 +1081,18 @@ export const PHASE_SCHEMAS = {
       },
       points: {
         type: 'integer', min: 1, max: 1000, optional: true, default: 10,
-        label: 'Points for the closest guess'
+        label: 'Points for the closest guess',
+        helper: 'With scoring "distance" the default is 1000, so a share of it shows.'
       },
       scoring: {
-        type: 'enum', values: ['closest', 'graduated'], optional: true, default: 'closest',
+        type: 'enum', values: ['closest', 'graduated', 'distance'], optional: true, default: 'closest',
         label: 'Scoring',
-        helper: 'closest: the closest guess takes all the points (ties share). graduated: points fall off by closeness rank, everyone earns something.'
+        helper: 'closest: the closest guess takes all the points (ties share). graduated: points fall off by closeness rank, everyone earns something. distance: every guess earns points by how close it is, the smaller number over the larger (the right answer earns all of them, twice or half the answer earns half), fair at any scale.'
+      },
+      speedBonus: {
+        type: 'boolean', optional: true,
+        label: 'Speed bonus',
+        helper: 'With an answer and a timer: a guess sent at once keeps all its points, one sent at the buzzer keeps half (the quiz\'s rule). A changed guess counts from when it was changed.'
       },
       min: {
         type: 'number', optional: true,

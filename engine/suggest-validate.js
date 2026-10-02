@@ -334,7 +334,7 @@ export function validateSuggestions(raw, ctx) {
             min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,
             max: typeof s.max === 'number' && Number.isFinite(s.max) ? s.max : undefined,
             unit: typeof s.unit === 'string' ? s.unit.slice(0, 40) : undefined,
-            scoring: s.scoring === 'closest' || s.scoring === 'graduated' ? s.scoring : undefined
+            scoring: s.scoring === 'closest' || s.scoring === 'graduated' || s.scoring === 'distance' ? s.scoring : undefined
           }))
         },
         why: cleanWhy(item.why)

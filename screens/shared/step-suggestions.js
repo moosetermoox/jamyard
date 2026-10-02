@@ -519,7 +519,8 @@
   //                             //   (text = the checklist instruction)
   //     answer?: number,        // estimate only: the true number (else poll mode)
   //     unit?: string,          // estimate only, with answer
-  //     scoring?: string,       // estimate only, with answer: 'closest' (default) | 'graduated'
+  //     scoring?: string,       // estimate only, with answer: 'closest' (default) | 'graduated' | 'distance'
+  //     speedBonus?: boolean,   // estimate with an answer: faster guesses keep more (quiz too)
   //     gallery?: string,       // draw only: the line over the one-at-a-time gallery
   //                             //   (text = the drawing instruction; timer = seconds to draw)
   //     heading?: string,       // summarize only: the projector line over the result
@@ -549,6 +550,8 @@
   var CONFIDENCE_PROMPT = 'How sure are you of your answer?';
   var CONFIDENCE_LEVELS = ['Just guessing', 'Not sure', 'Pretty sure', 'Certain'];
   var CONFIDENCE_TIMER = 15;
+  // A guess with a speed bonus and no clock of its own gets this one
+  var ESTIMATE_SPEED_TIMER = 45;
 
   function appendQuizChain(step, stepNo, phases, lastId, problems) {
     var raw = Array.isArray(step.questions) ? step.questions : [];
@@ -1903,6 +1906,8 @@
     var lastId = 'lobby';
     // Points from consecutive graded bricks share one scoreboard
     var gradedRun = [];
+    // Guesses scored by how close share one scoreboard too
+    var estimateRun = [];
 
     steps.forEach(function (step, i) {
       var brick = step && step.brick;
@@ -2276,7 +2281,13 @@
       if (brick === 'estimate') {
         if (typeof step.answer === 'number' && isFinite(step.answer)) built.answer = step.answer;
         if (typeof step.unit === 'string' && step.unit.trim()) built.unit = step.unit.trim();
-        if (step.scoring === 'graduated' || step.scoring === 'closest') built.scoring = step.scoring;
+        if (step.scoring === 'graduated' || step.scoring === 'closest' || step.scoring === 'distance') built.scoring = step.scoring;
+        // Points by how close, faster guesses keep more (owner 2026-10-01);
+        // a speed bonus needs a clock
+        if (step.speedBonus === true && built.answer != null) {
+          built.speedBonus = true;
+          if (!built.timer) built.timer = ESTIMATE_SPEED_TIMER;
+        }
       }
 
       if (brick === 'vote' && voteOverResponses) built.excludeAuthors = true;
@@ -2355,6 +2366,19 @@
       // A graded open answer's standings (2026-09-30)
       if (brick === 'collect' && built.correctAnswer && step.standings !== false) {
         lastId = appendStandings(phases, lastId, [id + '.scores']);
+      }
+
+      // Guesses scored by how close (2026-10-01): one scoreboard after the
+      // last of a run of them, the points summed
+      if (brick === 'estimate' && built.scoring === 'distance' && built.answer != null && step.standings !== false) {
+        estimateRun.push(id + '.scores');
+        var nextGuess = steps[i + 1];
+        var moreGuesses = nextGuess && nextGuess.brick === 'estimate' && nextGuess.scoring === 'distance' &&
+          typeof nextGuess.answer === 'number' && nextGuess.standings !== false;
+        if (!moreGuesses) {
+          lastId = appendStandings(phases, lastId, estimateRun);
+          estimateRun = [];
+        }
       }
 
       // The class order is the rank brick's payoff: a host-paced reveal
