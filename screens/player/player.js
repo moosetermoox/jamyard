@@ -516,8 +516,13 @@ function forgetSavedSeat() {
 // Answers come from /shared/bot-brain.js: prompt-aware rules so a snack
 // question gets a snack answer. Falls back to a playful generic if the
 // script didn't load for some reason.
+// The seat of the last Add sample answers press: a keyword answer is dealt
+// by seat too, so two pretend students never send the same line on one step
+var botFillSeat = null;
 function botFillAnswer(promptText) {
-  if (typeof botAnswerFor === 'function') return botAnswerFor(promptText);
+  if (typeof botAnswerFor === 'function') {
+    return botAnswerFor(promptText, botFillSeat === null ? undefined : { seat: botFillSeat, salt: latestPhaseInstanceId });
+  }
   return 'Pizza is the best food';
 }
 
@@ -537,6 +542,7 @@ function sampleFor(samples, seat) {
 
 window.addEventListener('message', function(e) {
   if (!e.data || e.data.type !== 'bot-fill') return;
+  botFillSeat = typeof e.data.seat === 'number' ? e.data.seat : null;
   var sample = sampleFor(e.data.samples, e.data.seat);
 
   // Find the currently visible section

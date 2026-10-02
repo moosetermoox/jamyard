@@ -15,6 +15,7 @@
  */
 import { formatCloud, formatCards, pickRandom, listOf } from './phases/word-cloud.js';
 import { StateMachine } from './state-machine.js';
+import { foreachRoundOf } from './phases/foreach-rounds.js';
 import { PlayerRegistry } from './player-registry.js';
 import { runEliminate } from './phases/eliminate-handler.js';
 import { generateMatchups, getEligibleVoters } from './phases/vote-handler.js';
@@ -62,6 +63,14 @@ export class GameEngine {
     if (loopInfo) {
       this.phaseData[phaseId + '~' + loopInfo.iteration] = data;
     }
+
+    // A For Each round's step (`_fe:<foreach>:<sub>`) runs once per item
+    // under the same id, so each round also keeps its own copy
+    // (`_fe:<foreach>:<sub>@<round>`) for the activity report, which
+    // showed only the last round (a reviewer, 2026-10-02). Live room
+    // state only, like the rest of phaseData.
+    const round = foreachRoundOf(phaseId, this.foreachState);
+    if (round) this.phaseData[phaseId + '@' + round] = data;
   }
 
   _getActiveLoopFor(phaseId) {

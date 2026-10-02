@@ -207,7 +207,7 @@ import { gradeFreeText } from './engine/phases/free-text-grading.js';
 import { gradeRankings } from './engine/phases/rank-grading.js';
 import { checkNewName, SELF_RENAME_MESSAGES } from './engine/student-rename.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
-import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
+import { foolPoints, mergeScores, authorsByTextOf } from './engine/phases/bluff-scoring.js';
 import { remapForeachSubConfig, resolveCurrentRefsInSubConfig } from './engine/phases/foreach-remap.js';
 import { applyIterationScoring } from './engine/phases/foreach-scoring.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
@@ -1888,12 +1888,9 @@ async function closeCollect(code, room) {
           // known). Merged into .scores alongside any truth-picking points.
           if (collectPhase.foolPoints && collectPhase.excludeAuthored) {
             const bluffSrc = (room.engine.phaseData[collectPhase.excludeAuthored] || {}).responses || [];
-            const authorsByText = {};
-            for (const br of bluffSrc) {
-              if (br && br.playerId && br.text != null) {
-                authorsByText[String(br.text).trim().toLowerCase()] = br.playerId;
-              }
-            }
+            // Two students who wrote the same fake share one ballot option
+            // (the pool dedupes it) and both earn its fool points
+            const authorsByText = authorsByTextOf(bluffSrc);
             const fooled = foolPoints({
               responses: choiceResponses,
               authorsByText,

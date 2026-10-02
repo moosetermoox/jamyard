@@ -204,6 +204,8 @@
         canvas.height = 360;
         Draw.renderStrokes(canvas, item.drawing);
         li.appendChild(canvas);
+        // What it was drawn from (a handed phrase): student text, so textContent
+        if (item.assigned) li.appendChild(el('div', 'rp-entry-text', 'Drawn from: ' + item.assigned));
       } else {
         li.appendChild(el('div', 'rp-entry-text', item.text));
       }
