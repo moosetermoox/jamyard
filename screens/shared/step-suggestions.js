@@ -741,6 +741,8 @@
   //   text     what each reader writes (required)
   //   draft    the question the writers answer first (optional)
   //   readers  1 (default) or 2
+  //   boxes    2-4 labels ("Star 1", "Star 2", "Wish"): one box each, the
+  //            writer reads them back labelled (optional; else one box)
   //   timer    seconds per feedback step (optional)
 
   function appendFeedback(step, stepNo, phases, lastId, problems) {
@@ -755,6 +757,13 @@
       text = text.replace(/\{\{[^}]*\}\}/g, '').replace(/[ \t]{2,}/g, ' ').trim();
     }
     var readers = step.readers === 2 ? 2 : 1;
+    var boxes = (Array.isArray(step.boxes) ? step.boxes : [])
+      .map(function (b) { return typeof b === 'string' ? b.replace(/[*|]/g, '').trim() : ''; })
+      .filter(Boolean).slice(0, 4);
+    if (Array.isArray(step.boxes) && step.boxes.length > 4) {
+      problems.push('Step ' + stepNo + ': peer feedback takes four boxes at most, the extras were dropped.');
+    }
+    if (boxes.length === 1) boxes = [];
     if (typeof step.readers === 'number' && step.readers > 2) {
       problems.push('Step ' + stepNo + ': peer feedback takes one or two readers, it was set to two.');
       readers = 2;
@@ -804,6 +813,12 @@
       };
       if (r > 0) fb.showOriginal = true;
       if (timer) fb.timer = timer;
+      // boxes (owner 2026-10-01): "two stars and a wish" as three labelled
+      // boxes, stored one labelled line each so the writer reads them back
+      if (boxes.length >= 2) {
+        fb.fields = boxes.map(function (label, b) { return { label: label, key: 'box' + (b + 1) }; });
+        fb.labelAnswers = true;
+      }
       phases[lastId].next = fbId;
       phases[fbId] = fb;
       chainIds.push(fbId);
@@ -816,7 +831,8 @@
     phases[revealId] = {
       type: 'reveal', scope: 'own', chainFrom: chainIds, chainDisplay: 'steps',
       chainHeading: 'You wrote:',
-      chainGrewHeading: readers === 2 ? 'What your classmates said:' : 'What a classmate said:'
+      chainGrewHeading: readers === 2 ? 'What your classmates said:' : 'What a classmate said:',
+      chainQuoted: true
     };
     return revealId;
   }

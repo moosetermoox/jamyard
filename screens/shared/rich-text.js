@@ -188,12 +188,78 @@
     }
   }
 
+  // A classmate's words on a paper card (owner 2026-10-01: "break up the
+  // font, not the same font for instructions and feedback"). A paragraph
+  // (blank lines around it) that opens with “ and closes with ” is a
+  // quote: the feedback brick shows the draft that way and returns every
+  // comment that way. A quote may hold blank lines of its own (a pasted
+  // draft with paragraphs); an opener that never closes stays plain text.
+  function quoteBlocks(text) {
+    var raw = String(text == null ? '' : text).split(/\n[ \t]*\n/);
+    var out = [];
+    for (var i = 0; i < raw.length; i++) {
+      var block = raw[i].trim();
+      if (block.charAt(0) === '“') {
+        var j = i;
+        var joined = block;
+        while (joined.charAt(joined.length - 1) !== '”' && j + 1 < raw.length) {
+          j++;
+          joined += '\n\n' + raw[j].trim();
+        }
+        if (joined.length >= 2 && joined.charAt(joined.length - 1) === '”') {
+          out.push({ quote: true, text: joined.slice(1, -1).trim() });
+          i = j;
+          continue;
+        }
+      }
+      if (block) out.push({ quote: false, text: block });
+    }
+    return out;
+  }
+
+  function hasQuoteCard(text) {
+    return quoteBlocks(text).some(function (b) { return b.quote; });
+  }
+
+  function linesInto(el, text, boldClass) {
+    var lines = String(text).split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      if (i > 0) el.appendChild(document.createElement('br'));
+      runsInto(el, inlineRuns(lines[i]), boldClass);
+    }
+  }
+
+  // Text and cards as blocks: the plain parts in the page's face, every
+  // quote on a .quote-card (a book face, host and player styles.css)
+  function quotedInto(el, text, boldClass) {
+    var blocks = quoteBlocks(text);
+    for (var i = 0; i < blocks.length; i++) {
+      var part = document.createElement('span');
+      part.className = blocks[i].quote ? 'quote-card' : 'quote-around';
+      linesInto(part, blocks[i].text, blocks[i].quote ? 'quote-bold' : boldClass);
+      el.appendChild(part);
+    }
+  }
+
+  // A message body with cards in it (the returned feedback)
+  function buildQuoted(text, className) {
+    var wrap = document.createElement('div');
+    wrap.className = (className ? className + ' ' : '') + 'msg-rich has-quotes';
+    quotedInto(wrap, text, null);
+    return wrap;
+  }
+
   // Teacher-authored prompts and instructions: **bold** runs become
   // <strong>, line breaks become <br>, nothing else is interpreted (a
   // prompt is one short text, not an AI essay; headings and bullets would
-  // be a surprise there). createElement/textContent only.
+  // be a surprise there), except a quoted paragraph, which is a paper card.
+  // createElement/textContent only.
   function applyInline(el, text) {
     el.textContent = '';
+    if (hasQuoteCard(text)) {
+      quotedInto(el, text, 'prompt-bold');
+      return;
+    }
     var lines = String(text == null ? '' : text).split('\n');
     for (var i = 0; i < lines.length; i++) {
       if (i > 0) el.appendChild(document.createElement('br'));
@@ -287,6 +353,9 @@
     inlineRuns: inlineRuns,
     plainLine: plainLine,
     applyInline: applyInline,
-    buildBody: buildBody
+    buildBody: buildBody,
+    quoteBlocks: quoteBlocks,
+    hasQuoteCard: hasQuoteCard,
+    buildQuoted: buildQuoted
   };
 })();

@@ -114,6 +114,22 @@ export function formatChainContent(view, opts = {}) {
   // into a personal payoff (Someone's Got You, outside review #2).
   const heading = (typeof opts.heading === 'string' && opts.heading.trim() !== '')
     ? opts.heading.trim() : '🌱 You started with:';
+  // quoted (the feedback brick, 2026-10-01): the piece and every comment
+  // in a quoted paragraph of its own, which the screens draw as a paper
+  // card (shared/rich-text.js), the headings in between in the plain face
+  if (opts.quoted && display === 'steps') {
+    const out = [heading, '', `“${view.original}”`];
+    if (view.steps.length === 0) {
+      out.push('', 'No one got to add to it this time.');
+    } else {
+      const grew = (typeof opts.grewHeading === 'string' && opts.grewHeading.trim() !== '')
+        ? opts.grewHeading.trim() : 'And then, hand to hand:';
+      out.push('', grew);
+      view.steps.forEach(text => out.push('', `“${text}”`));
+    }
+    if (!view.complete) out.push('', '(Part of the chain went missing along the way, wifi happens.)');
+    return out.join('\n');
+  }
   const lines = [heading, `“${view.original}”`];
 
   if (display === 'template') {

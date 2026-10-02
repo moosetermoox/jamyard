@@ -319,6 +319,8 @@ export function validateSuggestions(raw, ctx) {
             // feedback: the question the writers answer first, one or two readers
             draft: typeof s.draft === 'string' ? s.draft.slice(0, 500) : undefined,
             readers: num(s.readers),
+            // feedback: labelled boxes, two stars and a wish (2026-10-01)
+            boxes: s.brick === 'feedback' ? cleanStrings(s.boxes, 4, 60) : undefined,
             // hotseat: who sits in it (drawn at random, or the class votes)
             pick: s.pick === 'vote' || s.pick === 'random' ? s.pick : undefined,
             voteText: typeof s.voteText === 'string' ? s.voteText.slice(0, 200) : undefined,

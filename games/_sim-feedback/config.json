@@ -1,6 +1,6 @@
 {
   "name": "Sim Feedback",
-  "description": "Hidden fixture: the peer feedback brick with two readers (scripts/simulate-feedback.js).",
+  "description": "Hidden fixture: the peer feedback brick with two readers and two labelled boxes (scripts/simulate-feedback.js).",
   "minPlayers": 2,
   "phases": {
     "lobby": {
@@ -17,6 +17,17 @@
       "type": "collect",
       "prompt": "Read your classmate's thesis below. Write one strength and one question for the writer.\n\n“{{draft.assigned}}”",
       "rotateFrom": "draft",
+      "fields": [
+        {
+          "label": "Strength",
+          "key": "box1"
+        },
+        {
+          "label": "Question",
+          "key": "box2"
+        }
+      ],
+      "labelAnswers": true,
       "next": "feedback-2"
     },
     "feedback-2": {
@@ -24,6 +35,17 @@
       "prompt": "Read your classmate's thesis below. Write one strength and one question for the writer.\n\n“{{feedback.assigned}}”",
       "rotateFrom": "feedback",
       "showOriginal": true,
+      "fields": [
+        {
+          "label": "Strength",
+          "key": "box1"
+        },
+        {
+          "label": "Question",
+          "key": "box2"
+        }
+      ],
+      "labelAnswers": true,
       "next": "feedback-back"
     },
     "feedback-back": {
@@ -37,6 +59,7 @@
       "chainDisplay": "steps",
       "chainHeading": "You wrote:",
       "chainGrewHeading": "What your classmates said:",
+      "chainQuoted": true,
       "next": "wrap"
     },
     "wrap": {

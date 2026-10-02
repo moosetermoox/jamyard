@@ -256,6 +256,11 @@ export const PHASE_SCHEMAS = {
         label: 'Shuffle the deal',
         helper: 'With "Rotate items from": deal the items in a random circle instead of a fixed shift. Each player still gets exactly one classmate\'s item, never their own, but who got whose is unpredictable. Ignores the rotation offset.'
       },
+      labelAnswers: {
+        type: 'boolean', optional: true,
+        label: 'Keep each box\'s label in the answer',
+        helper: 'With two or more answer boxes: the answer is stored as one line per box, its label first in bold ("Star 1: ...", "Wish: ..."), instead of the boxes joined with |. For answers that go back to a classmate or onto a card, where the labels say what each part is.'
+      },
       showOriginal: {
         type: 'boolean', optional: true, contexts: ['topLevel'],
         label: 'Show the first piece, not the last reply',
@@ -1298,6 +1303,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'Heading over the student\'s own item',
         helper: 'With scope "own". The line above what the student started with (default "You started with:"). For a personal payoff: "You wrote:".'
+      },
+      chainQuoted: {
+        type: 'boolean', optional: true,
+        label: 'Each piece on its own card',
+        helper: 'With scope "own" and chain display "steps": the student\'s own piece and every hop come back as separate quoted cards (a paper card in a book face on the student screen) with the headings between them. Peer feedback reads best this way.'
       },
       chainGrewHeading: {
         type: 'string', optional: true,

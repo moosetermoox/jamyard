@@ -1385,6 +1385,33 @@ function ptsLabel(n) {
   return n + (Math.abs(Number(n)) === 1 ? ' pt' : ' pts');
 }
 
+// One standing as a bar row (owner 2026-10-01: "could the leaderboard be a
+// bar graph so you see how many points"): the rank, the name, a bar the
+// length of the points against the top score, the points. textContent only.
+function standingRow(rank, name, score, max) {
+  const p = document.createElement('p');
+  p.className = 'standing-row';
+  const r = document.createElement('span');
+  r.className = 'standing-rank';
+  r.textContent = '#' + rank;
+  const n = document.createElement('span');
+  n.className = 'standing-name';
+  n.textContent = name;
+  const track = document.createElement('span');
+  track.className = 'standing-track';
+  const fill = document.createElement('span');
+  fill.className = 'standing-fill';
+  const pts = Number(score) || 0;
+  const pct = max > 0 ? Math.max(0, Math.round((pts / max) * 100)) : 0;
+  fill.style.width = (pts > 0 ? Math.max(pct, 3) : 0) + '%';
+  track.appendChild(fill);
+  const v = document.createElement('span');
+  v.className = 'standing-pts';
+  v.textContent = ptsLabel(score);
+  p.append(r, n, track, v);
+  return p;
+}
+
 function escapeHtml(str) {
   return String(str == null ? '' : str)
     .replace(/&/g, '&amp;')
@@ -1656,10 +1683,10 @@ socket.on('leaderboard', ({ standings, teamStandings, style, final, timer, hostT
   if (teamStandings && teamStandings.length > 0) {
     // Team competition: teams lead the projector, each with its members'
     // contributions underneath.
+    const teamMax = Math.max(0, ...teamStandings.map(t => Number(t.score) || 0));
     for (let i = 0; i < teamStandings.length; i++) {
       const t = teamStandings[i];
-      const p = document.createElement('p');
-      p.textContent = '#' + t.rank + ' ' + t.team + ': ' + ptsLabel(t.score);
+      const p = standingRow(t.rank, t.team, t.score, teamMax);
       p.classList.add('juice-stagger', 'team-standing-row');
       p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
       leaderboardStandings.appendChild(p);
@@ -1672,12 +1699,11 @@ socket.on('leaderboard', ({ standings, teamStandings, style, final, timer, hostT
       leaderboardStandings.appendChild(members);
     }
   } else {
+    const max = Math.max(0, ...standings.map(s => Number(s.score) || 0));
     for (let i = 0; i < standings.length; i++) {
       const s = standings[i];
-      const p = document.createElement('p');
-      // Medal based on rank, not array index, so tied players share medals
-      // (e.g. two players tied for 1st both get gold; no silver awarded).
-      p.textContent = '#' + s.rank + ' ' + s.name + ': ' + ptsLabel(s.score);
+      // Rank, not array index, so tied players share a place
+      const p = standingRow(s.rank, s.name, s.score, max);
       // Rows pop in one after another, top rank first.
       p.classList.add('juice-stagger');
       p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';

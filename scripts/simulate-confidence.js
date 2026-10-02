@@ -65,10 +65,11 @@ async function english() {
     const card = await waitForEvent(host, 'announce', 8000);
     const msg = String(card.message || '');
     check('the answer card shows the answer', /The answer was: Condensation!/.test(msg));
-    check('the card carries the Right | Wrong chart in level order', /↔ Right \| Wrong\nJust guessing[^\n]*0 → [^\n]*1\nNot sure[^\n]*1 → [^\n]*0\nPretty sure[^\n]*0 → [^\n]*0\nCertain[^\n]*1 → [^\n]*1/.test(msg));
-    check('the line names the most and least sure', /Certain: 1 of 2 were right\. Just guessing: 0 of 1 were right\./.test(msg));
+    // Ana Certain, Ben Not sure, Cleo Certain, Dev Just guessing = 11 / 4
+    check('the card carries the dial of the class average, 2.8 of 4, nearest Pretty sure', /How sure the class was\n◔ 2\.8\/4 \| Just guessing \| Certain\nPretty sure on average/.test(msg));
+    check('one line about the sure ones: one of the two sure students was wrong', /Sure but wrong: 1 of 2\./.test(msg));
     const studentCard = await waitForEvent(players[0], 'announce', 4000).catch(() => null);
-    check('the students see the same card', studentCard && /↔ Right \| Wrong/.test(studentCard.message || ''));
+    check('the students see the same card', studentCard && /◔ 2\.8\/4/.test(studentCard.message || ''));
 
     // Question two: everyone right, everyone certain
     host.emit('advance-phase', { code });
@@ -79,7 +80,7 @@ async function english() {
     await answerAll(code, players, sure2, ['Certain', 'Certain', 'Certain', 'Certain']);
     host.emit('close-submissions', { code });
     const card2 = await waitForEvent(host, 'announce', 8000);
-    check('the second card reads its own question only', /Certain: 4 of 4 were right\./.test(card2.message || '') && !/Just guessing:/.test(card2.message || ''));
+    check('the second card reads its own question only: all certain, all right', /◔ 4\.0\/4/.test(card2.message || '') && /Everyone who was sure got it right\./.test(card2.message || ''));
   } finally {
     teardown(host, players);
   }
@@ -100,7 +101,7 @@ async function spanish() {
     host.emit('close-submissions', { code });
     const card = await waitForEvent(host, 'announce', 8000);
     const msg = String(card.message || '');
-    check('the chart heads and the line are in Spanish', /↔ Correctas \| Incorrectas/.test(msg) && /Totalmente seguro: 1 de 2 acertaron\. Solo adivino: 1 de 1 acertaron\./.test(msg));
+    check('the dial and the line are in Spanish', /Qué tan segura estaba la clase\n◔ 3\.0\/4 \| Solo adivino \| Totalmente seguro\nBastante seguro, en promedio/.test(msg) && /Seguros pero equivocados: 1 de 2\./.test(msg));
   } finally {
     teardown(host, players);
   }
