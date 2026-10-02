@@ -307,14 +307,14 @@ function fieldsText(fields, fieldDefs) {
   return lines.join('\n');
 }
 
-function responseEntries(responses, fieldDefs) {
+function responseEntries(responses, fieldDefs, { unattributed = false } = {}) {
   const items = (responses || [])
     .filter(r => r && (r.text != null || r.drawing || (r.fields && typeof r.fields === 'object')))
     .map(r => {
       const text = r.fields && typeof r.fields === 'object' && !Array.isArray(r.fields)
         ? fieldsText(r.fields, fieldDefs)
         : cellText(r.text);
-      const item = { name: r.name || null, text };
+      const item = { name: unattributed ? null : (r.name || null), text };
       if (r.drawing) item.drawing = r.drawing;
       // A drawing made from a handed line shows that line under it
       if (r.drawing && typeof r.assigned === 'string' && r.assigned.trim()) item.assigned = r.assigned.trim();
@@ -337,7 +337,8 @@ const SECTION_BUILDERS = {
   },
   collect(phase, data) {
     const blocks = [];
-    const entries = responseEntries(data.responses, phase.fields);
+    // A step that promised "a summary, not who said what" prints unnamed
+    const entries = responseEntries(data.responses, phase.fields, { unattributed: phase.unattributed === true });
     if (entries) blocks.push(entries);
     if (Array.isArray(data.passedIds) && data.passedIds.length > 0) {
       blocks.push(fact('Passes', data.passedIds.length + ' passed'));

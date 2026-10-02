@@ -436,12 +436,15 @@
               choices: '_candidates',
               timer: 20
             },
+            // Host-paced (no timer), and it says who had it (the
+            // guess step's rightLine, 2026-10-02)
             'reveal': {
               type: 'announce',
               message: 'How the class guessed:\n{{guess.barChart}}\n\n' +
                 (hasPair
                   ? 'It was ' + secretRef + ', from {{_current.playerName}}!'
-                  : 'It was {{_current.playerName}}!')
+                  : 'It was {{_current.playerName}}!') +
+                '\n\n{{guess.rightLine}}'
             }
           }
         }
@@ -607,9 +610,12 @@
       }
       var aId = freshId(phases, 'answer');
       phases[beforeAnswer].next = aId;
+      // The answer card reads the question's own right answer, never a
+      // copy of its words: a teacher who changed it to Venus got "THE
+      // ANSWER WAS: MARS!" beside Venus ticked (a reviewer, 2026-10-02)
       phases[aId] = {
         type: 'announce',
-        message: 'The answer was: ' + correct + '!\n\nClass picks:\n{{' + qId + '.barChart}}' + confidenceLines
+        message: 'The answer was: {{' + qId + '.correctAnswer}}!\n\nClass picks:\n{{' + qId + '.barChart}}' + confidenceLines
       };
       lastId = aId;
       scoreRefs.push(qId + '.scores');

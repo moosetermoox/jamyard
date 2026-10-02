@@ -1267,6 +1267,7 @@ function startTimer(seconds, wrapperEl, onExpire) {
 // auto-submits), so an unshifted player would get cut off early.
 socket.on('timer-extended', function ({ addSeconds }) {
   var add = Number(addSeconds) || 0;
+  if (reopenCollectClock(add)) return;
   if (!timerInterval || !timerWrapperEl || add <= 0) return;
   timerRemaining += add;
   timerTotal += add;
@@ -1651,8 +1652,16 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     });
   }
 
+  collectOpenAfterClock = null;
   if (timer) {
-    startTimer(timer, collectTimerDisplay, () => {
+    startTimer(timer, collectTimerDisplay, function onCollectClock() {
+      // Did anything go? A student with nothing to send keeps the box:
+      // the step is open until the teacher closes it, and when the
+      // projector's "Nobody has answered yet" gets a Wait, the clock
+      // comes back here (timer-extended, below). Before, every screen
+      // read "You're done for now" with no way to answer (a reviewer,
+      // 2026-10-02).
+      var sent = true;
       if (collectMode === 'choice') {
         // The picked choice if there is one, else a random one
         var pickedChoice = choiceBallot && choiceBallot.picked();
@@ -1674,25 +1683,51 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
           result[inputs[k].getAttribute('data-key')] = typed;
         }
         if (anyFilled) socket.emit('submit-response', { code: currentRoomCode, response: result });
+        sent = anyFilled;
       } else if (collectMode === 'classmate') {
         // Time's up: the name picked goes; nothing picked sends nothing
         var pickedName = choiceBallot && choiceBallot.picked();
         if (pickedName) socket.emit('submit-response', { code: currentRoomCode, response: pickedName.value });
+        sent = !!pickedName;
       } else if (collectMode === 'drawing') {
         // Auto-submit whatever's on the pad; a blank pad submits nothing
         // (the server rejects empties, and the host closes the phase anyway)
-        if (drawPadApi && !drawPadApi.isEmpty()) {
+        sent = !!(drawPadApi && !drawPadApi.isEmpty());
+        if (sent) {
           socket.emit('submit-response', { code: currentRoomCode, response: { strokes: drawPadApi.getStrokes() } });
+          submitBtn.disabled = true;
         }
-        submitBtn.disabled = true;
       } else {
-        submitBtn.disabled = true;
-        socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
+        var typedText = responseInput.value.trim();
+        sent = typedText !== '';
+        if (sent) {
+          submitBtn.disabled = true;
+          socket.emit('submit-response', { code: currentRoomCode, response: typedText });
+        }
       }
-      showSection(submittedSection);
+      if (sent) {
+        showSection(submittedSection);
+      } else {
+        collectOpenAfterClock = { onExpire: onCollectClock, phase: latestPhaseInstanceId };
+      }
     });
   }
 });
+
+// A collect clock that ran out with nothing sent (above). The teacher's
+// Wait (or A bit more time) sends timer-extended: the clock starts again
+// on this screen with the time added, as long as the step is the same.
+var collectOpenAfterClock = null;
+function reopenCollectClock(addSeconds) {
+  var open = collectOpenAfterClock;
+  if (!open || timerInterval || addSeconds <= 0) return false;
+  collectOpenAfterClock = null;
+  // Another step, or the student sent an answer by hand since: no clock
+  if (open.phase !== latestPhaseInstanceId || collectSection.hidden) return false;
+  submitBtn.disabled = false;
+  startTimer(addSeconds, collectTimerDisplay, open.onExpire);
+  return true;
+}
 
 const processTitle = document.getElementById('process-title');
 

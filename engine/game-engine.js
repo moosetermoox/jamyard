@@ -24,6 +24,7 @@ import { determineWinner, traceEntryRef, findWinnerEntries } from './phases/winn
 import { parseRef } from './resolver-grammar.js';
 import { resolveLanguage } from './i18n/index.js';
 import { localizeConfidence } from './phases/confidence.js';
+import { guessesAuthors } from './names-needed.js';
 
 export class GameEngine {
   constructor(config) {
@@ -34,6 +35,11 @@ export class GameEngine {
     // room's own copy (engine/phases/confidence.js); the loaded config is
     // shared and never changed.
     this.config = localizeConfidence(config, this.language);
+    // Guessing who wrote what needs the real names (engine/names-needed.js):
+    // such a room runs with names shown, on its own shallow copy
+    if (this.config.anonymous === true && guessesAuthors(this.config)) {
+      this.config = { ...this.config, anonymous: false };
+    }
     this.players = new PlayerRegistry();
     this.phaseData = {};
     this.hooks = {};

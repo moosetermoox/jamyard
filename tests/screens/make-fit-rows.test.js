@@ -40,7 +40,8 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain("var classRow = rowEl('Your class');");
     expect(js).toContain("var names = rowEl('Student names');");
     expect(js).toContain("var joke = rowEl('Dad joke for the first students to join');");
-    expect(js).toContain("chipButton('Shown', !state.anonymous)");
+    // a guess-who activity keeps names shown, no Hidden chip (2026-10-02)
+    expect(js).toContain("chipButton('Shown', needsNames || !state.anonymous)");
     expect(js).toContain("chipButton('Hidden', state.anonymous)");
     expect(js).toContain("chipButton('On', state.earlyJoke)");
     expect(js).toContain("chipButton('Off', !state.earlyJoke)");

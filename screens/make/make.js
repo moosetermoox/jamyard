@@ -579,6 +579,17 @@
   // The rows under the questions, rebuilt from state whenever a chip is
   // tapped (cheap; the question rows keep their own nodes so typing is
   // never interrupted)
+  // The same rule as engine/names-needed.js: a guess-who round (a For
+  // Each over classmates' names) needs the real names
+  function guessesAuthors(config) {
+    var phases = config && config.phases;
+    if (!phases || typeof phases !== 'object') return false;
+    return Object.keys(phases).some(function (k) {
+      var p = phases[k];
+      return !!(p && p.type === 'foreach' && p.candidateSource === 'players');
+    });
+  }
+
   function buildRows() {
     if (!el.fitRows) return;
     fixedHolder.textContent = '';
@@ -606,13 +617,24 @@
     if (classUseful) fixedHolder.appendChild(classRow);
 
     var names = rowEl('Student names');
-    var shown = chipButton('Shown', !state.anonymous);
+    // The class guesses who wrote each answer: that needs real names, so
+    // there is no Hidden here (the room shows them anyway,
+    // engine/names-needed.js; a reviewer guessed between play names)
+    var needsNames = guessesAuthors(state.config);
+    var shown = chipButton('Shown', needsNames || !state.anonymous);
     shown.addEventListener('click', function () { state.anonymous = false; buildRows(); saveDraftSoon(); });
-    var hidden = chipButton('Hidden', state.anonymous);
-    hidden.title = 'The room assigns play names';
-    hidden.addEventListener('click', function () { state.anonymous = true; buildRows(); saveDraftSoon(); });
     names.a.appendChild(shown);
-    names.a.appendChild(hidden);
+    if (needsNames) {
+      var namesNote = document.createElement('p');
+      namesNote.className = 'fit-class-note';
+      namesNote.textContent = 'Names stay shown: the class guesses who wrote each answer.';
+      names.a.appendChild(namesNote);
+    } else {
+      var hidden = chipButton('Hidden', state.anonymous);
+      hidden.title = 'The room assigns play names';
+      hidden.addEventListener('click', function () { state.anonymous = true; buildRows(); saveDraftSoon(); });
+      names.a.appendChild(hidden);
+    }
     fixedHolder.appendChild(names);
 
     var joke = rowEl('Dad joke for the first students to join');

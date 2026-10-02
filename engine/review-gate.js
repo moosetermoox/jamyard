@@ -72,6 +72,44 @@ function reachesThroughAnnounces(phases, fromId, toId) {
 }
 
 /**
+ * The payoff of a guess-who round is the teacher's to pace, and it says
+ * who guessed right (2026-10-02: a reviewer's Rose, Bud, Thorn flashed
+ * "It was X" for five seconds and never named who had it). For every
+ * round whose author is the secret (candidateSource "players"): the step
+ * that names the author loses its timer, and gets the guess step's
+ * {{<guess>.rightLine}} under it when it has none. In place; used by the
+ * read repair and safe to run twice.
+ * @returns {string[]} "<foreach>.<sub>" for every step changed
+ */
+export function paceGuessWhoReveals(config) {
+  const phases = config && config.phases;
+  if (!phases || typeof phases !== 'object') return [];
+  const changed = [];
+  for (const [feId, fe] of Object.entries(phases)) {
+    if (!fe || fe.type !== 'foreach' || fe.candidateSource !== 'players') continue;
+    const subs = fe.subPhases && typeof fe.subPhases === 'object' ? fe.subPhases : null;
+    if (!subs) continue;
+    const keys = Object.keys(subs);
+    const guessKey = keys.find(k => subs[k] && subs[k].type === 'collect-choice' && subs[k].choices === '_candidates');
+    if (!guessKey) continue;
+    for (const k of keys.slice(keys.indexOf(guessKey) + 1)) {
+      const sub = subs[k];
+      if (!sub || (sub.type !== 'announce' && sub.type !== 'reveal')) continue;
+      const field = sub.type === 'announce' ? 'message' : 'template';
+      if (typeof sub[field] !== 'string' || !sub[field].includes('_current.playerName')) continue;
+      let touched = false;
+      if (sub.timer) { delete sub.timer; touched = true; }
+      if (!/\.rightLine\}\}/.test(sub[field])) {
+        sub[field] = sub[field] + '\n\n{{' + guessKey + '.rightLine}}';
+        touched = true;
+      }
+      if (touched) changed.push(feId + '.' + k);
+    }
+  }
+  return changed;
+}
+
+/**
  * Put a preview step between each ungated collect and its rounds, in
  * place (the key order keeps the collect, the gate, then the rest).
  * @returns {string[]} the ids of the gates added

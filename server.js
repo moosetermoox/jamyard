@@ -59,6 +59,10 @@ function repairSavedConfig(config) {
   try {
     const gates = ensureReviewGate(config, { secretOnly: true });
     if (gates.length) console.log(`[repair] "${config.name}": review step added before the rounds (${gates.join(', ')})`);
+    // ... and the round's "It was ..." waits for the teacher and says who
+    // guessed right (engine/review-gate.js)
+    const paced = paceGuessWhoReveals(config);
+    if (paced.length) console.log(`[repair] "${config.name}": guess-who reveal paced by the teacher (${paced.join(', ')})`);
   } catch (err) {
     console.log(`[repair] gate skipped for "${config && config.name}": ${err.message}`);
   }
@@ -198,8 +202,10 @@ import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
+import { guessedRightLine } from './engine/phases/guessed-right.js';
+import { withZeroRows, foolLine } from './engine/phases/bluff-results.js';
 import { splitByRight, formatConfidenceDial, sureButWrongLine } from './engine/phases/confidence.js';
-import { ensureReviewGate } from './engine/review-gate.js';
+import { ensureReviewGate, paceGuessWhoReveals } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
 import { pollExtremes } from './engine/phases/poll-extremes.js';
@@ -1900,7 +1906,22 @@ async function closeCollect(code, room) {
             stored.scores = mergeScores(stored.scores, fooled);
             stored.foolScores = fooled;
             console.log(`[close-submissions] Fool points: ${JSON.stringify(fooled)}`);
+            // Every fake on the ballot gets its row, a zero too, and the
+            // line under the chart says whether any fake drew a vote (a
+            // reviewer's round asked "Whose fake pulled the votes?" over
+            // a chart where none had, 2026-10-02; engine/phases/bluff-results.js)
+            const ballot = room.phaseState && Array.isArray(room.phaseState.ballot) ? room.phaseState.ballot : [];
+            withZeroRows(tally, ballot);
+            stored.foolLine = foolLine(room.engine.language, choiceResponses, stored.correctAnswer);
           }
+
+          // Who guessed right, in one line for the reveal after: a step
+          // with a right answer, or a guess-who round, where the round's
+          // author is the answer (engine/phases/guessed-right.js)
+          const currentItem = room.engine._currentForeachItem;
+          const rightAnswer = stored.correctAnswer != null ? stored.correctAnswer
+            : (collectPhase._foreachSecretAuthor && currentItem && currentItem.playerName ? currentItem.playerName : null);
+          if (rightAnswer != null) stored.rightLine = guessedRightLine(room.engine.language, choiceResponses, rightAnswer);
 
           room.engine.storePhaseData(collectPhase.id, stored);
           room.lastClosedCollectId = collectPhase.id;
@@ -2250,7 +2271,7 @@ function buildTeacherSnapshot(code, room) {
   };
   if (phase && (phase.type === 'collect' || phase.type === 'collect-choice')) {
     const eligible = withoutSitOut(getEligibleVoters(engine.players, phase.from || 'all'), phase);
-    snap.submissions = buildSubmissionList(eligible);
+    snap.submissions = buildSubmissionList(eligible, { unattributed: phase.unattributed === true });
   }
   if (phase && phase.type === 'preview') {
     const data = engine.getPhaseData(phase.id);
@@ -2318,7 +2339,7 @@ function emitSubmissionsUpdate(code, room) {
   const phase = room.engine.getCurrentPhase();
   if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
   const eligible = withoutSitOut(getEligibleVoters(room.engine.players, phase.from || 'all'), phase);
-  const payload = { submissions: buildSubmissionList(eligible) };
+  const payload = { submissions: buildSubmissionList(eligible, { unattributed: phase.unattributed === true }) };
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
 }
 
@@ -5659,8 +5680,10 @@ io.on('connection', (socket) => {
       if (serverTimed && !extendPhaseTimer(room, EXTEND_TIMER_SECONDS)) return;
       // Host-clock steps keep a deadline too (collect records one so a
       // refreshed student gets the time left): push it back as well
+      // (from now when it already ran out: the projector's Wait after
+      // "Nobody has answered yet" restarts the clock)
       if (!serverTimed && room.phaseState && room.phaseState.timerEndsAt) {
-        room.phaseState.timerEndsAt += EXTEND_TIMER_SECONDS * 1000;
+        room.phaseState.timerEndsAt = Math.max(room.phaseState.timerEndsAt, Date.now()) + EXTEND_TIMER_SECONDS * 1000;
       }
       recordEvent(room, 'extend-timer');
       const message = { addSeconds: EXTEND_TIMER_SECONDS };

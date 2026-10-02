@@ -463,7 +463,10 @@ describe('storyboard compiler', () => {
       const reveal = phases[p.next];
       expect(reveal.type).toBe('announce');
       expect(reveal.message).toContain('{{' + id + '.barChart}}');
-      expect(reveal.message).toContain(p.correctAnswer);
+      // the question's own answer, read at game time, never a copy of
+      // the words (an edited answer went stale, a reviewer 2026-10-02)
+      expect(reveal.message).toContain('{{' + id + '.correctAnswer}}');
+      expect(reveal.message).not.toContain(p.correctAnswer);
     }
     const lb = Object.values(phases).find(p => p.type === 'leaderboard');
     expect(lb, 'quiz brick must end in a leaderboard').toBeTruthy();

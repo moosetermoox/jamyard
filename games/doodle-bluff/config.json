@@ -150,7 +150,7 @@
         },
         "reveal-truth": {
           "type": "announce",
-          "message": "The real title:\n{{_current.assigned}}\n\nWritten by {{_current.assignedFromName}}, drawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
+          "message": "The real title:\n{{_current.assigned}}\n\nWritten by {{_current.assignedFromName}}, drawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\n{{guess.foolLine}}",
           "drawingFrom": "_current.drawing"
         }
       },

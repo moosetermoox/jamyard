@@ -3,6 +3,7 @@ import { getAllowedFields, validate as validateGame } from '../engine/game-loade
 import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schemas.js';
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
+import { stripPlayerIdRefs } from '../engine/ai-name-fill.js';
 import { LANGUAGES as LANGUAGE_NAMES, detectLanguage } from '../engine/i18n/index.js';
 import { cleanQuizQuestions, shuffleQuizChoices, shuffleQuizParams, QUIZ_LIMITS } from '../engine/quiz-questions.js';
 import { completeSteps, partialName } from '../engine/storyboard-partial.js';
@@ -484,6 +485,12 @@ const STYLE_RULES = `STYLE RULES (always apply):
 const NO_TITLE_RULE = `
 
 Do not open with a title or a heading line that names the task (such as "Feedback summary:" or "Summary of responses"); the screen already has a heading. Begin with the content itself.`;
+
+// The playerId labels are for matching JSON back to students: never in
+// words the class reads (stripPlayerIdRefs catches what slips through)
+const ID_RULE = `
+
+The [playerId: ...] labels are internal references for matching only. Never write a playerId, or say which player something came from, in your prose; put an id only inside a JSON "playerId" field when the instruction asks for one.`;
 
 // The count of answers the model left out, on its own last line, read off
 // by parseLeftOut and never shown to the class
@@ -1048,7 +1055,10 @@ export class AIService {
       ? this._processMock(instruction, responses, count)
       : await this._processReal(instruction, responses, systemPrompt, rosterNames, count);
     const parsed = count ? parseLeftOut(out.text) : { text: out.text, leftOut: 0 };
-    return { text: parsed.text, leftOut: Math.min(parsed.leftOut, total), total };
+    // The [playerId: ...] labels in the prompt never come back in prose
+    // (a reviewer's projector read "(from playerId 43I2B8I0bv...)")
+    const ids = Array.isArray(responses) ? responses.map(r => r && r.playerId).filter(Boolean) : [];
+    return { text: stripPlayerIdRefs(parsed.text, ids), leftOut: Math.min(parsed.leftOut, total), total };
   }
 
   _processMock(instruction, responses, count) {
@@ -2630,7 +2640,7 @@ ${description}`
     return `${instruction}
 
 Here are the player responses:
-${responseList}`;
+${responseList}${responses.some(r => r && r.playerId) ? ID_RULE : ''}`;
   }
 
   // =====================================================================

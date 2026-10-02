@@ -253,8 +253,8 @@
             "type": "announce",
             "message": {
               "$if": "phraseSource=students",
-              "$value": "The real title:\n{{_current.assigned}}\n\nWritten by {{_current.assignedFromName}}, drawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
-              "$else": "The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?"
+              "$value": "The real title:\n{{_current.assigned}}\n\nWritten by {{_current.assignedFromName}}, drawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\n{{guess.foolLine}}",
+              "$else": "The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\n{{guess.foolLine}}"
             },
             "drawingFrom": "_current.drawing"
           }

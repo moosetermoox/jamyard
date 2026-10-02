@@ -810,10 +810,23 @@ function askNobodyYet(byClock) {
     message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
     confirmLabel: 'Close anyway', cancelLabel: 'Wait'
   }).then(function (yes) {
+    const wasByClock = !!(nobodyAsk && nobodyAsk.byClock);
     nobodyAsk = null;
-    if (yes) socket.emit('close-submissions', { code: currentRoomCode });
+    if (yes) { socket.emit('close-submissions', { code: currentRoomCode }); return; }
+    // Wait after the clock ran out: give the class more time, on the
+    // projector and on every screen that had nothing to send (they
+    // kept their box; a reviewer's students sat on "You're done for
+    // now" with no way in, 2026-10-02). The clock comes back through
+    // timer-extended, below.
+    if (wasByClock) {
+      clockRanOutStep = collectStep;
+      socket.emit('extend-timer', { code: currentRoomCode });
+    }
   });
 }
+// The answer step whose clock ran out and got a Wait (timer-extended
+// restarts the clock for that step only)
+let clockRanOutStep = -1;
 function answersLanded() {
   if (!nobodyAsk || submittedSoFar === 0) return;
   const byClock = nobodyAsk.byClock;
@@ -1258,6 +1271,13 @@ function clearTimer() {
 // running countdown and let the ring breathe again.
 socket.on('timer-extended', ({ addSeconds }) => {
   const add = Number(addSeconds) || 0;
+  // The clock had run out and the teacher pressed Wait: start it again
+  if (!timerInterval && add > 0 && clockRanOutStep === collectStep) {
+    clockRanOutStep = -1;
+    startTimer(add, collectTimer, closeWhenClockRunsOut);
+    showMoreTimeBtn(collectTimer);
+    return;
+  }
   if (!timerInterval || !timerContainerEl || add <= 0) return;
   timerRemaining += add;
   timerTotal += add;

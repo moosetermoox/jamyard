@@ -35,6 +35,7 @@ import {
 } from './phase-schemas.js';
 import { parseTemplateTokens, parseRef, classifyRef, checkDataRefCompat } from './resolver-grammar.js';
 import { ungatedRounds } from './review-gate.js';
+import { guessesAuthors } from './names-needed.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAMES_DIR = join(__dirname, '..', 'games');
@@ -201,6 +202,11 @@ export function validate(config, gameId, options) {
   // a mistyped value must not silently fall back to collecting names.
   if (config.anonymous !== undefined && typeof config.anonymous !== 'boolean') {
     errors.push(`Game "${gameId}": "anonymous" must be true or false`);
+  }
+  // Guessing who wrote what needs the real names: the room shows them
+  // whatever this says (engine/names-needed.js)
+  if (config.anonymous === true && guessesAuthors(config)) {
+    warnings.push(`Game "${gameId}": ANON_GUESS_WHO: the class guesses who wrote each answer, which needs real names, so this activity always runs with names shown. Set Student names to Shown.`);
   }
 
   // Class size: the editor's Settings saved Min players 10 with Max
@@ -1720,6 +1726,7 @@ function inferDiagnosticCode(msg, severity) {
   if (/nothing shows the result to the class/.test(msg)) return DIAGNOSTIC_CODES.VOTE_RESULT_UNREAD;
   if (/moves the class on by itself/.test(msg)) return DIAGNOSTIC_CODES.PAYOFF_TIMED;
   if (/AUTHOR_UNGATED/.test(msg)) return DIAGNOSTIC_CODES.AUTHOR_UNGATED;
+  if (/ANON_GUESS_WHO/.test(msg)) return DIAGNOSTIC_CODES.ANON_GUESS_WHO;
   if (/can never award points|every score will be 0|nobody can ever score/.test(msg)) return DIAGNOSTIC_CODES.SCORING_NEVER_AWARDS;
 
   // Connection pack
