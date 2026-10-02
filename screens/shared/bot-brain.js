@@ -251,7 +251,37 @@
       var needle = Array.isArray(source[j]) ? source[j][0] : source[j];
       if (needle && hay.indexOf(String(needle).toLowerCase()) !== -1) return lines[j];
     }
+    // A card a real person typed is never a sample line word for word
+    // ("Trying to get more sleep" got a reply about speaking up in class,
+    // a reviewer 2026-10-02): the line that shares the most words with the
+    // quoted card, when it shares enough
+    var near = closestSource(source, lines.length, hay);
+    if (near !== -1) return lines[near];
     return lines[at % lines.length];
+  }
+
+  var SAMPLE_STOP = { that: 1, this: 1, with: 1, from: 1, have: 1, they: 1, them: 1, what: 1, your: 1, about: 1, just: 1, will: 1, when: 1, were: 1, been: 1, into: 1, than: 1, then: 1, there: 1, their: 1, some: 1, more: 0 };
+  function sampleWords(text) {
+    return String(text || '').toLowerCase().split(/[^a-z0-9À-ɏ]+/)
+      .filter(function (w) { return w.length >= 4 && !SAMPLE_STOP[w]; });
+  }
+  // The quoted part of the screen ("A classmate wrote: “...”") when there
+  // is one, so the instruction's own words never count
+  function closestSource(source, count, hay) {
+    var quoted = hay.match(/[“"]([^”"]{3,})[”"]/g);
+    var words = sampleWords(quoted ? quoted.join(' ') : hay);
+    if (!words.length) return -1;
+    var need = quoted ? 2 : 3;
+    var best = -1;
+    var bestScore = 0;
+    for (var j = 0; j < source.length && j < count; j++) {
+      var line = Array.isArray(source[j]) ? source[j][0] : source[j];
+      var mine = sampleWords(line);
+      var score = 0;
+      for (var k = 0; k < mine.length; k++) if (words.indexOf(mine[k]) !== -1) score++;
+      if (score > bestScore) { bestScore = score; best = j; }
+    }
+    return bestScore >= Math.min(need, words.length) ? best : -1;
   }
 
   // What a pretend student puts in the box: the step's own passed-on text

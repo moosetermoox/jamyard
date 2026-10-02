@@ -701,8 +701,17 @@ window.addEventListener('message', function(e) {
         // Strip the "Name: " author prefix
         seedTexts.push(seedEls[si2].textContent.replace(/^[^:]{1,20}:\s*/, ''));
       }
+      // Two whole answers side by side, each its own sentence ("...over
+      // time., and also honestly" reached the projector, a reviewer
+      // 2026-10-02)
+      var asSentence = function (t) {
+        var s = String(t || '').trim();
+        if (!s) return '';
+        s = s.charAt(0).toUpperCase() + s.slice(1);
+        return /[.!?…"”)]$/.test(s) ? s : s + '.';
+      };
       var botDraft = seedTexts.length >= 2
-        ? seedTexts[0] + ', and also ' + seedTexts[1].charAt(0).toLowerCase() + seedTexts[1].slice(1)
+        ? asSentence(seedTexts[0]) + ' ' + asSentence(seedTexts[1])
         : (seedTexts[0] || botFillAnswer(mergeInstruction.textContent));
       mergeDraftInput.value = botDraft;
       socket.emit('merge-draft', { code: currentRoomCode, text: botDraft });

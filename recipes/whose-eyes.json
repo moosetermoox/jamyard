@@ -68,15 +68,15 @@
             "key": "eyes"
           },
           {
-            "label": "From this viewpoint, I think...",
+            "label": "From there, what do you think?",
             "key": "think"
           },
           {
-            "label": "From this viewpoint, I worry about or hope for...",
+            "label": "What do you worry about or hope for?",
             "key": "feel"
           },
           {
-            "label": "A question I have, from here...",
+            "label": "What question would you ask, from there?",
             "key": "ask"
           }
         ],
@@ -87,7 +87,7 @@
         "type": "reveal-one",
         "message": "The circle of voices, one pair of eyes at a time.",
         "from": "step-inside.responses",
-        "itemTemplate": "Through the eyes of {{_current.eyes}}\n\n“{{_current.think}}”\n\n{{_current.feel}}\n\n{{_current.ask}}",
+        "itemTemplate": "**{{_current.eyes}}**\n\n“{{_current.think}}”\n\n{{_current.feel}}\n\n{{_current.ask}}",
         "next": "end"
       },
       "end": {

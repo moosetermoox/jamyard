@@ -120,7 +120,8 @@ describe('buildActivityReport', () => {
       }
     });
     const report = buildActivityReport(engine);
-    const [text] = blocksOfKind(sectionFor(report, 'sum'), 'text');
+    // prose keeps its formatting as a rich block (2026-10-02)
+    const [text] = blocksOfKind(sectionFor(report, 'sum'), 'rich');
     expect(text.text).toBe('A tidy summary.');
     // The AI instruction is a model prompt, not a document heading.
     expect(sectionFor(report, 'sum').heading).toBeUndefined();

@@ -165,6 +165,9 @@ function buildSection(id, phase, data, nameOf, sure) {
   if (blocks.length === 0) return null;
 
   const section = { id, type: phase.type, blocks };
+  // An AI step's line over its section names what it made, never the
+  // step's internal name ("AI TRANSFORMS ANSWERS", a reviewer 2026-10-02)
+  if (phase.type === 'ai-process') section.kindLabel = AI_KIND_LABELS[phase.task] || 'Made from the answers';
   const heading = headingFor(phase);
   if (heading) section.heading = heading;
   return section;
@@ -185,6 +188,15 @@ function headingFor(phase) {
   }
   return undefined;
 }
+
+const AI_KIND_LABELS = {
+  summarize: 'The answers, summed up',
+  generate: 'Made from the answers',
+  'generate-choices': 'Choices made from the answers',
+  compare: 'The answers, compared',
+  rank: 'The answers, ranked',
+  judge: 'The answers, judged'
+};
 
 // --- Block helpers ---
 
@@ -277,6 +289,12 @@ const SECTION_BUILDERS = {
       const rows = tallyEntries
         .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
         .map(([label, n]) => [isCorrect(label) ? label + ' ✓' : label, Number(n) || 0]);
+      // The right answer stays in the table when nobody picked it (a bluff
+      // round where every student fell for a lie listed only the lies, a
+      // reviewer 2026-10-02)
+      if (correct !== null && !tallyEntries.some(([label]) => isCorrect(label))) {
+        rows.push([String(data.correctAnswer).trim() + ' ✓', 0]);
+      }
       blocks.push({ kind: 'table', columns: ['Choice', 'Picks'], rows, nameCol: null });
     }
 
@@ -334,7 +352,9 @@ const SECTION_BUILDERS = {
         .map(([pid, value]) => ({ name: nameOf(pid) || null, text: cellText(value) }));
       return items.length > 0 ? [{ kind: 'entries', items }] : [];
     }
-    if (typeof data.result === 'string' && data.result.trim()) return [...counted, text(data.result)];
+    // The model's prose keeps its bold and its bullets as formatting, never
+    // as literal ** and - marks (a reviewer, 2026-10-02)
+    if (typeof data.result === 'string' && data.result.trim()) return [...counted, { kind: 'rich', text: data.result }];
     if (data.result != null && typeof data.result === 'object') {
       return [...counted, pre(JSON.stringify(data.result, null, 2))];
     }

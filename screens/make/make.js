@@ -2029,6 +2029,18 @@
   // copies). Try it, come back, change a word, Host it: the same copy is
   // written again. Gone from My yard (deleted) = forgotten.
   var COPY_KEY = 'jamyard.makeCopy.' + gameId;
+  // Only Back (from Try it out or the host) or a reload is the same visit.
+  // Every door into this page is a plain link, so a fresh pick from the yard
+  // is a new visit and makes a new copy: it used to find the tab's earlier
+  // copy and write over it (a reviewer's Live Poll and Snowball copies took
+  // a new question, the old ones gone, 2026-10-02).
+  function sameVisit() {
+    try {
+      var nav = performance.getEntriesByType('navigation')[0];
+      return !!nav && (nav.type === 'back_forward' || nav.type === 'reload');
+    } catch (e) { return false; }
+  }
+  if (!sameVisit()) forgetSessionCopy();
   function sessionCopyId() {
     var id = null;
     try { id = sessionStorage.getItem(COPY_KEY); } catch (e) { id = null; }

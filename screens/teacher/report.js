@@ -131,7 +131,7 @@
 
   function renderSection(section) {
     var wrap = el('div', 'rp-section');
-    var kind = stepName(section.type) + (section.round ? ' · Round ' + section.round : '');
+    var kind = (section.kindLabel || stepName(section.type)) + (section.round ? ' · Round ' + section.round : '');
     wrap.appendChild(el('p', 'rp-step-kind', kind));
     if (section.heading) wrap.appendChild(el('h2', 'rp-heading', section.heading));
 
@@ -146,6 +146,7 @@
   function renderBlock(block) {
     if (block.kind === 'text') return el('p', 'rp-text', block.text);
     if (block.kind === 'pre') return el('pre', 'rp-pre', block.text);
+    if (block.kind === 'rich') return renderRich(block.text);
     if (block.kind === 'fact') {
       var p = el('p', 'rp-fact');
       p.appendChild(el('span', 'rp-fact-label', block.label + ': '));
@@ -155,6 +156,40 @@
     if (block.kind === 'entries') return renderEntries(block);
     if (block.kind === 'table') return renderTable(block);
     return null;
+  }
+
+  // A model's prose: bullets as a list, **bold** as bold, # headings as a
+  // bold line. Built with textContent only (the text is untrusted).
+  function renderRich(textValue) {
+    var wrap = el('div', 'rp-rich');
+    var list = null;
+    String(textValue || '').split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) { list = null; return; }
+      var bullet = /^(?:[-*•]|\d+[.)])\s+/.exec(line);
+      if (bullet) {
+        if (!list) { list = el('ul', 'rp-rich-list'); wrap.appendChild(list); }
+        var li = el('li');
+        appendBold(li, line.slice(bullet[0].length));
+        list.appendChild(li);
+        return;
+      }
+      list = null;
+      var heading = /^#{1,6}\s+/.exec(line);
+      var p = el('p', heading ? 'rp-text rp-rich-head' : 'rp-text');
+      appendBold(p, heading ? line.slice(heading[0].length) : line);
+      wrap.appendChild(p);
+    });
+    return wrap;
+  }
+
+  function appendBold(node, line) {
+    var parts = String(line).split(/\*\*/);
+    for (var i = 0; i < parts.length; i++) {
+      if (!parts[i]) continue;
+      if (i % 2 === 1 && i < parts.length - 1) node.appendChild(el('strong', null, parts[i]));
+      else node.appendChild(document.createTextNode(i % 2 === 1 ? '**' + parts[i] : parts[i]));
+    }
   }
 
   function renderEntries(block) {

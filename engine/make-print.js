@@ -564,11 +564,16 @@ export function applyEdits(config, edits) {
  * @param {string} prompt  the new prompt, or '' when unchanged
  */
 export function nameFor(baseName, prompt) {
-  const text = clean(prompt);
+  // Quote marks out (a name cut off inside a quote read "“Editing human…"),
+  // a parenthetical aside out, a trailing period off
+  const text = clean(prompt).replace(/[“”"]/g, '').replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/\s+/g, ' ').trim().replace(/\.$/, '').replace(/^./, (c) => c.toUpperCase());
   if (!text) return baseName + ' (my version)';
-  if (text.length <= NAME_MAX) return baseName + ': ' + text;
+  // "Whose Eyes?: ..." read wrong: a name that ends in its own mark takes a space
+  const join = /[?!.]$/.test(String(baseName).trim()) ? ' ' : ': ';
+  if (text.length <= NAME_MAX) return baseName + join + text;
   let cut = text.slice(0, NAME_MAX);
   const space = cut.lastIndexOf(' ');
   if (space > 20) cut = cut.slice(0, space);
-  return baseName + ': ' + cut.trim() + '…';
+  return baseName + join + cut.trim().replace(/[,;:]$/, '') + '…';
 }

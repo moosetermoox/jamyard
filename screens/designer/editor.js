@@ -4388,7 +4388,9 @@ function phaseRefLabel(phaseId, withIcon) {
   var cat = PHASE_CATALOG[phase.type];
   if (!cat) return phaseId;
   var name = (phase.type === 'reveal' && phase.scope === 'pair') ? 'Show each pair' : cat.friendlyName;
-  var label = (withIcon ? cat.icon + ' ' : '') + name;
+  // a step type with no icon gave the name a leading space (' Groups
+  // combine answers', a reviewer 2026-10-02)
+  var label = (withIcon && cat.icon ? cat.icon + ' ' : '') + name;
   if (phaseNameIsAmbiguous(phaseId)) {
     var n = buildPhaseOrder().indexOf(phaseId) + 1;
     if (n > 0) label += ' (step ' + n + ')';

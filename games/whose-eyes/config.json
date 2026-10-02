@@ -91,15 +91,15 @@
       "prompt": "A classmate suggested looking through the eyes of:\n\n{{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing, be an actor.",
       "fields": [
         {
-          "label": "From this viewpoint, I think...",
+          "label": "From there, what do you think?",
           "key": "think"
         },
         {
-          "label": "From this viewpoint, I worry about or hope for...",
+          "label": "What do you worry about or hope for?",
           "key": "feel"
         },
         {
-          "label": "A question I have, from here...",
+          "label": "What question would you ask, from there?",
           "key": "ask"
         }
       ],
@@ -110,7 +110,7 @@
       "type": "reveal-one",
       "message": "The circle of voices, one pair of eyes at a time.",
       "from": "step-inside.responses",
-      "itemTemplate": "Through the eyes of {{_current.assigned}}\n\n“{{_current.fields.think}}”\n\nThey feel: {{_current.fields.feel}}\n\nThey would ask: {{_current.fields.ask}}",
+      "itemTemplate": "**{{_current.assigned}}**\n\nThey think: {{_current.fields.think}}\n\nThey worry about or hope for: {{_current.fields.feel}}\n\nThey would ask: {{_current.fields.ask}}",
       "next": "end"
     },
     "end": {

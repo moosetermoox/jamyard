@@ -359,17 +359,27 @@
     input.max = '3600';
     input.placeholder = 'none';
     if (phase.timer) input.value = phase.timer;
+    // "s" only beside a number: an empty box read "⏱ none s" (a reviewer
+    // typed a negative timer, 2026-10-02)
+    var unit = document.createElement('span');
+    var showUnit = function () { unit.textContent = phase.timer ? 's' : ''; };
     input.addEventListener('input', function () {
       markEdited();
       var v = parseInt(input.value, 10);
       if (v > 0) { phase.timer = v; } else { delete phase.timer; }
+      showUnit();
     });
-    input.addEventListener('blur', function () { autoSaveIfDirty(); });
+    input.addEventListener('blur', function () {
+      // a negative or zero timer is no timer: the box says so
+      if (!phase.timer) input.value = '';
+      autoSaveIfDirty();
+    });
     // Scroll-wheel over a focused number input silently changes it (and
     // then auto-saves) — a classic accidental-edit trap. Opt out.
     input.addEventListener('wheel', function () { input.blur(); }, { passive: true });
     wrap.appendChild(input);
-    wrap.appendChild(document.createTextNode('s'));
+    showUnit();
+    wrap.appendChild(unit);
     return wrap;
   }
 
