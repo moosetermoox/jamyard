@@ -20,6 +20,7 @@ import { guessesAuthors } from '../../engine/names-needed.js';
 import { validate } from '../../engine/game-loader.js';
 import { paceGuessWhoReveals } from '../../engine/review-gate.js';
 import { guessedRightLine } from '../../engine/phases/guessed-right.js';
+import { withZeroRows, foolLine } from '../../engine/phases/bluff-results.js';
 
 const read = (rel) => readFile(new URL('../../' + rel, import.meta.url), 'utf8');
 
@@ -256,6 +257,33 @@ describe('37. A guess-who reveal waits for the teacher and says who guessed righ
     expect(who.phases['guess-loop'].subPhases.reveal.timer).toBeUndefined();
     const steps = await read('screens/shared/step-suggestions.js');
     expect(steps).toContain("'\\n\\n{{guess.rightLine}}'");
+  });
+});
+
+describe('42. Doodle Bluff: every fake on the chart, and the right words when none drew a vote', () => {
+  it('a fake nobody picked keeps a zero row', () => {
+    const tally = { 'A cat on a hat': 3 };
+    withZeroRows(tally, ['A cat on a hat', 'A dog in fog', 'Moon soup']);
+    expect(tally).toEqual({ 'A cat on a hat': 3, 'A dog in fog': 0, 'Moon soup': 0 });
+  });
+
+  it('the line under the chart says whether a fake fooled anyone', () => {
+    const truth = 'A cat on a hat';
+    expect(foolLine('en', [{ choice: truth }, { choice: truth }], truth)).toBe('Nobody fell for a fake this time.');
+    expect(foolLine('en', [{ choice: truth }, { choice: 'Moon soup' }], truth)).toBe('Fake authors, own up! Whose fake pulled the votes?');
+    expect(foolLine('fr', [{ choice: truth }], truth)).toBe("Cette fois, personne ne s'est fait avoir.");
+    expect(foolLine('en', [], truth)).toBe('');
+  });
+
+  it('the recipe and the built-in show the line, never the fixed question', async () => {
+    for (const file of ['recipes/doodle-bluff.json', 'games/doodle-bluff/config.json']) {
+      const text = await read(file);
+      expect(text, file).toContain('{{guess.foolLine}}');
+      expect(text, file).not.toContain('Whose fake pulled the votes?');
+    }
+    expect(PHASE_SCHEMAS['collect-choice'].output.fields.foolLine.type).toBe('string');
+    const server = await read('server.js');
+    expect(server).toContain('withZeroRows(tally, ballot);');
   });
 });
 

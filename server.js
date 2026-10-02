@@ -199,6 +199,7 @@ import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
 import { guessedRightLine } from './engine/phases/guessed-right.js';
+import { withZeroRows, foolLine } from './engine/phases/bluff-results.js';
 import { splitByRight, formatConfidenceDial, sureButWrongLine } from './engine/phases/confidence.js';
 import { ensureReviewGate, paceGuessWhoReveals } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
@@ -1904,6 +1905,13 @@ async function closeCollect(code, room) {
             stored.scores = mergeScores(stored.scores, fooled);
             stored.foolScores = fooled;
             console.log(`[close-submissions] Fool points: ${JSON.stringify(fooled)}`);
+            // Every fake on the ballot gets its row, a zero too, and the
+            // line under the chart says whether any fake drew a vote (a
+            // reviewer's round asked "Whose fake pulled the votes?" over
+            // a chart where none had, 2026-10-02; engine/phases/bluff-results.js)
+            const ballot = room.phaseState && Array.isArray(room.phaseState.ballot) ? room.phaseState.ballot : [];
+            withZeroRows(tally, ballot);
+            stored.foolLine = foolLine(room.engine.language, choiceResponses, stored.correctAnswer);
           }
 
           // Who guessed right, in one line for the reveal after: a step

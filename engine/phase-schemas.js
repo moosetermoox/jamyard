@@ -533,6 +533,10 @@ export const PHASE_SCHEMAS = {
         // guess-who round, where the round's author is the answer
         // (engine/phases/guessed-right.js, 2026-10-02)
         rightLine: { type: 'string' },
+        // A bluff ballot (foolPoints): "Fake authors, own up! Whose fake
+        // pulled the votes?" when a fake drew a vote, "Nobody fell for a
+        // fake this time." when none did (engine/phases/bluff-results.js)
+        foolLine: { type: 'string' },
         // Populated only when `compareTo` names an earlier pick-one step
         // (a vote taken twice, engine/phases/stance-shift.js): one chart
         // with both counts per choice, and the sentence under it.

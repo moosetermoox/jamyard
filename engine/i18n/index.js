@@ -317,6 +317,8 @@ export const STRINGS = {
     'Nobody changed their mind.': 'Nadie cambió de opinión.',
     'Guessed right: {names}': 'Acertaron: {names}',
     'Nobody guessed right.': 'Nadie acertó.',
+    'Fake authors, own up! Whose fake pulled the votes?': '¡Autores de las falsas, confiesen! ¿De quién era la falsa que se llevó los votos?',
+    'Nobody fell for a fake this time.': 'Esta vez nadie cayó con una falsa.',
     'Before': 'Antes',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': '¿Qué tan seguro estás de tu respuesta?',
@@ -562,6 +564,8 @@ export const STRINGS = {
     'Nobody changed their mind.': "Personne n'a changé d'avis.",
     'Guessed right: {names}': 'Ont trouvé : {names}',
     'Nobody guessed right.': "Personne n'a trouvé.",
+    'Fake authors, own up! Whose fake pulled the votes?': 'Auteurs des fausses, avouez ! À qui la fausse qui a eu les votes ?',
+    'Nobody fell for a fake this time.': "Cette fois, personne ne s'est fait avoir.",
     'Before': 'Avant',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'À quel point es-tu sûr de ta réponse ?',
@@ -807,6 +811,8 @@ export const STRINGS = {
     'Nobody changed their mind.': 'Niemand hat seine Meinung geändert.',
     'Guessed right: {names}': 'Richtig geraten: {names}',
     'Nobody guessed right.': 'Niemand hat richtig geraten.',
+    'Fake authors, own up! Whose fake pulled the votes?': 'Wer hat gefälscht? Gebt es zu! Wessen Fälschung hat die Stimmen geholt?',
+    'Nobody fell for a fake this time.': 'Diesmal ist niemand auf eine Fälschung reingefallen.',
     'Before': 'Vorher',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'Wie sicher bist du dir bei deiner Antwort?',
@@ -1052,6 +1058,8 @@ export const STRINGS = {
     'Nobody changed their mind.': 'Ninguém mudou de ideia.',
     'Guessed right: {names}': 'Acertaram: {names}',
     'Nobody guessed right.': 'Ninguém acertou.',
+    'Fake authors, own up! Whose fake pulled the votes?': 'Autores das falsas, confessem! De quem era a falsa que levou os votos?',
+    'Nobody fell for a fake this time.': 'Desta vez ninguém caiu numa falsa.',
     'Before': 'Antes',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'Quão seguro você está da sua resposta?',
@@ -1297,6 +1305,8 @@ export const STRINGS = {
     'Nobody changed their mind.': 'Nessuno ha cambiato idea.',
     'Guessed right: {names}': 'Hanno indovinato: {names}',
     'Nobody guessed right.': 'Nessuno ha indovinato.',
+    'Fake authors, own up! Whose fake pulled the votes?': 'Autori dei falsi, confessate! Di chi era il falso che ha preso i voti?',
+    'Nobody fell for a fake this time.': 'Questa volta nessuno è cascato in un falso.',
     'Before': 'Prima',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'Quanto sei sicuro della tua risposta?',
