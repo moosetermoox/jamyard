@@ -15,8 +15,12 @@ const PLACEHOLDER_LINE = /^\s*(?:\*\*)?\s*[“"'‘]?\s*…\s*[”"'’]?\s*(?:\
  * @param {string} text the resolved projector prompt
  * @returns {string}
  */
+// A short lead in front of the placeholder ("Draw this: …", Doodle Bluff's
+// secret phrase, a reviewer 2026-10-02): the lead means nothing without it
+const LEAD_PLACEHOLDER_LINE = /^\s*[^…\n]{1,40}:\s*(?:\*\*)?\s*[“"'‘]?\s*…\s*[”"'’]?\s*(?:\*\*)?\s*$/;
+
 export function withoutPlaceholderLines(text) {
   if (typeof text !== 'string' || text.indexOf('…') === -1) return text;
-  const kept = text.split('\n').filter(line => !PLACEHOLDER_LINE.test(line));
+  const kept = text.split('\n').filter(line => !PLACEHOLDER_LINE.test(line) && !LEAD_PLACEHOLDER_LINE.test(line));
   return kept.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }

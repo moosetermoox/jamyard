@@ -2215,7 +2215,7 @@ function stepTextFor(phase, engine) {
     if (typeof raw !== 'string' || !raw.trim()) continue;
     let text = raw;
     try { text = resolveTemplate(raw, engine); } catch { text = raw; }
-    text = text.replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
+    text = text.replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
     if (!text) continue;
     return text.length > 240 ? text.slice(0, 237).trimEnd() + '…' : text;
   }

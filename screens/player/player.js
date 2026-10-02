@@ -2731,6 +2731,20 @@ var checklistChecked = []; // per item: null or {playerId, name}
 var checklistItemRoles = []; // per item: null or role name (rolesFrom)
 var checklistYourRole = null;
 
+// A task tagged by its words ("Recorder: write it down") shows the job
+// once, as the tag beside it, never again at the head of the line
+// (a reviewer 2026-10-02 read "RECORDER: Summarize..." next to RECORDER)
+function checklistTaskWords(text, role) {
+  var words = String(text || '');
+  if (!role) return words;
+  var colon = words.indexOf(':');
+  if (colon > 0 && words.slice(0, colon).trim().toLowerCase() === String(role).trim().toLowerCase()) {
+    var rest = words.slice(colon + 1).trim();
+    if (rest) return rest;
+  }
+  return words;
+}
+
 function renderChecklistItems() {
   checklistItemsEl.innerHTML = '';
   for (var i = 0; i < checklistItemTexts.length; i++) {
@@ -2749,7 +2763,7 @@ function renderChecklistItems() {
 
       var text = document.createElement('span');
       text.className = 'checklist-item-text';
-      text.textContent = checklistItemTexts[index];
+      text.textContent = checklistTaskWords(checklistItemTexts[index], itemRole);
       row.appendChild(text);
 
       // Role tag: whose job this is; "your job" when it's the viewer's role.

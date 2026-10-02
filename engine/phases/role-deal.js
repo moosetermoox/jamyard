@@ -63,12 +63,32 @@ export function claimRole(state, playerId, role) {
   const groupKey = state.playerGroup[playerId];
   if (groupKey == null || !state.groups[groupKey]) return { ok: false, reason: 'no-group' };
   if (!state.roles.includes(role)) return { ok: false, reason: 'bad-role' };
-  const cap = roleCapacity(state.groups[groupKey].memberIds.length, state.roles.length);
-  if (countInGroup(state, groupKey, role, playerId) >= cap) {
+  if (!roleOpenFor(state, groupKey, role, playerId)) {
     return { ok: false, reason: 'full' };
   }
   state.picks[playerId] = role;
   return { ok: true };
+}
+
+/**
+ * Is this role open to this player in their group? Under the capacity,
+ * and no repeat while another job in the group still has fewer holders
+ * (a reviewer, 2026-10-02: two students took Facilitator in a group of
+ * four while Timekeeper sat empty). The player's own pick never counts
+ * against them, so a switch is judged as if they had not picked yet.
+ * Some role is always open: the least-held one.
+ */
+export function roleOpenFor(state, groupKey, role, playerId) {
+  const group = state.groups[groupKey];
+  if (!group) return false;
+  const cap = roleCapacity(group.memberIds.length, state.roles.length);
+  const held = countInGroup(state, groupKey, role, playerId);
+  if (held >= cap) return false;
+  let fewest = Infinity;
+  for (const r of state.roles) {
+    fewest = Math.min(fewest, countInGroup(state, groupKey, r, playerId));
+  }
+  return held <= fewest;
 }
 
 /**

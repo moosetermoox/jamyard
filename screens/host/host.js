@@ -3166,8 +3166,11 @@ socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, ho
 
 let winnerRevealTimer = null;
 
-socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, winnerEntry, winnerEntries, hostTemplate, hostShow }) => {
+socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, winnerEntry, winnerEntries, hostTemplate, hostShow, continueLabel }) => {
   showSection(winnerSection);
+  // The button says what comes next ("Finish up" before the wrap-up);
+  // it moved the room on while it read "End Session" (2026-10-02)
+  winnerEndBtn.textContent = continueLabel || UiLang.t('Finish up');
 
   // Build-up beat: drumroll while the room holds its breath, then the crown
   // lands. The teacher-facing toggles still decide what's visible.

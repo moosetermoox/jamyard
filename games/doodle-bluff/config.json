@@ -104,6 +104,7 @@
       "rotateFrom": "phrases",
       "rotateShuffle": true,
       "prompt": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
+      "hostTemplate": "Everyone is drawing a secret phrase. Eyes on your own screen!",
       "timer": 90,
       "next": "check"
     },

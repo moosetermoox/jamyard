@@ -1,6 +1,6 @@
 {
   "name": "Class Critique",
-  "description": "The presenter shares their work; the class rates it on three custom scales.",
+  "description": "The presenter shares their work; the class rates it on scales you choose.",
   "minPlayers": 2,
   "maxPlayers": 35,
   "phases": {
@@ -11,7 +11,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Class Critique\n\nThe presenter shares their idea now, give them your full attention. When they finish, you'll rate it on three scales. Be honest and constructive.",
+      "message": "Class Critique\n\nThe presenter shares their idea now, give them your full attention. When they finish, you'll rate it. Be honest and constructive.",
       "next": "rate-it"
     },
     "rate-it": {
@@ -68,7 +68,7 @@
     "reflect",
     "discuss"
   ],
-  "recommendedFor": "Use after presentations, pitches, or shared work. Customize the three scales to fit the lesson.",
+  "recommendedFor": "Use after presentations, pitches, or shared work. Change the scales to fit the lesson.",
   "featured": true,
   "when": "When someone just presented and the class should tell them, honestly and kindly, how it landed."
 }
