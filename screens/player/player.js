@@ -1712,8 +1712,9 @@ var collectOpenAfterClock = null;
 function reopenCollectClock(addSeconds) {
   var open = collectOpenAfterClock;
   if (!open || timerInterval || addSeconds <= 0) return false;
-  if (open.phase !== latestPhaseInstanceId) { collectOpenAfterClock = null; return false; }
   collectOpenAfterClock = null;
+  // Another step, or the student sent an answer by hand since: no clock
+  if (open.phase !== latestPhaseInstanceId || collectSection.hidden) return false;
   submitBtn.disabled = false;
   startTimer(addSeconds, collectTimerDisplay, open.onExpire);
   return true;
