@@ -1835,15 +1835,21 @@ Return ONLY JSON, no other prose:
     const phases = (config && config.phases) || {};
     const truths = bluffTruths(phases);
     const steps = Object.entries(phases)
-      .filter(([, p]) => p && p.type === 'collect' && p.inputType !== 'drawing' && !p.appendOnly)
+      // An add-a-line step (appendOnly, One More Thing's two rounds) gets
+      // a set too: without one the keyword bot answered "A missing point"
+      // off the instructions (a reviewer, 2026-10-02). It counts only when
+      // it adds to a classmate's text.
+      .filter(([, p]) => p && p.type === 'collect' && p.inputType !== 'drawing' &&
+        (!p.appendOnly || (typeof p.rotateFrom === 'string' && phases[p.rotateFrom] && phases[p.rotateFrom].type === 'collect')))
       .map(([id, p]) => ({
         id,
+        adds: !!p.appendOnly,
         // a rotation step reads a classmate's answer from an earlier step
         // (2026-09-26: the bots wrote a fresh story every round)
         // A second peer reader (showOriginal) reads the chain's first piece,
         // the draft, never the first reader's comment (a reviewer's pretend
         // students commented on the feedback, 2026-10-01)
-        respondsTo: typeof p.rotateFrom === 'string' && phases[p.rotateFrom] && phases[p.rotateFrom].type === 'collect' && !p.appendOnly
+        respondsTo: typeof p.rotateFrom === 'string' && phases[p.rotateFrom] && phases[p.rotateFrom].type === 'collect'
           ? (p.showOriginal === true ? chainOriginId(phases, p.rotateFrom) : p.rotateFrom) : null,
         prompt: String(p.prompt || '').replace(/\{\{[^}]+\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 300),
         fields: Array.isArray(p.fields) ? p.fields.map((f) => String((f && f.label) || '').slice(0, 80)) : [],
@@ -1872,7 +1878,8 @@ Return ONLY JSON, no other prose:
       const bits = [`- step "${s.id}": ${s.prompt || '(no question text)'}`];
       if (s.fields.length >= 2) bits.push(`  fields, answer each as its own string in order: ${s.fields.map((f) => JSON.stringify(f)).join(', ')}`);
       if (s.dealt.length) bits.push(`  each student was privately handed one of: ${s.dealt.join('; ')} (the … in the question is that item)`);
-      if (s.respondsTo) bits.push(`  each student receives a classmate's answer from step "${s.respondsTo}" (the … in the question): answer i here must respond to answer i of step "${s.respondsTo}", in the same order, carrying it forward`);
+      if (s.respondsTo && s.adds) bits.push(`  each student receives a classmate's text from step "${s.respondsTo}", locked above the box, and ADDS one line under it: answer i here is ONLY the new line added to answer i of step "${s.respondsTo}", in the same order, never a copy of what is already there`);
+      else if (s.respondsTo) bits.push(`  each student receives a classmate's answer from step "${s.respondsTo}" (the … in the question): answer i here must respond to answer i of step "${s.respondsTo}", in the same order, carrying it forward`);
       if (s.truth) bits.push(`  a bluff: each answer is a FAKE that fills the blank and will sit on a ballot beside the true answer ${JSON.stringify(s.truth)}. Write fakes of the same kind and length as the truth (about ${wordCount(s.truth)} word${wordCount(s.truth) === 1 ? '' : 's'}), only the words that fill the blank, never a sentence, never the truth itself`);
       return bits.join('\n');
     }).join('\n');

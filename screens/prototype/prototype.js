@@ -439,23 +439,34 @@ function hostFrame() {
 
 // POST /api/games/:id/sample-answers: the AI writes a set for a teacher's
 // own activity (built-ins are refused there) and the server saves it on
-// the copy. Fire and forget: Add sample answers deals what is here by then.
+// the copy. Add sample answers pressed while the set is still being
+// written waits for it (a reviewer's One More Thing copy got the keyword
+// bot's "Homework should be banned", 2026-10-02), up to SAMPLES_WAIT_MS.
 let samplesRequestFor = null;
+let samplesWriting = null; // the in-flight write, until it settles
+const SAMPLES_WAIT_MS = 10000;
 function writeSamplesFor(id) {
   if (!id || samplesRequestFor === id) return;
   samplesRequestFor = id;
   // as many lines as the bench can seat, so eight students never share two (2026-09-26)
-  fetch('/api/games/' + encodeURIComponent(id) + '/sample-answers?seats=' + MAX_PLAYERS, { method: 'POST' })
+  const writing = samplesWriting = fetch('/api/games/' + encodeURIComponent(id) + '/sample-answers?seats=' + MAX_PLAYERS, { method: 'POST' })
     .then((r) => (r.ok ? r.json() : null))
     .then((body) => {
       if (body && body.sampleAnswers && typeof body.sampleAnswers === 'object' && samplesRequestFor === id && !currentSamples) {
         currentSamples = body.sampleAnswers;
       }
     })
-    .catch(() => { /* the keyword bot answers, as before */ });
+    .catch(() => { /* the keyword bot answers, as before */ })
+    .then(() => { if (samplesWriting === writing) samplesWriting = null; });
 }
 
 function fireBotFill() {
+  if (!currentSamples && samplesWriting) {
+    const waitFor = samplesWriting;
+    Promise.race([waitFor, new Promise((done) => setTimeout(done, SAMPLES_WAIT_MS))])
+      .then(() => { if (samplesWriting === waitFor) samplesWriting = null; fireBotFill(); });
+    return;
+  }
   const playerIframes = playerHolder.querySelectorAll('.player-panel iframe');
   let seat = 0;
   for (const iframe of playerIframes) {
@@ -961,6 +972,7 @@ launchBtn.addEventListener('click', () => {
   // Fetched fresh per launch (the activity select may have changed);
   // a miss just means the keyword bot answers, as before.
   currentSamples = null;
+  samplesWriting = null;
   // Resolves once the config is read (or failed): the seat count waits on
   // it, the sample answers ride along.
   const seatsReady = fetch('/api/games/' + encodeURIComponent(gameId))
