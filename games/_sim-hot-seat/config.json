@@ -1,6 +1,6 @@
 {
   "name": "Sim Hot Seat",
-  "description": "Hidden fixture: the hot seat brick (scripts/simulate-hot-seat.js).",
+  "description": "Hidden fixture: the hot seat brick, the seat moving (scripts/simulate-hot-seat.js).",
   "minPlayers": 2,
   "phases": {
     "lobby": {
@@ -18,7 +18,7 @@
     },
     "picked": {
       "type": "reveal",
-      "template": "In the hot seat:\n\n**{{pick.winnerText}}**",
+      "template": "First in the hot seat:\n\n**{{pick.winnerText}}**",
       "next": "ask"
     },
     "ask": {
@@ -38,6 +38,8 @@
       "message": "Brian, the class asks:",
       "from": "ask.responses",
       "to": "{{pick.winnerText}}",
+      "rotateEvery": 2,
+      "seatOrderFrom": "pick",
       "next": "wrap"
     },
     "wrap": {

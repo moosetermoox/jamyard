@@ -12,6 +12,7 @@ import { validate } from '../../engine/game-loader.js';
 import { STRINGS } from '../../engine/i18n/index.js';
 import { STORYBOARD_BRICKS, validateSuggestions } from '../../engine/suggest-validate.js';
 import { readsAsFindYourMatch } from '../../engine/find-match-idea.js';
+import { classmatesOf } from '../../engine/phase-handlers/collect.js';
 import '../../screens/shared/step-suggestions.js';
 
 const S = globalThis.StepSuggestions;
@@ -74,6 +75,33 @@ describe('secret pairs: finding', () => {
     expect(j.pairsList).toBe('Romeo + Juliet: Ana, Ben\nMoo: Cleo, Dev');
     expect(foundLine('en', 2, 4)).toBe('2 of 4 named their match.');
     for (const [lang, table] of Object.entries(STRINGS)) expect(table['{found} of {total} named their match.'], lang).toBeTruthy();
+  });
+});
+
+describe('secret pairs: a classmate\'s name is tapped, never spelled', () => {
+  it('the class list is everyone but the student, alphabetical', () => {
+    const engine = { players: { list: () => [{ id: 'c', name: 'Cleo' }, { id: 'a', name: 'Ana' }, { id: 'b', name: 'ben' }] } };
+    expect(classmatesOf(engine, 'a')).toEqual(['ben', 'Cleo']);
+  });
+
+  it('the brick asks for a tap, the validator keeps it one tap', () => {
+    const { config } = S.compileStoryboard({ name: 'P', steps: [{ brick: 'findmatch', text: 'Find your match, tap their name.', items: ['Moo', 'Baa'] }, { brick: 'end', text: 'Bye' }] });
+    const find = Object.values(config.phases).find(p => p.pairItems);
+    expect(find.inputType).toBe('classmate');
+    expect(find.maxLength).toBeUndefined();
+    const errs = validate({ name: 'P', description: 'p', phases: {
+      lobby: { type: 'lobby', next: 'f' }, f: { type: 'collect', prompt: 'Who?', inputType: 'classmate', fields: [{ key: 'a', label: 'A' }, { key: 'b', label: 'B' }], next: 'end' }, end: { type: 'end' }
+    } }, 'p3', { returnResults: true }).errors.map(e => (typeof e === 'string' ? e : e.message)).join(' ');
+    expect(errs).toMatch(/a name is one tap, drop the boxes/);
+  });
+
+  it('the server sends the list and the student screen draws it as a pick-then-Submit ballot', () => {
+    const handler = read('engine/phase-handlers/collect.js');
+    expect(handler).toMatch(/\.\.\.\(inputType === 'classmate' \? \{ classmates: classmatesOf\(engine, player\.id\) \} : \{\}\)/);
+    const player = read('screens/player/player.js');
+    expect(player).toMatch(/\} else if \(inputType === 'classmate' && Array\.isArray\(classmates\) && classmates\.length > 0\) \{/);
+    expect(player).toMatch(/collectMode === 'classmate'/);
+    expect(read('services/ai-service.js')).not.toMatch(/type their name|type the name|names typed/);
   });
 });
 

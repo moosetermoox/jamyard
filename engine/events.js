@@ -264,4 +264,7 @@ export const EVENTS = {
   // server -> player: one line to show over the NEXT step's prompt (the
   // teacher started a step over from a review screen, 2026-09-26)
   STEP_NOTE:            'step-note',
+  // server -> player: the class list for a name-tap step grew (a student
+  // joined mid-step, find your match, 2026-10-01)
+  CLASSMATES:           'classmates-update',
 };

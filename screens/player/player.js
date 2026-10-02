@@ -1333,7 +1333,7 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, oneTap, maxPicks }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, oneTap, maxPicks, classmates }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
@@ -1559,6 +1559,32 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       submitButton: submitBtn
     });
 
+  } else if (inputType === 'classmate' && Array.isArray(classmates) && classmates.length > 0) {
+    // --- A classmate's name, tapped (find your match, 2026-10-01: owner,
+    // "what if they can't spell their classmate's name?") ---
+    collectMode = 'classmate';
+    responseInput.hidden = true;
+    responseInput.style.display = 'none';
+    if (responseCounter) responseCounter.hidden = true;
+    submitBtn.hidden = true;
+    submitBtn.style.display = 'none';
+    var nameContainer = document.createElement('div');
+    nameContainer.className = 'choice-buttons classmate-buttons';
+    choiceBallot = pickThenConfirm(UiLang.t('Submit'), function (picked, confirmBtn) {
+      var all = nameContainer.querySelectorAll('.choice-btn');
+      for (var ni = 0; ni < all.length; ni++) all[ni].disabled = true;
+      socket.emit('submit-response', { code: currentRoomCode, response: picked });
+      awaitSubmitAck(confirmBtn);
+    });
+    classmates.forEach(function (name) { addClassmateButton(nameContainer, name); });
+    nameContainer.appendChild(choiceBallot.confirmBtn);
+    collectSection.appendChild(nameContainer);
+    applyShow(show, {
+      prompt: promptDisplay,
+      input: nameContainer,
+      timer: collectTimerDisplay,
+      submitButton: submitBtn
+    });
   } else if (inputType === 'drawing') {
     // --- Drawing mode ---
     collectMode = 'drawing';
@@ -1630,6 +1656,10 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
           result[inputs[k].getAttribute('data-key')] = typed;
         }
         if (anyFilled) socket.emit('submit-response', { code: currentRoomCode, response: result });
+      } else if (collectMode === 'classmate') {
+        // Time's up: the name picked goes; nothing picked sends nothing
+        var pickedName = choiceBallot && choiceBallot.picked();
+        if (pickedName) socket.emit('submit-response', { code: currentRoomCode, response: pickedName.value });
       } else if (collectMode === 'drawing') {
         // Auto-submit whatever's on the pad; a blank pad submits nothing
         // (the server rejects empties, and the host closes the phase anyway)
@@ -1863,14 +1893,14 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, inHot
   });
   setRichText(revealOneMessage, message || 'Revealing...');
   revealOneItems.innerHTML = '';
-  // The hot seat: the chosen student is told so; everyone else sees the count
-  if (hotSeat && inHotSeat) {
-    var you = document.createElement('p');
-    you.className = 'hot-seat-you';
-    you.textContent = UiLang.t('You are in the hot seat. The questions come to your screen.');
-    revealOneItems.appendChild(you);
-  } else if (hotSeat) {
-    showHotSeatCount(typeof revealed === 'number' ? revealed : 0, total, hotSeat);
+  // The hot seat: who goes first, before the first question comes
+  if (hotSeat && !revealed) {
+    var first = document.createElement('p');
+    first.className = inHotSeat ? 'hot-seat-you' : 'hot-seat-count';
+    first.textContent = inHotSeat
+      ? UiLang.t('You are first in the hot seat.')
+      : UiLang.t('First in the hot seat: {name}').replace('{name}', hotSeat);
+    revealOneItems.appendChild(first);
   }
 
   // If reconnecting, revealed items come as array
@@ -1881,25 +1911,53 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, inHot
   }
 });
 
-socket.on('reveal-one-item', ({ item, index, total, hotSeat }) => {
+socket.on('reveal-one-item', ({ item, index, total, hotSeat, turn, turns, mine }) => {
   if (hotSeat) {
-    // The hot seat (2026-10-01): the questions are on one classmate's
-    // screen; everyone else follows the count
-    showHotSeatCount(index, total, hotSeat);
+    // The hot seat (2026-10-01, reworked on the owner's call): the current
+    // question alone, marked as yours in the seat, under who answers it
+    // for everyone else
+    showHotSeatQuestion(item, hotSeat, turn || index, turns || total, !!mine);
     return;
   }
   appendRevealOneItem(item);
 });
 
-function showHotSeatCount(index, total, name) {
-  var line = revealOneItems.querySelector('.hot-seat-count');
-  if (!line) {
-    line = document.createElement('p');
-    line.className = 'hot-seat-count';
-    revealOneItems.appendChild(line);
-  }
-  line.textContent = UiLang.t('{index} of {total} sent to {name}')
-    .replace('{index}', String(index)).replace('{total}', String(total)).replace('{name}', name);
+// A classmate's name as a button on the name-tap ballot (find your match)
+function addClassmateButton(container, name) {
+  var nameBtn = document.createElement('button');
+  nameBtn.className = 'choice-btn';
+  nameBtn.textContent = name;
+  choiceBallot.option(nameBtn, name);
+  var confirm = container.querySelector('.ballot-confirm');
+  if (confirm) container.insertBefore(nameBtn, confirm);
+  else container.appendChild(nameBtn);
+}
+
+// Someone joined mid-step: their name joins the list (a pick already made
+// stays picked; a list already sent stays as it was)
+socket.on('classmates-update', function (data) {
+  if (collectMode !== 'classmate' || !choiceBallot || !data || !Array.isArray(data.classmates)) return;
+  var container = collectSection.querySelector('.classmate-buttons');
+  if (!container) return;
+  var confirm = container.querySelector('.ballot-confirm');
+  var shown = Array.prototype.map.call(container.querySelectorAll('.choice-btn'), function (b) { return b.textContent; });
+  var sent = Array.prototype.some.call(container.querySelectorAll('.choice-btn'), function (b) { return b.disabled; });
+  if (sent || (confirm && confirm.classList.contains('is-waiting'))) return;
+  data.classmates.forEach(function (name) {
+    if (shown.indexOf(name) === -1) addClassmateButton(container, name);
+  });
+});
+
+function showHotSeatQuestion(item, name, turn, turns, mine) {
+  revealOneItems.textContent = '';
+  var who = document.createElement('p');
+  who.className = mine ? 'hot-seat-you' : 'hot-seat-count';
+  who.textContent = (mine ? UiLang.t('Your question ({turn} of {turns})') : UiLang.t('For {name} ({turn} of {turns})').replace('{name}', name))
+    .replace('{turn}', String(turn)).replace('{turns}', String(turns));
+  var q = document.createElement('div');
+  q.className = 'reveal-one-item hot-seat-question';
+  setRichText(q, typeof item === 'string' ? item : ((item && (item.text || item.name)) || ''));
+  revealOneItems.append(who, q);
 }
 
 socket.on('reveal-one-complete', () => {

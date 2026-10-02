@@ -228,9 +228,9 @@ export const PHASE_SCHEMAS = {
         placeholder: 'How are you feeling today?'
       },
       inputType: {
-        type: 'enum', values: ['text', 'drawing'], optional: true, default: 'text',
+        type: 'enum', values: ['text', 'drawing', 'classmate'], optional: true, default: 'text',
         label: 'Students answer with',
-        helper: '"drawing" replaces the text box with a drawing pad. Drawings flow to reveal galleries and rotation chains; AI steps can\'t read them. With rotateFrom: a drawing source preloads onto the pad (continue it), or displays above a text box (caption it).'
+        helper: '"classmate" replaces the text box with the class list: the student taps a classmate\'s name (find your match; no spelling). "drawing" replaces the text box with a drawing pad. Drawings flow to reveal galleries and rotation chains; AI steps can\'t read them. With rotateFrom: a drawing source preloads onto the pad (continue it), or displays above a text box (caption it).'
       },
       fields: {
         type: 'array', item: { type: 'string' }, optional: true,
@@ -274,7 +274,7 @@ export const PHASE_SCHEMAS = {
       pairItems: {
         type: 'boolean', optional: true, contexts: ['topLevel'],
         label: 'Deal each item to two students',
-        helper: 'With "Deal these items out": every item goes to TWO students in private, so each one has a match to find in the room. Write an item as "Romeo | Juliet" to split it into two halves (a word and its meaning, a question and its answer), or plainly to give both the same card. An odd student joins a pair as a third. Students type their match\'s name; the close outputs .pairsList (every item with who held it), .foundLine ("10 of 12 named their match."), .foundCount, and .foundByPlayer.'
+        helper: 'With "Deal these items out": every item goes to TWO students in private, so each one has a match to find in the room. Write an item as "Romeo | Juliet" to split it into two halves (a word and its meaning, a question and its answer), or plainly to give both the same card. An odd student joins a pair as a third. Students tap their match\'s name ("Students answer with": classmate); the close outputs .pairsList (every item with who held it), .foundLine ("10 of 12 named their match."), .foundCount, and .foundByPlayer.'
       },
       assign: {
         type: 'enum', values: ['pairwise'], optional: true, contexts: ['topLevel'],
@@ -1464,7 +1464,17 @@ export const PHASE_SCHEMAS = {
       to: {
         type: 'templateString', optional: true, contexts: ['topLevel'],
         label: 'Only to one student (the hot seat)',
-        helper: 'Send every item to ONE student\'s screen instead of the projector: a vote over the students\' pick ("{{pick.winner}}") or "{{players.random}}", resolved once when the step starts. The projector and the rest of the class see only the count and the name ("3 of 7 sent to Maya"). Put a teacher look (a preview step) before it when the items are classmates\' questions.'
+        helper: 'The hot seat: the student who answers the items, one at a time: a vote over the students\' pick ("{{pick.winnerText}}") or "{{players.random}}", resolved once when the step starts. Each item shows on the projector and every screen with who answers it ("For Maya (2 of 3)"); the student in the seat sees it marked as theirs, and never gets their own item when a swap can avoid it. Put a teacher look (a preview step) before it when the items are classmates\' questions.'
+      },
+      rotateEvery: {
+        type: 'integer', min: 1, max: 20, optional: true, contexts: ['topLevel'],
+        label: 'New student in the seat every',
+        helper: 'With the hot seat: after this many items the seat moves to the next student (first the "Only to one student" pick, then the vote order when "Seat order from" is set, then everyone else at random). Leave empty to keep one student in the seat throughout.'
+      },
+      seatOrderFrom: {
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
+        label: 'Seat order from a vote',
+        helper: 'With "New student in the seat every": a vote over the students; the seat moves in its order, most votes first.'
       }
     },
     transitions: {
@@ -1475,8 +1485,8 @@ export const PHASE_SCHEMAS = {
       fields: {
         items:    { type: 'array' },
         revealed: { type: 'integer' },
-        // With `to` (2026-10-01): the student the items went to, by name
-        hotSeat:  { type: 'string', capability: 'renderable' }
+        // With `to` / `rotateEvery` (2026-10-01): who sat in the hot seat, in order
+        hotSeats: { type: 'array' }
       }
     },
     ui: {

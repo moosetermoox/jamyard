@@ -60,11 +60,22 @@ async function main() {
     check('cards go out in twos, the odd one makes a trio, the late one joins the smallest', sizes.reduce((a, b) => a + b, 0) === 6 && sizes.every(n => n >= 2) && Math.max(...sizes) - Math.min(...sizes) <= 1);
     check('every group holds both halves of its pair', Object.entries(byItem).every(([k, m]) => m.length < 2 || new Set(m.map(i => cards[i])).size === 2));
 
-    // Everyone types a groupmate's name, except Dev, who types a stranger's
+    // Names are tapped from the class list, never typed (owner 2026-10-01)
+    // The five who were in get Fay added when she joins; Fay gets the list whole
+    await wait(300);
+    const listOf = (i) => {
+      const ups = players[i]._buffer['classmates-update'] || [];
+      return ups.length ? ups[ups.length - 1].classmates : starts[i].classmates;
+    };
+    check('every student gets the class list to tap, everyone but them, alphabetical, a late joiner added',
+      starts.every((s, i) => s.inputType === 'classmate' && Array.isArray(s.classmates) &&
+        JSON.stringify(listOf(i)) === JSON.stringify(names.filter(n => n !== names[i]).slice().sort((a, b) => a.localeCompare(b)))));
+    check('the students who were in before Fay got her name pushed to them', players.slice(0, 5).every(p => (p._buffer['classmates-update'] || []).length >= 1));
+    // Everyone taps a groupmate, except Dev, who taps someone outside the group
     const typed = names.map((n, i) => {
       const mates = byItem[itemOf(cards[i])].filter(j => j !== i);
-      if (n === 'Dev') return 'Zelda';
-      return mates.length ? names[mates[0]].toLowerCase() : '';
+      if (n === 'Dev') return starts[i].classmates.find(c => !mates.some(j => names[j] === c));
+      return mates.length ? names[mates[0]] : '';
     });
     players.forEach((p, i) => p.emit('submit-response', { code, response: typed[i], phaseInstanceId: starts[i].phaseInstanceId }));
     await wait(500);

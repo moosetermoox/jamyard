@@ -18,7 +18,7 @@ describe('several picks on the student screen', () => {
     expect(player).toContain("? pickSeveral(UiLang.t('Submit'), maxPicks, sendPicks)");
     expect(player).toContain("UiLang.t('Pick up to {n}.').replace('{n}', String(maxPicks))");
     expect(player).toContain("btn.classList.toggle('is-locked', full && !on)");
-    expect(player).toMatch(/socket\.on\('game-started', \(\{[^}]*maxPicks \}\) =>/);
+    expect(player).toMatch(/socket\.on\('game-started', \(\{[^}]*maxPicks[,} ][^}]*\}\) =>/);
   });
   it('the hint has a row in every language table', () => {
     for (const code of Object.keys(STRINGS)) {

@@ -331,8 +331,10 @@ export const STRINGS = {
     '{item} wins the tie on the class\'s overall ranking.': '{item} gana el empate por la clasificación general de la clase.',
     'Nobody ranked anything.': 'Nadie ordenó nada.',
     // The hot seat (engine/phase-handlers/reveal-one.js)
-    '{index} of {total} sent to {name}': '{index} de {total} enviadas a {name}',
-    'You are in the hot seat. The questions come to your screen.': 'Estás en la silla caliente. Las preguntas llegan a tu pantalla.',
+    'First in the hot seat: {name}': 'Primero en la silla caliente: {name}',
+    'You are first in the hot seat.': 'Eres el primero en la silla caliente.',
+    'For {name} ({turn} of {turns})': 'Para {name} ({turn} de {turns})',
+    'Your question ({turn} of {turns})': 'Tu pregunta ({turn} de {turns})',
     // Secret pairs (engine/phases/pair-deal.js)
     '{found} of {total} named their match.': '{found} de {total} nombraron a su pareja.',
     'After': 'Después',
@@ -570,8 +572,10 @@ export const STRINGS = {
     '{item} wins the tie on the class\'s overall ranking.': '{item} l\'emporte à égalité grâce au classement général de la classe.',
     'Nobody ranked anything.': 'Personne n\'a rien classé.',
     // The hot seat (engine/phase-handlers/reveal-one.js)
-    '{index} of {total} sent to {name}': '{index} sur {total} envoyées à {name}',
-    'You are in the hot seat. The questions come to your screen.': 'Tu es sur la sellette. Les questions arrivent sur ton écran.',
+    'First in the hot seat: {name}': 'Premier sur la sellette : {name}',
+    'You are first in the hot seat.': 'Tu es le premier sur la sellette.',
+    'For {name} ({turn} of {turns})': 'Pour {name} ({turn} sur {turns})',
+    'Your question ({turn} of {turns})': 'Ta question ({turn} sur {turns})',
     // Secret pairs (engine/phases/pair-deal.js)
     '{found} of {total} named their match.': '{found} sur {total} ont nommé leur partenaire.',
     'After': 'Après',
@@ -809,8 +813,10 @@ export const STRINGS = {
     '{item} wins the tie on the class\'s overall ranking.': '{item} gewinnt den Gleichstand nach der Gesamtrangfolge der Klasse.',
     'Nobody ranked anything.': 'Niemand hat etwas geordnet.',
     // The hot seat (engine/phase-handlers/reveal-one.js)
-    '{index} of {total} sent to {name}': '{index} von {total} an {name} geschickt',
-    'You are in the hot seat. The questions come to your screen.': 'Du sitzt auf dem heißen Stuhl. Die Fragen kommen auf deinen Bildschirm.',
+    'First in the hot seat: {name}': 'Zuerst auf dem heißen Stuhl: {name}',
+    'You are first in the hot seat.': 'Du bist zuerst auf dem heißen Stuhl.',
+    'For {name} ({turn} of {turns})': 'Für {name} ({turn} von {turns})',
+    'Your question ({turn} of {turns})': 'Deine Frage ({turn} von {turns})',
     // Secret pairs (engine/phases/pair-deal.js)
     '{found} of {total} named their match.': '{found} von {total} haben ihr Gegenstück genannt.',
     'After': 'Nachher',
@@ -1048,8 +1054,10 @@ export const STRINGS = {
     '{item} wins the tie on the class\'s overall ranking.': '{item} vence o empate pela classificação geral da turma.',
     'Nobody ranked anything.': 'Ninguém ordenou nada.',
     // The hot seat (engine/phase-handlers/reveal-one.js)
-    '{index} of {total} sent to {name}': '{index} de {total} enviadas para {name}',
-    'You are in the hot seat. The questions come to your screen.': 'Você está na berlinda. As perguntas chegam na sua tela.',
+    'First in the hot seat: {name}': 'Primeiro na berlinda: {name}',
+    'You are first in the hot seat.': 'Você é o primeiro na berlinda.',
+    'For {name} ({turn} of {turns})': 'Para {name} ({turn} de {turns})',
+    'Your question ({turn} of {turns})': 'Sua pergunta ({turn} de {turns})',
     // Secret pairs (engine/phases/pair-deal.js)
     '{found} of {total} named their match.': '{found} de {total} disseram o nome do seu par.',
     'After': 'Depois',
@@ -1287,8 +1295,10 @@ export const STRINGS = {
     '{item} wins the tie on the class\'s overall ranking.': '{item} vince il pareggio grazie alla classifica generale della classe.',
     'Nobody ranked anything.': 'Nessuno ha ordinato niente.',
     // The hot seat (engine/phase-handlers/reveal-one.js)
-    '{index} of {total} sent to {name}': '{index} su {total} inviate a {name}',
-    'You are in the hot seat. The questions come to your screen.': 'Sei sulla sedia che scotta. Le domande arrivano sul tuo schermo.',
+    'First in the hot seat: {name}': 'Primo sulla sedia che scotta: {name}',
+    'You are first in the hot seat.': 'Sei il primo sulla sedia che scotta.',
+    'For {name} ({turn} of {turns})': 'Per {name} ({turn} su {turns})',
+    'Your question ({turn} of {turns})': 'La tua domanda ({turn} su {turns})',
     // Secret pairs (engine/phases/pair-deal.js)
     '{found} of {total} named their match.': '{found} su {total} hanno nominato la loro coppia.',
     'After': 'Dopo',

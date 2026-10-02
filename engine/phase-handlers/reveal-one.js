@@ -7,6 +7,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { sampleItems } from '../phases/sampling.js';
+import { planHotSeat, rankedFromScores } from '../phases/hot-seat.js';
 
 /**
  * Pure: render one reveal item as a display string.
@@ -56,6 +57,23 @@ export function hotSeatFor(ctx) {
   return null;
 }
 
+/**
+ * One hot-seat question as a screen receives it: the words, who answers,
+ * the place in that student's run, and `mine` for the student in the seat.
+ * @param {object} roState  room.phaseState of the reveal-one
+ * @param {number} i        the item's index
+ * @param {string} [viewerId]
+ */
+export function hotSeatItem(roState, i, viewerId) {
+  const seat = roState.seatPlan[i];
+  const t = (roState.turns && roState.turns[i]) || { turn: i + 1, of: roState.items.length };
+  return {
+    item: roState.items[i], index: i + 1, total: roState.items.length,
+    hotSeat: seat.name, turn: t.turn, turns: t.of,
+    mine: !!(viewerId && seat.id === viewerId)
+  };
+}
+
 registerHandler('reveal-one', {
   async onEnter(ctx) {
     const { phase, engine, room } = ctx;
@@ -74,15 +92,27 @@ registerHandler('reveal-one', {
     // slideshow — sample the highlights instead). Careful where fairness IS
     // the point (encouragement walls, return-to-author): leave limit unset
     // there so every student's item lands.
-    // The hot seat (2026-10-01): `to` names ONE student (a vote over the
-    // students' pick, or {{players.random}}), resolved once here; every
-    // item then goes to that student's screen only and everyone else,
-    // the projector too, sees the count (server.js reveal-next). Their
-    // own question is not one of theirs to answer.
-    const seat = hotSeatFor(ctx);
-    if (seat) items = items.filter(it => !(it && typeof it === 'object' && it.playerId === seat.id));
-
     items = sampleItems(items, phase.limit);
+
+    // The hot seat (2026-10-01, reworked after the owner tried it): `to`
+    // names the first student (a vote over the students' pick, or
+    // {{players.random}}), resolved once here; `rotateEvery` moves the seat
+    // every N questions (in vote order with `seatOrderFrom`, else random).
+    // Each question shows on the projector and every screen with who
+    // answers it; the seat's own screen says it is theirs. Nobody gets
+    // their own question when a swap can avoid it (engine/phases/hot-seat.js).
+    const rotateEvery = Number.isInteger(phase.rotateEvery) && phase.rotateEvery > 0 ? phase.rotateEvery : null;
+    const firstSeat = hotSeatFor(ctx);
+    let plan = null;
+    if (firstSeat || rotateEvery) {
+      const voteData = phase.seatOrderFrom ? (engine.phaseData[phase.seatOrderFrom] || {}) : {};
+      plan = planHotSeat({
+        items, players: engine.players.list().map(p => ({ id: p.id, name: p.name })),
+        firstId: firstSeat ? firstSeat.id : null, rotateEvery,
+        ranked: rankedFromScores(voteData.scores)
+      });
+      items = plan.items;
+    }
 
     // Render each item to its display string. Items carrying a drawing
     // (collect responses with inputType:"drawing") keep their strokes so
@@ -110,20 +140,24 @@ registerHandler('reveal-one', {
     }
 
     room.phaseState = { kind: 'reveal-one', phaseId: phase.id, items, revealed: 0, message: roMessage };
-    if (seat) {
-      room.phaseState.hotSeatId = seat.id;
-      room.phaseState.hotSeatName = seat.name;
+    const first = plan && plan.seats[0] ? plan.seats[0] : null;
+    if (plan) {
+      room.phaseState.seatPlan = plan.seats.map(s => ({ id: s.id, name: s.name }));
+      room.phaseState.turns = plan.turns;
+      room.phaseState.hotSeatId = first ? first.id : null;
     }
-    engine.storePhaseData(phase.id, seat ? { items, revealed: 0, hotSeat: seat.name } : { items, revealed: 0 });
+    engine.storePhaseData(phase.id, plan
+      ? { items, revealed: 0, hotSeats: [...new Set(plan.seats.map(s => s.name))] }
+      : { items, revealed: 0 });
     const sc = ctx.resolveScreenControl();
 
-    console.log(`[handlePhase] Reveal-one: ${items.length} items to reveal${seat ? ` to ${seat.name}'s screen` : ''}`);
+    console.log(`[handlePhase] Reveal-one: ${items.length} items to reveal${plan ? `, hot seat ${plan.seats.map(s => s.name).join(' > ')}` : ''}`);
 
     // Send start to host
     ctx.emitToHost(EVENTS.REVEAL_ONE_START, {
       message: roMessage, total: items.length, revealed: 0,
       timer: phase.timer || null,
-      hotSeat: seat ? seat.name : null,
+      hotSeat: first ? first.name : null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
@@ -132,8 +166,8 @@ registerHandler('reveal-one', {
       ctx.emitToPlayer(player.id, EVENTS.REVEAL_ONE_START, {
         message: roMessage, total: items.length, revealed: 0,
         timer: phase.timer || null,
-        hotSeat: seat ? seat.name : null,
-        inHotSeat: !!(seat && seat.id === player.id),
+        hotSeat: first ? first.name : null,
+        inHotSeat: !!(first && first.id === player.id),
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
@@ -143,22 +177,26 @@ registerHandler('reveal-one', {
     const roState = ctx.room.phaseState;
     if (roState) {
       const sc = ctx.resolveScreenControl();
-      const seatName = roState.hotSeatId ? roState.hotSeatName : null;
-      const inHotSeat = !!(roState.hotSeatId && roState.hotSeatId === socket.id);
+      const plan = Array.isArray(roState.seatPlan) ? roState.seatPlan : null;
+      const now = plan ? plan[Math.max(0, roState.revealed - 1)] : null;
       socket.emit(EVENTS.REVEAL_ONE_START, {
         message: roState.message, total: roState.items.length, revealed: roState.revealed,
         timer: null,
-        hotSeat: seatName, inHotSeat,
+        hotSeat: now ? now.name : null,
+        inHotSeat: !!(now && now.id === socket.id),
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
-      // Send already-revealed items (the hot seat's only to the hot seat;
-      // everyone else gets the count)
-      for (let ri = 0; ri < roState.revealed; ri++) {
-        const hidden = roState.hotSeatId && !inHotSeat;
-        socket.emit(EVENTS.REVEAL_ONE_ITEM, {
-          item: hidden ? null : roState.items[ri], index: ri + 1, total: roState.items.length,
-          ...(hidden ? { hotSeat: seatName } : {})
-        });
+      if (plan) {
+        // The hot seat shows one question at a time: the current one, with
+        // who answers it (the seat's own screen knows it is theirs)
+        if (roState.revealed > 0) socket.emit(EVENTS.REVEAL_ONE_ITEM, hotSeatItem(roState, roState.revealed - 1, socket.id));
+      } else {
+        // Send already-revealed items
+        for (let ri = 0; ri < roState.revealed; ri++) {
+          socket.emit(EVENTS.REVEAL_ONE_ITEM, {
+            item: roState.items[ri], index: ri + 1, total: roState.items.length
+          });
+        }
       }
       if (roState.revealed >= roState.items.length) {
         socket.emit(EVENTS.REVEAL_ONE_COMPLETE, {});

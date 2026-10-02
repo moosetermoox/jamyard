@@ -1,6 +1,6 @@
 {
   "name": "Sim Hot Seat Random",
-  "description": "Hidden fixture: the hot seat brick (scripts/simulate-hot-seat.js).",
+  "description": "Hidden fixture: the hot seat brick, the seat moving (scripts/simulate-hot-seat.js).",
   "minPlayers": 2,
   "phases": {
     "lobby": {
@@ -24,6 +24,7 @@
       "message": "Your classmates ask:",
       "from": "ask.responses",
       "to": "{{players.random}}",
+      "rotateEvery": 1,
       "next": "wrap"
     },
     "wrap": {

@@ -2749,3 +2749,14 @@ html, body { overflow-x: hidden; }
    full width at a reading size, the headings between them bold */
 .has-quotes .quote-card { width: 100%; max-width: none; box-sizing: border-box; font-size: 1.05rem; }
 .has-quotes .quote-around { font-weight: 700; margin-top: 16px; }
+
+/* The hot seat, one question at a time (2026-10-01, reworked on the
+   owner's call): who answers it above, the question large under it */
+.hot-seat-for { font-size: 1.05rem; font-weight: 900; text-align: center; margin: 12px 0 8px; letter-spacing: 0.02em; }
+.hot-seat-question { font-size: 1.5rem; font-weight: 700; text-align: center; line-height: 1.25; }
+
+/* Find your match's class list: names in a grid, not one tall column (a
+   class of 30 is 30 rows otherwise); Submit spans the row under them */
+.classmate-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(9em, 1fr)); gap: 10px; align-items: stretch; }
+.classmate-buttons .choice-btn { margin: 0; width: 100%; }
+.classmate-buttons .ballot-confirm { grid-column: 1 / -1; justify-self: center; }
