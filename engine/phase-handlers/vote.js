@@ -9,6 +9,16 @@ import { EVENTS } from '../events.js';
 import { ballotFor, proposalsForProjector, bracketMatchups, bracketLines, tallyBracket } from '../phases/vote-handler.js';
 import { thumbnailStrokes } from '../drawing.js';
 
+// The vote's own question ("Who should play Brian?"), resolved; both
+// screens said only "Pick your favorite!" / "Pick One" (a reviewer,
+// 2026-10-01). Null when the step has none.
+function voteQuestion(ctx) {
+  const q = ctx.phase && ctx.phase.question;
+  if (typeof q !== 'string' || q.trim() === '') return null;
+  const text = ctx.resolveTemplate(q).trim();
+  return text || null;
+}
+
 registerHandler('vote', {
   async onEnter(ctx) {
     const { phase, engine, room } = ctx;
@@ -176,7 +186,7 @@ registerHandler('vote', {
             promptText: room.phaseState.matchupPrompts[i] || null
           })),
           timer: phase.timer || null,
-          playerTemplate: sc.playerTemplate, show: sc.playerShow
+          question: voteQuestion(ctx), playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       }
     } else if (phase.mode === 'pick-one' || phase.mode === 'approve') {
@@ -196,7 +206,7 @@ registerHandler('vote', {
           mode: phase.mode,
           candidates: ballot,
           timer: phase.timer || null,
-          playerTemplate: sc.playerTemplate, show: sc.playerShow
+          question: voteQuestion(ctx), playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       }
     }
@@ -216,6 +226,7 @@ registerHandler('vote', {
       timer: phase.timer || null,
       // A yes-or-no vote lists its proposals on the projector (words only)
       proposals: proposalsForProjector(phase.mode, candidates),
+      question: voteQuestion(ctx),
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     };
     // A bracket round lists its matchups the same way ("Holes  vs  Hatchet")
@@ -250,7 +261,7 @@ registerHandler('vote', {
           })),
           timer: null,
           phaseInstanceId: ctx.phaseInstanceId,
-          playerTemplate: sc.playerTemplate, show: sc.playerShow
+          question: voteQuestion(ctx), playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       } else {
         socket.emit(EVENTS.VOTE_START, {
@@ -258,7 +269,7 @@ registerHandler('vote', {
           candidates: ballotFor(vs.candidates, socket.id, !!vs.excludeAuthors, vs.shuffleSeed || null),
           timer: null,
           phaseInstanceId: ctx.phaseInstanceId,
-          playerTemplate: sc.playerTemplate, show: sc.playerShow
+          question: voteQuestion(ctx), playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       }
     } else {

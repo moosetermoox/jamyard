@@ -116,3 +116,31 @@ export function hasStaleTemplateSamples(config, builtinSets, firstPrompt) {
   const prompt = firstPrompt(config);
   return (builtinSets || []).some(set => JSON.stringify(set.samples) === own && set.prompt !== prompt);
 }
+
+/**
+ * A second peer reader's sample answers that answer the FIRST reader's
+ * comment instead of the draft (2026-10-01): the writer read a step with
+ * `showOriginal` as replying to the step it rotates from, so the pretend
+ * students commented on the feedback. True when any such set points
+ * anywhere but the chain's first piece; the caller drops the set and Try
+ * it out writes a fresh one.
+ * @param {object} config
+ * @returns {boolean}
+ */
+export function hasMisreadSecondReader(config) {
+  const sets = config && config.sampleAnswers;
+  const phases = config && config.phases;
+  if (!sets || typeof sets !== 'object' || !phases || typeof phases !== 'object') return false;
+  return Object.entries(phases).some(([id, p]) => {
+    if (!p || p.showOriginal !== true || typeof p.rotateFrom !== 'string') return false;
+    const set = sets[id];
+    if (!set || typeof set !== 'object' || Array.isArray(set)) return false;
+    let origin = p.rotateFrom;
+    const seen = new Set();
+    while (phases[origin] && typeof phases[origin].rotateFrom === 'string' && !seen.has(origin)) {
+      seen.add(origin);
+      origin = phases[origin].rotateFrom;
+    }
+    return set.respondsTo !== origin;
+  });
+}

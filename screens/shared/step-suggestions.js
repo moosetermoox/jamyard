@@ -835,7 +835,10 @@
       type: 'reveal', scope: 'own', chainFrom: chainIds, chainDisplay: 'steps',
       chainHeading: 'You wrote:',
       chainGrewHeading: readers === 2 ? 'What your classmates said:' : 'What a classmate said:',
-      chainQuoted: true
+      chainQuoted: true,
+      // the projector's own line (it read Folded Pass's "who got the best
+      // surprise", a reviewer 2026-10-01)
+      content: 'Everyone is reading the feedback on their own work. Give it a minute, then ask what someone will change because of it.'
     };
     return revealId;
   }

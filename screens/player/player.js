@@ -1856,31 +1856,51 @@ socket.on('leaderboard', ({ standings, allStandings, teamStandings, myTeam, styl
   leaderboardStandings.innerHTML = '';
   if (teamStandings && teamStandings.length > 0) {
     // Team standings list; the student's own team gets the highlight.
+    var teamMax = Math.max.apply(null, [0].concat(teamStandings.map(function (x) { return Number(x.score) || 0; })));
     for (var ti = 0; ti < teamStandings.length; ti++) {
       var t = teamStandings[ti];
-      var tp = document.createElement('p');
-      tp.textContent = t.rank + '. ' + t.team + ': ' + t.score + ' points';
-      if (t.team === myTeam) {
-        tp.className = 'leaderboard-highlight';
-      }
+      var tp = standingBarRow(t.rank, t.team, t.score, teamMax);
+      if (t.team === myTeam) tp.classList.add('leaderboard-highlight');
       leaderboardStandings.appendChild(tp);
     }
   } else {
     // Render standings list \u2014 medal/number based on rank so tied players
     // share the same medal (two tied for 1st \u2192 both gold; no silver).
     var list = allStandings || standings || [];
+    var max = Math.max.apply(null, [0].concat(list.map(function (x) { return Number(x.score) || 0; })));
     for (var i = 0; i < list.length; i++) {
-      var p = document.createElement('p');
-      var r = list[i].rank;
-      var prefix = r + '. ';
-      p.textContent = prefix + list[i].name + ': ' + list[i].score + ' points';
-      if (list[i].playerId === socket.id) {
-        p.className = 'leaderboard-highlight';
-      }
+      var p = standingBarRow(list[i].rank, list[i].name, list[i].score, max);
+      if (list[i].playerId === socket.id) p.classList.add('leaderboard-highlight');
       leaderboardStandings.appendChild(p);
     }
   }
 });
+
+// One standing as a bar row, the projector's shape (host.js standingRow;
+// a reviewer found the student screen still a text list, 2026-10-01)
+function standingBarRow(rank, name, score, max) {
+  var p = document.createElement('p');
+  p.className = 'standing-row';
+  var r = document.createElement('span');
+  r.className = 'standing-rank';
+  r.textContent = '#' + rank;
+  var n = document.createElement('span');
+  n.className = 'standing-name';
+  n.textContent = name;
+  var track = document.createElement('span');
+  track.className = 'standing-track';
+  var fill = document.createElement('span');
+  fill.className = 'standing-fill';
+  var pts = Number(score) || 0;
+  var pct = max > 0 ? Math.max(0, Math.round((pts / max) * 100)) : 0;
+  fill.style.width = (pts > 0 ? Math.max(pct, 3) : 0) + '%';
+  track.appendChild(fill);
+  var v = document.createElement('span');
+  v.className = 'standing-pts';
+  v.textContent = pts + (Math.abs(pts) === 1 ? ' pt' : ' pts');
+  p.append(r, n, track, v);
+  return p;
+}
 
 // --- Socket events - Reveal-one ---
 
@@ -1936,7 +1956,10 @@ function addClassmateButton(container, name) {
 // Someone joined mid-step: their name joins the list (a pick already made
 // stays picked; a list already sent stays as it was)
 socket.on('classmates-update', function (data) {
-  if (collectMode !== 'classmate' || !choiceBallot || !data || !Array.isArray(data.classmates)) return;
+  // (the name list itself says this is a name-tap step: collectMode lives
+  // inside the game-started handler, and reading it here threw, so no list
+  // ever grew; a reviewer, 2026-10-01)
+  if (!choiceBallot || !data || !Array.isArray(data.classmates)) return;
   var container = collectSection.querySelector('.classmate-buttons');
   if (!container) return;
   var confirm = container.querySelector('.ballot-confirm');
@@ -3855,8 +3878,12 @@ socket.on('phase-paused', ({ message }) => {
 
 // --- Socket events - Voting ---
 
-socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, show }) => {
+// The vote's own question, when the step has one (else the stock title)
+let currentVoteQuestion = null;
+
+socket.on('vote-start', ({ mode, candidates, matchups, timer, question, playerTemplate, show }) => {
   resetHoldingProgress();
+  currentVoteQuestion = typeof question === 'string' && question.trim() !== '' ? question : null;
   showSection(voteSection);
   voteOptions.innerHTML = '';
   applyTemplate(voteSection, playerTemplate);
@@ -3868,7 +3895,8 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, sh
   });
 
   if (mode === 'pick-one') {
-    voteTitle.textContent = UiLang.t('Pick your favorite!');
+    if (currentVoteQuestion) setRichText(voteTitle, currentVoteQuestion);
+    else voteTitle.textContent = UiLang.t('Pick your favorite!');
     voteProgress.hidden = true;
     currentCandidates = candidates || [];
     showPickOneVote(candidates);
@@ -3889,7 +3917,8 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, sh
     }
   } else if (mode === 'approve') {
     // Yes or no on every entry (2026-09-25): several can pass at once.
-    voteTitle.textContent = UiLang.t('Yes or no on each one');
+    if (currentVoteQuestion) setRichText(voteTitle, currentVoteQuestion);
+    else voteTitle.textContent = UiLang.t('Yes or no on each one');
     voteProgress.hidden = true;
     currentCandidates = candidates || [];
     const ballot = showApproveVote(currentCandidates);
@@ -4234,7 +4263,8 @@ function showNextMatchup() {
 
   const matchup = currentMatchups[currentMatchupIndex];
 
-  voteTitle.textContent = UiLang.t('Which is better?');
+  if (currentVoteQuestion) setRichText(voteTitle, currentVoteQuestion);
+  else voteTitle.textContent = UiLang.t('Which is better?');
   voteProgress.hidden = false;
   voteProgress.textContent =
     'Match ' + (currentMatchupIndex + 1) + ' of ' + currentMatchups.length;

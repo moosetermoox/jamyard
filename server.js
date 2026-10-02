@@ -10,7 +10,7 @@ import { readdir, readFile, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
-import { validateSampleAnswers, hasStaleTemplateSamples } from './engine/sample-answers.js';
+import { validateSampleAnswers, hasStaleTemplateSamples, hasMisreadSecondReader } from './engine/sample-answers.js';
 import { parseMine, wantedUserIds, claimableIds } from './engine/games-list-scope.js';
 import { ownerHashFromRequest, writeDecision, NOT_YOURS_MESSAGE } from './engine/owner-key.js';
 import { createOwnerKeyStore } from './services/owner-keys.js';
@@ -63,6 +63,12 @@ function repairSavedConfig(config) {
   if (hasStaleTemplateSamples(config, BUILTIN_SAMPLE_SETS, firstPromptOf)) {
     delete config.sampleAnswers;
     console.log(`[repair] "${config.name}": the template's sample answers dropped (the question changed)`);
+  }
+  // A second peer reader's pretend answers written as replies to the first
+  // reader's comment, not the draft: drop them so a fresh set is written
+  if (hasMisreadSecondReader(config)) {
+    delete config.sampleAnswers;
+    console.log(`[repair] "${config.name}": sample answers dropped (a second reader answered the first comment)`);
   }
   try {
     const stamp = config && config.recipe;

@@ -46,6 +46,10 @@ export const AUDIENCE = Object.freeze({
   // "Only your teacher sees your answers" and then watched the board name
   // who caught each lie, 2026-09-29)
   SCORED: 'scored',
+  // A comment that goes home to the writer of the piece it is about (the
+  // feedback brick: "One classmate will read this" read as a stranger,
+  // a reviewer 2026-10-01)
+  AUTHOR: 'author',
   TEACHER: 'teacher'
 });
 
@@ -60,8 +64,13 @@ export const AUDIENCE_LABELS = Object.freeze({
   [AUDIENCE.AI]: 'These get summed up for the class.',
   [AUDIENCE.TALLY]: 'The class sees the totals, not who gave which answer.',
   [AUDIENCE.SCORED]: 'Your points go on the class leaderboard.',
+  [AUDIENCE.AUTHOR]: 'The classmate who wrote it gets this back.',
   [AUDIENCE.TEACHER]: 'Only your teacher sees your answers.'
 });
+
+// The classmate line when two readers each read the piece (the feedback
+// brick with two readers: the draft said "One classmate", 2026-10-01)
+export const TWO_READERS_LABEL = 'Two classmates will read this.';
 
 export const NAMES_HIDDEN_LABEL = 'Names are hidden.';
 
@@ -174,6 +183,15 @@ function classify(consumer, phaseId) {
       if (!phaseRefs(rest, phaseId)) return null;
       consumer = rest;
     }
+    // A second peer reader reads the chain's first piece, never this
+    // step's words (showOriginal, the feedback brick)
+    if (consumer.showOriginal === true && consumer.rotateFrom === phaseId) {
+      // (its {{this.assigned}} token shows that first piece too)
+      const { rotateFrom, showOriginal, ...rest } = consumer;
+      const assignedToken = new RegExp('\\{\\{\\s*' + phaseId.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&') + '\\.assigned\\s*\\}\\}', 'g');
+      if (typeof rest.prompt === 'string') rest.prompt = rest.prompt.replace(assignedToken, '');
+      if (!phaseRefs(rest, phaseId)) return null;
+    }
     if (consumer.rotateFrom === phaseId || consumer.rotatePairsFrom === phaseId ||
         consumer.reusePairsFrom === phaseId) return AUDIENCE.CLASSMATE;
     if (consumer.dealItems === phaseId) return AUDIENCE.CLASSMATE;
@@ -222,6 +240,7 @@ export function audienceFor(config, phaseId) {
   let classIndex = Infinity; // where on the path the first class-facing reader sits
   let nextHint = null;
   let classOnlyTotals = true; // every class-facing reader shows totals, never one answer
+  let classmateOnlyHome = true; // every classmate reader is the piece's writer, at a return
 
   for (const [id, consumer] of Object.entries(phases)) {
     if (id === phaseId || !consumer || typeof consumer !== 'object') continue;
@@ -230,6 +249,7 @@ export function audienceFor(config, phaseId) {
     if (!key) continue;
     if (key === AUDIENCE.CLASSMATE) {
       classmate = true;
+      if (!(consumer.type === 'reveal' && consumer.scope === 'own')) classmateOnlyHome = false;
       const size = readingGroupSize(consumer);
       if (size && (!groupSize || size > groupSize)) groupSize = size;
       if (consumer.type === 'collect' && path[0] === id) nextHint = NEXT_CLASSMATE_HINT;
@@ -248,6 +268,8 @@ export function audienceFor(config, phaseId) {
   let key;
   if (classmate && cls) {
     key = gateBefore ? AUDIENCE.CLASSMATE_THEN_CLASS_AFTER_REVIEW : AUDIENCE.CLASSMATE_THEN_CLASS;
+  } else if (classmate && classmateOnlyHome && respondsToOrigin(phases, phaseId)) {
+    key = AUDIENCE.AUTHOR;
   } else if (classmate) {
     key = AUDIENCE.CLASSMATE;
   } else if (cls && guessed) {
@@ -258,6 +280,11 @@ export function audienceFor(config, phaseId) {
     // console used to say "Only you can see these until the reveal" beside
     // a projector already drawing them (2026-09-29).
     key = AUDIENCE.TALLY;
+  } else if (cls && classOnlyTotals && !gateBefore && readsPrivateTotalsOnly(phases, phaseId)) {
+    // A secret card's pairs list, a how-sure step's dial: the class sees
+    // the totals, never this answer ("Shown to the class" on a secret
+    // card, a reviewer 2026-10-01)
+    key = AUDIENCE.TALLY;
   } else if (cls) {
     key = gateBefore ? AUDIENCE.CLASS_AFTER_REVIEW : AUDIENCE.CLASS;
   } else if (showsOwnTotals(phases[phaseId])) {
@@ -267,9 +294,12 @@ export function audienceFor(config, phaseId) {
   } else {
     key = AUDIENCE.TEACHER;
   }
+  // Two readers each read this piece (a hand-off plus a second reader
+  // shown the original): the line says two, not one
+  const readers = key === AUDIENCE.CLASSMATE ? countPieceReaders(phases, phaseId) : 1;
   return {
     key,
-    label: AUDIENCE_LABELS[key],
+    label: readers === 2 ? TWO_READERS_LABEL : AUDIENCE_LABELS[key],
     namesHidden: config.anonymous === true,
     nextHint,
     // null = exactly one classmate (a rotation, a chain coming home);
@@ -278,8 +308,65 @@ export function audienceFor(config, phaseId) {
   };
 }
 
+// Does this step answer the piece that starts its chain? A first reader
+// (rotates from the piece) or a second reader shown the original.
+function respondsToOrigin(phases, phaseId) {
+  const p = phases[phaseId];
+  if (!p || typeof p.rotateFrom !== 'string' || !phases[p.rotateFrom]) return false;
+  if (p.showOriginal === true) return true;
+  return typeof phases[p.rotateFrom].rotateFrom !== 'string';
+}
+
+// How many collect steps read this step's words: hand-offs from it, and
+// second readers shown it as their chain's first piece
+function countPieceReaders(phases, phaseId) {
+  let n = 0;
+  for (const p of Object.values(phases)) {
+    if (!p || p.type !== 'collect' || typeof p.rotateFrom !== 'string') continue;
+    if (p.showOriginal === true) {
+      let origin = p.rotateFrom;
+      const seen = new Set();
+      while (phases[origin] && typeof phases[origin].rotateFrom === 'string' && !seen.has(origin)) {
+        seen.add(origin);
+        origin = phases[origin].rotateFrom;
+      }
+      if (origin === phaseId) n++;
+    } else if (p.rotateFrom === phaseId) {
+      n++;
+    }
+  }
+  return n;
+}
+
+// Outputs that are never anyone's answer on show: a secret-card step's
+// pairs and found count, a how-sure step's dial and line
+const PRIVATE_TOTALS = new Set(['pairsList', 'foundLine', 'foundCount', 'confidenceChart', 'confidenceLine']);
+
+// Does every class-facing reader read only those outputs?
+function readsPrivateTotalsOnly(phases, phaseId) {
+  const escaped = phaseId.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+  const re = new RegExp('\\{\\{\\s*' + escaped + '(?:\\.([A-Za-z0-9_]+))?\\s*[.}|]', 'g');
+  let any = false;
+  for (const [id, consumer] of Object.entries(phases)) {
+    if (id === phaseId || !consumer || typeof consumer !== 'object') continue;
+    if (!phaseRefs(consumer, phaseId)) continue;
+    const text = JSON.stringify(consumer);
+    let m;
+    re.lastIndex = 0;
+    let found = false;
+    while ((m = re.exec(text))) {
+      found = true;
+      if (!m[1] || !PRIVATE_TOTALS.has(m[1])) return false;
+    }
+    if (!found) return false;
+    any = true;
+  }
+  return any;
+}
+
 // Outputs of a step that are totals, never one student's answer
 const TOTAL_OUTPUTS = new Set([
+  'pairsList', 'foundLine', 'foundCount', 'confidenceChart', 'confidenceLine',
   'barChart', 'tally', 'beforeAfter', 'movedLine', 'results', 'resultsList',
   'average', 'averages', 'count', 'counts', 'chart', 'distribution', 'summary'
 ]);

@@ -438,6 +438,29 @@
     return wrap;
   }
 
+  // The hot seat's turn: how many items before a new student takes the seat
+  function seatFact(phase) {
+    var wrap = el('span', 'sv-fact');
+    wrap.appendChild(document.createTextNode('new student in the seat every '));
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'sv-timer';
+    input.min = '1';
+    input.max = '20';
+    input.placeholder = 'never';
+    if (phase.rotateEvery) input.value = phase.rotateEvery;
+    input.addEventListener('input', function () {
+      markEdited();
+      var v = parseInt(input.value, 10);
+      if (v > 0) { phase.rotateEvery = Math.min(v, 20); } else { delete phase.rotateEvery; }
+    });
+    input.addEventListener('blur', function () { autoSaveIfDirty(); });
+    input.addEventListener('wheel', function () { input.blur(); }, { passive: true });
+    wrap.appendChild(input);
+    wrap.appendChild(document.createTextNode(' questions'));
+    return wrap;
+  }
+
   // Reference another step by its number — many steps share a friendly
   // name (Closer has nine "Open answer" steps), so "step 4" is the only
   // unambiguous way to point at one.
@@ -1391,10 +1414,18 @@
       }
 
       case 'reveal-one':
-        d.sentence = 'Items are revealed one at a time' +
-          (phase.from ? ' from ' + humanizeRef(String(phase.from)).toLowerCase() : '') + '.';
+        if (phase.to || phase.rotateEvery) {
+          // The hot seat (a reviewer found no way to change the turn, 2026-10-01)
+          d.sentence = 'The hot seat: items from ' +
+            (phase.from ? humanizeRef(String(phase.from)).toLowerCase() : '…') +
+            ' go up one at a time, each for the student in the seat.';
+          d.facts.push(seatFact(phase));
+        } else {
+          d.sentence = 'Items are revealed one at a time' +
+            (phase.from ? ' from ' + humanizeRef(String(phase.from)).toLowerCase() : '') + '.';
+          d.muted = true;
+        }
         d.facts.push(limitFact(phase));
-        d.muted = true;
         break;
 
       case 'preview':

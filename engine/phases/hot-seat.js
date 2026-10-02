@@ -49,7 +49,12 @@ export function planHotSeat({ items, players, firstId = null, rotateEvery = null
   (ranked || []).forEach(add);
   shuffled(people.map(p => p.id).filter(id => !order.includes(id)), rand).forEach(add);
 
-  const every = Number.isInteger(rotateEvery) && rotateEvery > 0 ? rotateEvery : null;
+  let every = Number.isInteger(rotateEvery) && rotateEvery > 0 ? rotateEvery : null;
+  // A rotating seat always moves at least once: four questions under a
+  // turn of five left one student answering all four, their own among
+  // them (a reviewer's four-student run, 2026-10-01). The turn shrinks to
+  // half the questions when the list is that short.
+  if (every && order.length >= 2 && list.length >= 2) every = Math.min(every, Math.ceil(list.length / 2));
   // One seat throughout: that student's own question is left out
   let work = list;
   if (!every) work = list.filter(it => authorOf(it) !== order[0]);

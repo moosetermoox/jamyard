@@ -217,8 +217,12 @@ registerHandler('merge', {
 
     console.log(`[handlePhase] Merge: ${state.groups.length} groups of ~${groupSize}, agreeMode=${agreeMode}`);
 
+    // The projector speaks to every group at once: with a trio in the room
+    // it says "group" as the trio's screens do (it said "sit next to your
+    // partner" over "sit with your group", a reviewer 2026-10-01)
+    const largestGroup = Math.max(0, ...state.groups.map(g => g.members.length));
     ctx.emitToHost(EVENTS.MERGE_PROGRESS, {
-      instruction,
+      instruction: fitPartnerWords(instruction, largestGroup),
       totalGroups: state.groups.length,
       submittedGroups: 0,
       timer: phase.timer || null,

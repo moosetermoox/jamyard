@@ -22,6 +22,9 @@ const PAIR_UNPAIRED_CONTENT = 'Sit tight, pairs are sharing this round.';
 // Same discipline for return-to-author reveals: each chain is private to
 // its author; the projector only narrates.
 const OWN_HOST_CONTENT = 'Everyone is reading what became of the thing they started. Give it a minute, then ask who got the best surprise.';
+// Comments coming home on a quoted piece (the feedback brick): its own line,
+// never the folded-paper one (a reviewer, 2026-10-01)
+const FEEDBACK_HOST_CONTENT = 'Everyone is reading the feedback on their own work. Give it a minute, then ask what someone will change because of it.';
 
 // Chain views for a scope:"own" reveal: walk chainFrom's phase data
 // (origin first) through the assignedFrom links the rotation stored.
@@ -129,7 +132,7 @@ registerHandler('reveal', {
       // The projector line is neutral by default; a reveal may name its
       // own ("Everyone is reading the line a classmate wrote for them").
       const hostLine = (typeof phase.content === 'string' && phase.content.trim() !== '')
-        ? phase.content.trim() : OWN_HOST_CONTENT;
+        ? phase.content.trim() : (phase.chainQuoted === true ? FEEDBACK_HOST_CONTENT : OWN_HOST_CONTENT);
       ctx.emitToHost(EVENTS.SHOW_RESULTS, {
         content: hostLine, aiResult: hostLine, responses: [], continueLabel, ...sc
       });
@@ -206,7 +209,9 @@ registerHandler('reveal', {
     if (phase.scope === 'own') {
       const views = getChainViews(ctx);
       const player = engine.players.find(socket.id);
-      const ownContent = player ? ownContentFor(ctx, views, player.id) : OWN_HOST_CONTENT;
+      const hostLine = (typeof phase.content === 'string' && phase.content.trim() !== '')
+        ? phase.content.trim() : (phase.chainQuoted === true ? FEEDBACK_HOST_CONTENT : OWN_HOST_CONTENT);
+      const ownContent = player ? ownContentFor(ctx, views, player.id) : hostLine;
       socket.emit(EVENTS.SHOW_RESULTS, {
         content: ownContent, aiResult: ownContent, ownReveal: !!player, ...sc
       });

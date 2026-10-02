@@ -37,7 +37,8 @@ var ENTRIES_HINTS = {
   classmate: 'Only you can see the whole list. Each answer goes to a classmate next; hide anything that shouldn\'t be passed on.',
   'classmate+class': 'Only you can see the whole list. Each answer goes to a classmate next, then the class sees it; hide anything that shouldn\'t be passed on.',
   'classmate+class-after-review': 'Only you can see the whole list. Each answer goes to a classmate next, then the class after your preview; hide anything that shouldn\'t be passed on.',
-  tally: 'Only you can see who gave which answer. The class sees the totals as they come in.',
+  author: 'Only you can see the whole list. Each one goes back to the classmate whose work it is about; hide anything that shouldn\'t be passed on.',
+  tally: 'Only you can see who gave which answer. The class sees only the totals.',
   scored: 'Only you can see who picked what. The class sees the points on the leaderboard.',
   generic: 'Only you can see these. Hide anything that shouldn\'t reach the class, hidden entries are skipped by the AI and the reveal.'
 };
