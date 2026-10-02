@@ -17,7 +17,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { dealRoles, roleCapacity, buildRoleOutput } from '../phases/role-deal.js';
+import { dealRoles, roleCapacity, roleOpenFor, buildRoleOutput } from '../phases/role-deal.js';
 import { groupsFromTeamSource } from '../phases/groups-from.js';
 import { seatInTeamData, seatInRoleState, seatInRoleOutput, boardFromTeams } from '../phases/late-seating.js';
 
@@ -62,7 +62,9 @@ export function buildRoleMenu(state, playerId, players) {
       return {
         name: role,
         takenBy: holders.map(pid => (players.find(pid) || {}).name || '?'),
-        open: Math.max(0, cap - holders.length)
+        // Greyed out on the student screen while another job in the
+        // group still has fewer holders (roleOpenFor), never only at cap
+        open: roleOpenFor(state, groupKey, role, playerId) ? Math.max(1, cap - holders.length) : 0
       };
     })
   };

@@ -26,6 +26,22 @@ const OWN_HOST_CONTENT = 'Everyone is reading what became of the thing they star
 // never the folded-paper one (a reviewer, 2026-10-01)
 const FEEDBACK_HOST_CONTENT = 'Everyone is reading the feedback on their own work. Give it a minute, then ask what someone will change because of it.';
 
+// The projector's line for a return-to-author reveal: the step's own
+// `content` first, then its `hostTemplate` (One More Thing and SCAMPER
+// wrote theirs there, and the stock "best surprise" line went up above
+// it, a reviewer 2026-10-02), then the stock line (the feedback brick's
+// own for a quoted return). When the hostTemplate is the line it is not
+// sent a second time as the template.
+export function ownHostLine(phase, sc) {
+  if (typeof phase.content === 'string' && phase.content.trim() !== '') {
+    return { line: phase.content.trim(), sc };
+  }
+  if (sc && typeof sc.hostTemplate === 'string' && sc.hostTemplate.trim() !== '') {
+    return { line: sc.hostTemplate.trim(), sc: { ...sc, hostTemplate: null } };
+  }
+  return { line: phase.chainQuoted === true ? FEEDBACK_HOST_CONTENT : OWN_HOST_CONTENT, sc };
+}
+
 // Chain views for a scope:"own" reveal: walk chainFrom's phase data
 // (origin first) through the assignedFrom links the rotation stored.
 function getChainViews(ctx) {
@@ -131,10 +147,9 @@ registerHandler('reveal', {
       });
       // The projector line is neutral by default; a reveal may name its
       // own ("Everyone is reading the line a classmate wrote for them").
-      const hostLine = (typeof phase.content === 'string' && phase.content.trim() !== '')
-        ? phase.content.trim() : (phase.chainQuoted === true ? FEEDBACK_HOST_CONTENT : OWN_HOST_CONTENT);
+      const { line: hostLine, sc: hostSc } = ownHostLine(phase, sc);
       ctx.emitToHost(EVENTS.SHOW_RESULTS, {
-        content: hostLine, aiResult: hostLine, responses: [], continueLabel, ...sc
+        content: hostLine, aiResult: hostLine, responses: [], continueLabel, ...hostSc
       });
       for (const player of engine.players.list()) {
         const content = ownContentFor(ctx, views, player.id);
@@ -209,11 +224,10 @@ registerHandler('reveal', {
     if (phase.scope === 'own') {
       const views = getChainViews(ctx);
       const player = engine.players.find(socket.id);
-      const hostLine = (typeof phase.content === 'string' && phase.content.trim() !== '')
-        ? phase.content.trim() : (phase.chainQuoted === true ? FEEDBACK_HOST_CONTENT : OWN_HOST_CONTENT);
+      const { line: hostLine, sc: hostSc } = ownHostLine(phase, sc);
       const ownContent = player ? ownContentFor(ctx, views, player.id) : hostLine;
       socket.emit(EVENTS.SHOW_RESULTS, {
-        content: ownContent, aiResult: ownContent, ownReveal: !!player, ...sc
+        content: ownContent, aiResult: ownContent, ownReveal: !!player, ...(player ? sc : hostSc)
       });
       return;
     }

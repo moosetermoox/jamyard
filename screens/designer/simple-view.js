@@ -396,7 +396,8 @@
   function stepGist(phase) {
     var src = phase.prompt || phase.question || phase.message || phase.instruction || phase.content || phase.template || '';
     if (typeof src !== 'string') return '';
-    var line = src.replace(/\*\*/g, '').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
+    // "## Heading" markers read as stray hashes in a one-line gist
+    var line = src.replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
     if (!line) return '';
     // A numbered step names itself best ("Word 2 of 6", "Round 3"): the
     // blocks are narrow, so that beats the sentence it sits in.

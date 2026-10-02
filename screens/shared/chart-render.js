@@ -132,6 +132,10 @@
       label.className = 'msg-chart-label' + (r.correct ? ' correct' : '');
       label.textContent = r.label;
       if (r.correct) {
+        // A real space before the mark: copied or read-aloud text said
+        // "knit✓" and "Venus✓" (a reviewer 2026-10-02); the margin alone
+        // only spaced it on screen
+        label.appendChild(document.createTextNode(' '));
         var check = document.createElement('span');
         check.className = 'msg-chart-check';
         check.textContent = '✓';

@@ -5,6 +5,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { continueLabelForPhase } from '../phases/continue-labels.js';
 
 registerHandler('winner', {
   async onEnter(ctx) {
@@ -15,7 +16,7 @@ registerHandler('winner', {
     console.log(`[handlePhase] Winner declared: ${result.winnerId} (${result.winnerScore} votes)`);
 
     // The crown is a payoff beat — give the drumroll + reveal room to land
-    // before auto-advancing (the host's End Session button is always there).
+    // before auto-advancing (the host's continue button, labelled for the next step, is always there).
     const winnerPause = phase.pause || 10;
     ctx.emitToRoom(EVENTS.WINNER_ANNOUNCED, {
       winnerId: result.winnerId,
@@ -29,6 +30,9 @@ registerHandler('winner', {
       isTie: result.isTie,
       standings: result.standings,
       pause: winnerPause,
+      // The crown's button says what comes next ("Finish up" before the
+      // wrap-up screen), never a fixed "End Session" (a reviewer 2026-10-02)
+      continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
       ...sc
     });
 

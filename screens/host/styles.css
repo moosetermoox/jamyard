@@ -717,7 +717,7 @@ body.in-bench .rolling-door-qr { display: none; }
    most-picked bar read as "the popular pick was right"). */
 .msg-chart-fill.correct { background: var(--theme-success, #22A05A); }
 .msg-chart-label.correct { font-weight: 800; }
-.msg-chart-check { color: var(--theme-success, #22A05A); font-weight: 800; margin-left: 6px; }
+.msg-chart-check { color: var(--theme-success, #22A05A); font-weight: 800; margin-left: 2px; }
 .msg-chart-value {
   font-weight: 700;
   font-variant-numeric: tabular-nums;

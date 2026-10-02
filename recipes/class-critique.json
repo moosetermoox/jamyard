@@ -2,7 +2,7 @@
   "id": "class-critique",
   "name": "Class Critique",
   "icon": "🎤",
-  "description": "Whole-class feedback on a presentation, idea, or pitch. Students rate on three custom 1–5 scales; results show as bar charts + pie charts.",
+  "description": "Whole-class feedback on a presentation, idea, or pitch. Students rate on three custom 1–5 scales; results show as bar charts.",
   "tagline": "Use after a student presentation, an idea pitch, or any artifact you want structured class feedback on.",
   "version": "1",
   "parameters": {

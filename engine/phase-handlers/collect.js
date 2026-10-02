@@ -657,7 +657,11 @@ registerHandler('collect', {
         appendOnly: !!ctx.phase.appendOnly,
         maxLength: ctx.phase.maxLength || null,
         passAllowed: !!ctx.phase.passAllowed,
-        playerTemplate: sc.playerTemplate, show: sc.playerShow
+        // A returning projector gets its own line and layout (One More
+        // Thing's hand-off steps hide the student's prompt there)
+        ...(player
+          ? { playerTemplate: sc.playerTemplate, show: sc.playerShow }
+          : { hostTemplate: sc.hostTemplate, show: sc.hostShow })
       });
     }
   }
