@@ -128,6 +128,7 @@ describe('generateStoryboard honesty', () => {
     };
     service._callClaude = async () => textResponse(board);
     const result = await service.generateStoryboard('a quick end of class share');
-    expect(result).toEqual(board);
+    // the plan comes back stamped with the idea's language (2026-10-02)
+    expect(result).toEqual({ ...board, language: 'en' });
   });
 });

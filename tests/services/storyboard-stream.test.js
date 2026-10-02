@@ -69,7 +69,8 @@ describe('storyboard streaming', () => {
     const events = [];
     const result = await service.generateStoryboard('an exit check', { onEvent: (e) => events.push(e) });
 
-    expect(result).toEqual(board);
+    // the plan comes back stamped with the idea's language (2026-10-02)
+    expect(result).toEqual({ ...board, language: 'en' });
     expect(sent.thinking).toEqual({ type: 'adaptive', display: 'summarized' });
     expect(sent.output_config).toEqual({ effort: 'low' });
 

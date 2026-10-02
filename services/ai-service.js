@@ -3,7 +3,7 @@ import { getAllowedFields, validate as validateGame } from '../engine/game-loade
 import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schemas.js';
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
-import { LANGUAGES as LANGUAGE_NAMES } from '../engine/i18n/index.js';
+import { LANGUAGES as LANGUAGE_NAMES, detectLanguage } from '../engine/i18n/index.js';
 import { cleanQuizQuestions, shuffleQuizChoices, shuffleQuizParams, QUIZ_LIMITS } from '../engine/quiz-questions.js';
 import { completeSteps, partialName } from '../engine/storyboard-partial.js';
 import { collectTexts, applyTexts, pathKey } from '../engine/activity-text.js';
@@ -26,6 +26,21 @@ function extractText(message) {
 
 function wordCount(text) {
   return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+// The language a plan's students read, from the idea and the plan's own
+// words: the builder writes its fixed lines in it ("The class picked:" came
+// out in English under a Spanish plan, 2026-10-02). Set on the plan and on
+// a partial plan beside a refusal.
+function withPlanLanguage(result, idea) {
+  if (!result || typeof result !== 'object') return result;
+  const words = (plan) => (Array.isArray(plan && plan.steps) ? plan.steps : [])
+    .map(st => [st && st.text, st && st.draft, st && st.question].filter(x => typeof x === 'string').join(' ')).join(' ');
+  for (const plan of [result, result.partial]) {
+    if (!plan || typeof plan !== 'object' || !Array.isArray(plan.steps) || plan.language) continue;
+    plan.language = detectLanguage([idea, plan.name, plan.description, words(plan)].filter(x => typeof x === 'string').join(' '));
+  }
+  return result;
 }
 
 // A pretend student's answer, at most this long (a lab conclusion runs long)
@@ -2324,7 +2339,7 @@ ${description}`
       } else {
         message = await this._callClaude(params);
       }
-      return this._parseStoryboard(extractText(message));
+      return withPlanLanguage(this._parseStoryboard(extractText(message)), description);
     } catch (error) {
       if (error && error.name === 'AiBudgetError') throw error;
       return { error: 'Storyboard generation failed: ' + error.message };

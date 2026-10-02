@@ -1,6 +1,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { effectiveRange } from '../phases/estimate-range.js';
+import { secondsLeft } from './collect.js';
 
 /**
  * estimate — numeric guessing with closeness scoring.
@@ -39,6 +40,9 @@ registerHandler('estimate', {
       // (scoring "distance" with speedBonus, 2026-10-01)
       guessedAt: {},
       startedAt: Date.now(),
+      // the clock's deadline, so a refreshed screen gets the time left
+      // (it got timer: null and lost the countdown; extend-timer bumps it)
+      timerEndsAt: phase.timer ? Date.now() + phase.timer * 1000 : null,
       closed: false
     };
     room.phaseState = state;
@@ -89,9 +93,10 @@ registerHandler('estimate', {
       image,
       min: range.min,
       max: range.max,
-      timer: null, // reconnectors don't restart the countdown
+      timer: secondsLeft(ctx.room), // the time left, never a restarted clock
       count: Object.keys(state.guesses).length,
-      total: ctx.engine.players.list().length
+      total: ctx.engine.players.list().length,
+      phaseInstanceId: ctx.phaseInstanceId
     });
   }
 });

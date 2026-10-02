@@ -2710,6 +2710,8 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       name: nameInput.value.trim() || 'New Activity',
       description: storyboard.description || description,
       rolling: rolling,
+      // the idea's language: the builder's own lines follow it
+      language: storyboard.language,
       steps: steps
     });
     if (!result.config || result.problems.length) {
