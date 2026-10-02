@@ -31,9 +31,13 @@
   var CLOUD_LINE = /^(.+?) ×(\d+)$/;
   var CARD_LINE = /^◆ (.+)$/;
 
+  // A dial line, the class's average on a scale (engine/phases/confidence.js
+  // formatConfidenceDial, 2026-10-01): "◔ 2.3/4 | Just guessing | Certain"
+  var DIAL_LINE = /^◔ (\d+(?:\.\d+)?)\/(\d+) \| (.+?) \| (.+)$/;
+
   function containsChart(text) {
     var s = String(text == null ? '' : text);
-    return /[█░]/.test(s) || / ×\d+$/m.test(s) || /^◆ /m.test(s);
+    return /[█░]/.test(s) || / ×\d+$/m.test(s) || /^◆ /m.test(s) || /^◔ /m.test(s);
   }
 
   // Split a message into ordered segments: {type:'text', text:...} and
@@ -56,6 +60,12 @@
       if (hm && i + 1 < lines.length && PAIR_LINE.test(lines[i + 1])) {
         flushText();
         pairHeads = [hm[1], hm[2]];
+        continue;
+      }
+      var dm = lines[i].match(DIAL_LINE);
+      if (dm) {
+        flushText();
+        segments.push({ type: 'dial', value: parseFloat(dm[1]), max: parseInt(dm[2], 10), low: dm[3], high: dm[4] });
         continue;
       }
       var cm = lines[i].match(CLOUD_LINE);
@@ -227,7 +237,46 @@
   }
 
   // Any non-text segment as an element (the sinks on both screens use it)
+  // The dial: a half circle from the first level (left) to the last
+  // (right), filled to the class's average with a needle on it, the two
+  // end labels under its feet. SVG built element by element; the labels
+  // go in as textContent.
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) el.setAttribute(k, String(attrs[k]));
+    return el;
+  }
+  function buildDial(seg) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg-dial';
+    var max = Math.max(2, seg.max || 2);
+    var f = Math.max(0, Math.min(1, ((seg.value || 1) - 1) / (max - 1)));
+    var cx = 110, cy = 110, r = 90;
+    var ex = cx - r * Math.cos(Math.PI * f);
+    var ey = cy - r * Math.sin(Math.PI * f);
+    var svg = svgEl('svg', { viewBox: '0 0 220 124', role: 'img', 'aria-hidden': 'true' });
+    svg.appendChild(svgEl('path', { d: 'M ' + (cx - r) + ' ' + cy + ' A ' + r + ' ' + r + ' 0 0 1 ' + (cx + r) + ' ' + cy, 'class': 'msg-dial-track' }));
+    if (f > 0) svg.appendChild(svgEl('path', { d: 'M ' + (cx - r) + ' ' + cy + ' A ' + r + ' ' + r + ' 0 0 1 ' + ex.toFixed(2) + ' ' + ey.toFixed(2), 'class': 'msg-dial-fill' }));
+    var nx = cx - (r - 22) * Math.cos(Math.PI * f);
+    var ny = cy - (r - 22) * Math.sin(Math.PI * f);
+    svg.appendChild(svgEl('line', { x1: cx, y1: cy, x2: nx.toFixed(2), y2: ny.toFixed(2), 'class': 'msg-dial-needle' }));
+    svg.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 7, 'class': 'msg-dial-hub' }));
+    wrap.appendChild(svg);
+    var ends = document.createElement('div');
+    ends.className = 'msg-dial-ends';
+    var low = document.createElement('span');
+    low.textContent = seg.low;
+    var high = document.createElement('span');
+    high.textContent = seg.high;
+    ends.appendChild(low);
+    ends.appendChild(high);
+    wrap.appendChild(ends);
+    return wrap;
+  }
+
   function buildSegment(seg) {
+    if (seg.type === 'dial') return buildDial(seg);
     if (seg.type === 'chart') return buildChart(seg.rows);
     if (seg.type === 'pair') return buildPairChart(seg.rows, seg.heads);
     if (seg.type === 'cloud') return buildCloud(seg.rows);

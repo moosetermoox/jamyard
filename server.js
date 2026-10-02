@@ -187,7 +187,7 @@ import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
-import { splitByRight, formatConfidenceChart, confidenceLine } from './engine/phases/confidence.js';
+import { splitByRight, formatConfidenceDial, sureButWrongLine } from './engine/phases/confidence.js';
 import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
@@ -1728,6 +1728,15 @@ async function closeCollect(code, room) {
             }
             // Multi-field responses come as objects with field keys
             if (r && typeof r === 'object' && !Array.isArray(r)) {
+              // labelAnswers (2026-10-01, the feedback brick's Star 1 /
+              // Star 2 / Wish): one labelled line per box, so a returned
+              // comment reads as the boxes it was written in
+              if (collectPhase.labelAnswers === true && Array.isArray(collectPhase.fields)) {
+                const lines = collectPhase.fields
+                  .filter(f => f && typeof r[f.key] === 'string' && r[f.key].trim() !== '')
+                  .map(f => `**${f.label}:** ${r[f.key].trim()}`);
+                return { playerId: p.id, name: p.name, text: lines.join('\n'), fields: r, responseAt: p.responseAt };
+              }
               const textParts = Object.values(r);
               return { playerId: p.id, name: p.name, text: textParts.join(' | '), fields: r, responseAt: p.responseAt };
             }
@@ -1830,8 +1839,10 @@ async function closeCollect(code, room) {
             const graded = room.engine.phaseData[collectPhase.confidenceFor] || {};
             const split = splitByRight(graded.scores, byPlayer);
             const levels = stored.chartOrder || literalChoices;
-            stored.confidenceChart = formatConfidenceChart(split, levels, room.engine.language);
-            stored.confidenceLine = confidenceLine(split, levels, room.engine.language);
+            // The dial and one line (owner 2026-10-01: the right/wrong
+            // chart was hard to read); each student's answer is in the report
+            stored.confidenceChart = formatConfidenceDial(byPlayer, levels, room.engine.language);
+            stored.confidenceLine = sureButWrongLine(split, levels, room.engine.language);
           }
 
           // Speed-bonus scoring: when correctAnswer is set, grade each response.

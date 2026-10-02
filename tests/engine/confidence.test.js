@@ -2,16 +2,19 @@
  * Confidence after the answer (2026-10-01, the mechanics inventory's
  * Part 3): a "how sure are you?" pick-one step names a graded question in
  * `confidenceFor`; at its close the class's confidence is split by who
- * got it right (engine/phases/confidence.js), the answer card draws the
- * paired chart under a "Right | Wrong" head (shared/chart-render.js), and
- * the fixed English words reach a room in the activity's language.
+ * got it right (engine/phases/confidence.js); the answer card draws a dial
+ * of the class's average confidence and one line about the students who
+ * were sure but wrong (owner 2026-10-01: the right/wrong chart was hard to
+ * read), the report shows each student's confidence, and the fixed English
+ * words reach a room in the activity's language.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   CONFIDENCE_PROMPT, CONFIDENCE_LEVELS, localizeConfidence, splitByRight,
-  formatConfidenceChart, confidenceLine
+  averageConfidence, formatConfidenceDial, sureButWrongLine
 } from '../../engine/phases/confidence.js';
+import { buildActivityReport } from '../../engine/report.js';
 import { GameEngine } from '../../engine/game-engine.js';
 import { validate } from '../../engine/game-loader.js';
 import { STRINGS } from '../../engine/i18n/index.js';
@@ -33,32 +36,57 @@ describe('confidence: the rules', () => {
     expect(split.total).toBe(4);
   });
 
-  it('draws one paired chart in level order under a Right | Wrong head', () => {
-    const chart = formatConfidenceChart(splitByRight(scores, sure), CONFIDENCE_LEVELS, 'en');
-    const lines = chart.split('\n');
-    expect(lines[0]).toBe('↔ Right | Wrong');
-    expect(lines.slice(1).map(l => l.trim().split(/\s{2,}/)[0])).toEqual(CONFIDENCE_LEVELS);
-    expect(lines[4]).toMatch(/^Certain\s+[█░]+\s+1 → [█░]+\s+1$/);
-    expect(lines[3]).toMatch(/Pretty sure\s+░+\s+0 → ░+\s+0$/);
+  it('the class average and its nearest level, over everyone who said', () => {
+    // Certain 4, Not sure 2, Certain 4, Just guessing 1, Certain 4 = 15 / 5
+    expect(averageConfidence(sure, CONFIDENCE_LEVELS)).toEqual({ value: 3, label: 'Pretty sure', count: 5 });
+    expect(averageConfidence({}, CONFIDENCE_LEVELS)).toBeNull();
   });
 
-  it('names the most and least sure levels anyone picked', () => {
-    expect(confidenceLine(splitByRight(scores, sure), CONFIDENCE_LEVELS, 'en'))
-      .toBe('Certain: 1 of 2 were right. Just guessing: 0 of 1 were right.');
-    expect(confidenceLine(splitByRight({ a: 5 }, { a: 'Pretty sure' }), CONFIDENCE_LEVELS, 'en'))
-      .toBe('Pretty sure: 1 of 1 were right.');
-    expect(confidenceLine(splitByRight({}, {}), CONFIDENCE_LEVELS, 'en')).toBe('');
-    expect(formatConfidenceChart(splitByRight({}, {}), CONFIDENCE_LEVELS, 'en')).toBe('');
+  it('draws a dial: the title, the dial line, the level on average', () => {
+    expect(formatConfidenceDial(sure, CONFIDENCE_LEVELS, 'en'))
+      .toBe('How sure the class was\n◔ 3.0/4 | Just guessing | Certain\nPretty sure on average');
+    expect(formatConfidenceDial({}, CONFIDENCE_LEVELS, 'en')).toBe('');
+  });
+
+  it('one line about the sure ones: wrong out of sure, or everyone right', () => {
+    // sure = Pretty sure + Certain among students who answered: a right, c wrong
+    expect(sureButWrongLine(splitByRight(scores, sure), CONFIDENCE_LEVELS, 'en')).toBe('Sure but wrong: 1 of 2.');
+    expect(sureButWrongLine(splitByRight({ a: 5 }, { a: 'Certain' }), CONFIDENCE_LEVELS, 'en')).toBe('Everyone who was sure got it right.');
+    expect(sureButWrongLine(splitByRight({ a: 0 }, { a: 'Not sure' }), CONFIDENCE_LEVELS, 'en')).toBe('');
   });
 
   it('speaks the activity\'s language, every table carries the rows', () => {
-    const keys = [CONFIDENCE_PROMPT, ...CONFIDENCE_LEVELS, 'Right', 'Wrong', '{level}: {right} of {total} were right.'];
+    const keys = [CONFIDENCE_PROMPT, ...CONFIDENCE_LEVELS, 'How sure the class was', '{level} on average', 'Sure but wrong: {wrong} of {total}.', 'Everyone who was sure got it right.'];
     for (const [lang, table] of Object.entries(STRINGS)) {
       for (const k of keys) expect(table[k], `${lang}: ${k}`).toBeTruthy();
     }
-    const es = splitByRight({ a: 1 }, { a: 'Totalmente seguro' });
-    expect(formatConfidenceChart(es, ['Solo adivino', 'Totalmente seguro'], 'es').split('\n')[0]).toBe('↔ Correctas | Incorrectas');
-    expect(confidenceLine(es, ['Solo adivino', 'Totalmente seguro'], 'es')).toBe('Totalmente seguro: 1 de 1 acertaron.');
+    const es = ['Solo adivino', 'No estoy seguro', 'Bastante seguro', 'Totalmente seguro'];
+    expect(formatConfidenceDial({ a: 'Totalmente seguro' }, es, 'es')).toBe('Qué tan segura estaba la clase\n◔ 4.0/4 | Solo adivino | Totalmente seguro\nTotalmente seguro, en promedio');
+    expect(sureButWrongLine(splitByRight({ a: 0 }, { a: 'Totalmente seguro' }), es, 'es')).toBe('Seguros pero equivocados: 1 de 1.');
+  });
+});
+
+describe('confidence: the report', () => {
+  it('reads how sure each student was beside their answer, never as a section of its own', () => {
+    const players = [{ id: 'a', name: 'Ana' }, { id: 'b', name: 'Ben' }];
+    const engine = {
+      config: { name: 'Q', phases: {
+        q: { type: 'collect-choice', prompt: 'Which?', choices: ['A', 'B'], correctAnswer: 'A', next: 'sure' },
+        sure: { type: 'collect-choice', prompt: CONFIDENCE_PROMPT, choices: CONFIDENCE_LEVELS.slice(), confidenceFor: 'q' }
+      } },
+      phaseData: {
+        q: { correctAnswer: 'A', tally: { A: 1, B: 1 }, responses: [{ playerId: 'a', name: 'Ana', choice: 'A' }, { playerId: 'b', name: 'Ben', choice: 'B' }] },
+        sure: { byPlayer: { a: 'Pretty sure', b: 'Certain' }, responses: [] }
+      },
+      players: { find: id => players.find(p => p.id === id), count: () => 2, listPublic: () => players }
+    };
+    const report = buildActivityReport(engine);
+    expect(report.sections.map(s => s.id)).toEqual(['q']);
+    const blocks = report.sections[0].blocks;
+    expect(blocks.find(b => b.kind === 'fact' && b.label === 'How sure the class was').value).toBe('Pretty sure on average (3.5 of 4)');
+    const table = blocks.find(b => b.kind === 'table' && b.columns.includes('How sure'));
+    expect(table.columns).toEqual(['Student', 'Their pick', 'Correct', 'How sure']);
+    expect(table.rows).toEqual([['Ana', 'A', '✓', 'Pretty sure'], ['Ben', 'B', '', 'Certain']]);
   });
 });
 
@@ -157,40 +185,41 @@ describe('confidence: the quiz brick', () => {
   });
 });
 
-describe('confidence: the chart renderer', () => {
+describe('confidence: the dial on the screens', () => {
   function fakeEl(tag) {
-    return { tag, className: '', textContent: '', style: {}, children: [], appendChild(c) { this.children.push(c); return c; } };
+    return { tag, className: '', textContent: '', style: {}, attrs: {}, children: [],
+      appendChild(c) { this.children.push(c); return c; }, setAttribute(k, v) { this.attrs[k] = v; } };
   }
   function load() {
     globalThis.window = globalThis.window || {};
-    globalThis.document = { createElement: fakeEl };
+    globalThis.document = { createElement: fakeEl, createElementNS: (ns, tag) => fakeEl(tag) };
     new Function(read('screens/shared/chart-render.js'))();
     return globalThis.window.ChartRender;
   }
-  const text = 'The answer was: A!\n\n' + formatConfidenceChart(splitByRight(scores, sure), CONFIDENCE_LEVELS, 'en') + '\n\nCertain: 1 of 2 were right.';
+  const text = 'The answer was: A!\n\n' + formatConfidenceDial(sure, CONFIDENCE_LEVELS, 'en') + '\n\nSure but wrong: 1 of 2.';
 
-  it('reads the head line into the paired chart, never as text', () => {
-    const segs = load().split(text);
-    const pair = segs.find(s => s.type === 'pair');
-    expect(pair.heads).toEqual(['Right', 'Wrong']);
-    expect(pair.rows.map(r => r.label)).toEqual(CONFIDENCE_LEVELS);
-    expect(segs.filter(s => s.type === 'text').map(s => s.text).join(' ')).not.toMatch(/↔/);
+  it('reads the dial line into a dial segment, the words around it stay text', () => {
+    const CR = load();
+    expect(CR.containsChart(text)).toBe(true);
+    const segs = CR.split(text);
+    const dial = segs.find(s => s.type === 'dial');
+    expect(dial).toEqual({ type: 'dial', value: 3, max: 4, low: 'Just guessing', high: 'Certain' });
+    const words = segs.filter(s => s.type === 'text').map(s => s.text).join(' ');
+    expect(words).toMatch(/How sure the class was/);
+    expect(words).toMatch(/Pretty sure on average/);
+    expect(words).not.toMatch(/◔/);
   });
 
-  it('draws named columns with nothing marked as moved', () => {
+  it('draws a half circle filled to the average, a needle, and the two ends', () => {
     const CR = load();
-    const pair = CR.split(text).find(s => s.type === 'pair');
-    const el = CR.buildSegment(pair);
-    expect(el.children.filter(c => c.className === 'msg-chart-head').map(c => c.textContent)).toEqual(['', 'Right', '', 'Wrong', '']);
-    const fills = el.children.filter(c => c.className === 'msg-chart-track').map(t => t.children[0].className);
-    expect(fills.some(c => /moved/.test(c))).toBe(false);
+    const el = CR.buildSegment(CR.split(text).find(s => s.type === 'dial'));
+    expect(el.className).toBe('msg-dial');
+    const svg = el.children[0];
+    expect(svg.children.map(c => c.attrs.class)).toEqual(['msg-dial-track', 'msg-dial-fill', 'msg-dial-needle', 'msg-dial-hub']);
+    expect(el.children[1].children.map(c => c.textContent)).toEqual(['Just guessing', 'Certain']);
   });
 
-  it('a vote taken twice keeps Before and After', () => {
-    const CR = load();
-    const pair = CR.split('Yes  ██  2 → ████  4\nNo  ████  4 → ██  2').find(s => s.type === 'pair');
-    expect(pair.heads).toBeUndefined();
-    const heads = CR.buildSegment(pair).children.filter(c => c.className === 'msg-chart-head').map(c => c.textContent);
-    expect(heads).toEqual(['', 'Before', '', 'After', '']);
+  it('both screens style the dial', () => {
+    for (const f of ['screens/host/styles.css', 'screens/player/styles.css']) expect(read(f)).toMatch(/\.msg-dial-fill \{/);
   });
 });

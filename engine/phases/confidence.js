@@ -12,21 +12,18 @@
  *    cannot know the language; the engine resolves it per room).
  *  - splitByRight: {right, wrong} tallies over the levels, only students
  *    who answered the question AND said how sure they were.
- *  - formatConfidenceChart: a head line naming the two columns, then the
- *    paired rows (shared/chart-render.js draws both).
- *  - confidenceLine: the most-sure and least-sure levels anyone picked,
- *    each with how many of them were right.
+ *  - formatConfidenceDial: the class's average confidence as a dial
+ *    (shared/chart-render.js draws the "◔" line) with its nearest level.
+ *  - sureButWrongLine: how many of the students who were sure got it
+ *    wrong, the one line a class can talk about.
+ *  - averageConfidence: the average and its level, for the report too.
  *
  * Pure: data in, strings out. No engine, no sockets.
  */
 import { translate } from '../i18n/index.js';
-import { formatPairedChart } from './stance-shift.js';
 
 export const CONFIDENCE_PROMPT = 'How sure are you of your answer?';
 export const CONFIDENCE_LEVELS = ['Just guessing', 'Not sure', 'Pretty sure', 'Certain'];
-
-/** The head line chart-render reads over a paired chart: "↔ Right | Wrong". */
-export const PAIR_HEAD_PREFIX = '↔ ';
 
 /**
  * A copy of the config whose confidence steps speak `lang`. Only the
@@ -71,30 +68,72 @@ export function splitByRight(gradedScores, sureByPlayer) {
   return { right, wrong, total };
 }
 
-/** The head line, then one row per level: "Certain  ███  4 → █  1". Empty when nobody counted. */
-export function formatConfidenceChart(split, levels, lang) {
-  const rows = formatPairedChart(split.right, split.wrong, levels);
-  if (!rows) return '';
-  return `${PAIR_HEAD_PREFIX}${translate(lang, 'Right')} | ${translate(lang, 'Wrong')}\n${rows}`;
+// ---- The dial (owner 2026-10-01: the right/wrong chart "is not easy to
+// understand"; a dial of the class's confidence and one line instead,
+// each student's confidence in the report) ----
+
+/** The head of a dial line chart-render draws: "◔ 2.3/4 | Just guessing | Certain". */
+export const DIAL_PREFIX = '◔ ';
+
+/**
+ * The class's average place on the scale, 1 = the first level, and the
+ * level nearest it. Over every student who said how sure they were.
+ * @returns {{ value: number, label: string, count: number } | null}
+ */
+export function averageConfidence(sureByPlayer, levels) {
+  const list = (Array.isArray(levels) ? levels : []).map(String);
+  if (list.length < 2) return null;
+  let sum = 0;
+  let count = 0;
+  for (const level of Object.values(sureByPlayer || {})) {
+    const at = list.indexOf(String(level));
+    if (at === -1) continue;
+    sum += at + 1;
+    count++;
+  }
+  if (count === 0) return null;
+  const value = sum / count;
+  // The nearest level; a tie goes to the less sure one (one Pretty sure
+  // and one Certain is not "Certain on average")
+  const nearest = Math.ceil(value - 0.5);
+  return { value, label: list[Math.min(list.length, Math.max(1, nearest)) - 1], count };
 }
 
 /**
- * "Certain: 4 of 5 were right. Just guessing: 1 of 3 were right." The
- * most-sure and the least-sure level anyone picked (one line when only
- * one level was picked). Empty when nobody counted.
+ * The title, the dial line, and the caption, one per line:
+ *   How sure the class was
+ *   ◔ 2.3/4 | Just guessing | Certain
+ *   Not sure on average
+ * Empty when nobody said how sure they were.
  */
-export function confidenceLine(split, levels, lang) {
-  const used = (Array.isArray(levels) ? levels : [])
-    .map(String)
-    .filter(l => (split.right[l] || 0) + (split.wrong[l] || 0) > 0);
-  if (used.length === 0) return '';
-  const pick = used.length === 1 ? [used[0]] : [used[used.length - 1], used[0]];
-  return pick.map(level => {
-    const r = split.right[level] || 0;
-    const n = r + (split.wrong[level] || 0);
-    return translate(lang, '{level}: {right} of {total} were right.')
-      .replace('{level}', level)
-      .replace('{right}', String(r))
-      .replace('{total}', String(n));
-  }).join(' ');
+export function formatConfidenceDial(sureByPlayer, levels, lang) {
+  const avg = averageConfidence(sureByPlayer, levels);
+  if (!avg) return '';
+  const list = levels.map(String);
+  return [
+    translate(lang, 'How sure the class was'),
+    `${DIAL_PREFIX}${avg.value.toFixed(1)}/${list.length} | ${list[0]} | ${list[list.length - 1]}`,
+    translate(lang, '{level} on average').replace('{level}', avg.label)
+  ].join('\n');
+}
+
+/**
+ * The one line under the dial, about the students who were sure (the top
+ * half of the scale): "Sure but wrong: 3 of 5." or, when every sure
+ * student was right, "Everyone who was sure got it right." Empty when
+ * nobody who answered was sure.
+ */
+export function sureButWrongLine(split, levels, lang) {
+  const list = (Array.isArray(levels) ? levels : []).map(String);
+  const sure = list.slice(Math.ceil(list.length / 2));
+  let wrong = 0;
+  let total = 0;
+  for (const level of sure) {
+    wrong += split.wrong[level] || 0;
+    total += (split.wrong[level] || 0) + (split.right[level] || 0);
+  }
+  if (total === 0) return '';
+  if (wrong === 0) return translate(lang, 'Everyone who was sure got it right.');
+  return translate(lang, 'Sure but wrong: {wrong} of {total}.')
+    .replace('{wrong}', String(wrong)).replace('{total}', String(total));
 }

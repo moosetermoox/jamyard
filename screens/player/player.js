@@ -1735,6 +1735,10 @@ function appendPlayerParts(el, text) {
 }
 
 function buildPlayerBody(text) {
+  // A classmate's words on a paper card (shared/rich-text.js quoteBlocks)
+  if (window.RichText && RichText.hasQuoteCard && RichText.hasQuoteCard(text)) {
+    return RichText.buildQuoted(text, 'msg-body');
+  }
   var lines = text.split('\n');
   var numbered = lines.filter(function (l) { return /^\d+\.\s/.test(l.trim()); });
   if (numbered.length >= 2 && numbered.length >= lines.filter(Boolean).length - 1) {

@@ -57,7 +57,8 @@ async function main() {
     check('every first reader sees one thesis under the instruction', names.every(n => readFirst[n]));
     check('no first reader reads their own thesis', names.every(n => readFirst[n] !== n));
     check('the four theses go to four different readers', new Set(Object.values(readFirst)).size === 4);
-    players.forEach((p, i) => p.emit('submit-response', { code, response: `First comment from ${names[i]} on ${readFirst[names[i]]}: strong claim. Which evidence?`, phaseInstanceId: first[i].phaseInstanceId }));
+    check('the feedback step has a Strength box and a Question box', first.every(s => s && Array.isArray(s.fields) && s.fields.map(f => f.label).join() === 'Strength,Question'));
+    players.forEach((p, i) => p.emit('submit-response', { code, response: { box1: `First comment from ${names[i]} on ${readFirst[names[i]]}: strong claim.`, box2: 'Which evidence?' }, phaseInstanceId: first[i].phaseInstanceId }));
     await wait(400);
     host.emit('close-submissions', { code });
 
@@ -72,7 +73,7 @@ async function main() {
     check('no second reader sees the first reader\'s comment', second.every(s => !/First comment from/.test(s && s.prompt || '')));
     check('no second reader reads their own thesis', names.every(n => readSecond[n] !== n));
     check('nobody reads the same thesis twice', names.every(n => readSecond[n] !== readFirst[n]));
-    players.forEach((p, i) => p.emit('submit-response', { code, response: `Second comment from ${names[i]} on ${readSecond[names[i]]}: clear. Why optional?`, phaseInstanceId: second[i].phaseInstanceId }));
+    players.forEach((p, i) => p.emit('submit-response', { code, response: { box1: `Second comment from ${names[i]} on ${readSecond[names[i]]}: clear.`, box2: 'Why optional?' }, phaseInstanceId: second[i].phaseInstanceId }));
     await wait(400);
     drainEvent(players, 'game-started');
     host.emit('close-submissions', { code });
@@ -91,6 +92,8 @@ async function main() {
         !names.filter(n => n !== me).some(n => c.includes(thesis[n]));
     });
     check('every writer gets their own thesis and both comments on it, nobody else\'s', ok.every(Boolean));
+    const anaBack = String(back[0] && back[0].content || '');
+    check('each comment comes back labelled, on a card of its own', /“\*\*Strength:\*\* First comment from \w+ on Ana: strong claim\.\n\*\*Question:\*\* Which evidence\?”/.test(anaBack) && /\n\n“\*\*Strength:\*\* Second comment/.test(anaBack) && anaBack.startsWith('You wrote:\n\n“'));
     check('the return is private (an own reveal)', back.every(r => r && r.ownReveal === true));
   } finally {
     teardown(host, players);

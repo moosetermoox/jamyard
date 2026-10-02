@@ -2707,3 +2707,45 @@ html, body { overflow-x: hidden; }
 .choice-btn.is-locked {
   opacity: 0.45;
 }
+
+/* A classmate's words on a paper card (owner 2026-10-01: the feedback and
+   the draft should not read in the same face as the instructions).
+   shared/rich-text.js quoteBlocks draws a quoted paragraph this way; the
+   book face is one every Chromebook already has (Noto Serif / Tinos),
+   Georgia elsewhere, so nothing new downloads. */
+.quote-card {
+  display: block;
+  max-width: 34em;
+  margin: 14px auto 8px;
+  padding: 14px 18px;
+  background: #fffaf0;
+  border: 1px solid rgba(110, 75, 40, 0.25);
+  border-radius: 4px;
+  box-shadow: 0 2px 0 rgba(110, 75, 40, 0.18);
+  font-family: Georgia, 'Noto Serif', Tinos, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 0.9em;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  color: #2a241c;
+}
+.quote-card .quote-bold { font-weight: 700; color: inherit; }
+.quote-around { display: block; }
+.quote-around + .quote-around { margin-top: 10px; }
+
+/* The confidence dial (shared/chart-render.js buildDial, 2026-10-01): the
+   class's average how-sure on a half circle, the scale's two ends under it */
+.msg-dial { width: min(340px, 80%); margin: 10px auto 4px; color: var(--t-ink, #2A2620); }
+.msg-dial svg { display: block; width: 100%; height: auto; }
+.msg-dial-track { fill: none; stroke: rgba(42, 38, 32, 0.14); stroke-width: 18; stroke-linecap: round; }
+.msg-dial-fill { fill: none; stroke: currentColor; stroke-width: 18; stroke-linecap: round; }
+.msg-dial-needle { stroke: currentColor; stroke-width: 5; stroke-linecap: round; }
+.msg-dial-hub { fill: currentColor; }
+.msg-dial-ends { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; letter-spacing: 0.04em; margin-top: 4px; }
+
+/* A returned piece and its comments (the feedback brick): every card the
+   full width at a reading size, the headings between them bold */
+.has-quotes .quote-card { width: 100%; max-width: none; box-sizing: border-box; font-size: 1.05rem; }
+.has-quotes .quote-around { font-weight: 700; margin-top: 16px; }

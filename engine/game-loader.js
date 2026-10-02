@@ -516,6 +516,13 @@ export function validate(config, gameId, options) {
         }
       }
 
+      // labelAnswers keeps the box labels, so it needs boxes
+      if (phase.labelAnswers === true && !(Array.isArray(phase.fields) && phase.fields.length >= 2)) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (collect) sets "labelAnswers" without two or more answer boxes (fields); it does nothing there.`
+        );
+      }
+
       // showOriginal (the feedback brick's second reader) swaps what the
       // student sees for the chain's first piece: it needs a rotation,
       // and a prefilled box would put a classmate's draft in the answer.

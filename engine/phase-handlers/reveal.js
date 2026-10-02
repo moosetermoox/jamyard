@@ -37,7 +37,8 @@ function getChainViews(ctx) {
 function ownContentFor(ctx, views, playerId) {
   return formatChainContent(views.get(playerId), {
     display: ctx.phase.chainDisplay, template: ctx.phase.chainTemplate,
-    heading: ctx.phase.chainHeading, grewHeading: ctx.phase.chainGrewHeading
+    heading: ctx.phase.chainHeading, grewHeading: ctx.phase.chainGrewHeading,
+    quoted: ctx.phase.chainQuoted === true
   });
 }
 

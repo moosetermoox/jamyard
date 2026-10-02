@@ -67,6 +67,7 @@ function liveDataFor(engine, id, phase, stored) {
  */
 import { hasSubmitted, isPassResponse, isDrawingResponseValue } from './moderation.js';
 import { playableQuestions, scoreSoloQuiz } from './phases/solo-quiz-scoring.js';
+import { averageConfidence as averageSure } from './phases/confidence.js';
 
 export function buildActivityReport(engine, meta = {}) {
   const config = engine.config || {};
@@ -79,8 +80,20 @@ export function buildActivityReport(engine, meta = {}) {
     return p ? p.name : null;
   };
 
+  // A "how sure are you?" step (confidenceFor, 2026-10-01) is read inside
+  // its question's section: a How sure column beside every answer and the
+  // class's average, never a section of its own (four identical "How sure
+  // are you of your answer?" headings read as noise, the owner)
+  const sureFor = {};
+  for (const [cid, cphase] of Object.entries(phases)) {
+    if (!cphase || !cphase.confidenceFor) continue;
+    const cdata = phaseData[cid];
+    if (cdata && cdata.byPlayer) sureFor[cphase.confidenceFor] = { byPlayer: cdata.byPlayer, levels: Array.isArray(cphase.choices) ? cphase.choices.map(String) : [] };
+  }
+
   const sections = [];
   for (const [id, phase] of Object.entries(phases)) {
+    if (phase && phase.confidenceFor) continue;
     // A return-to-author reveal stores every finished chain (the only
     // thing worth keeping from a chain activity, a reviewer said); it is
     // the one reveal that gets a section.
@@ -95,7 +108,7 @@ export function buildActivityReport(engine, meta = {}) {
 
     if (roundKeys.length > 0) {
       for (const key of roundKeys) {
-        const section = buildSection(id, phase, phaseData[key], nameOf);
+        const section = buildSection(id, phase, phaseData[key], nameOf, sureFor[id]);
         if (section) {
           section.round = Number(key.slice(id.length + 1));
           sections.push(section);
@@ -104,7 +117,7 @@ export function buildActivityReport(engine, meta = {}) {
     } else {
       const data = liveDataFor(engine, id, phase, phaseData[id]);
       if (data !== undefined) {
-        const section = buildSection(id, phase, data, nameOf);
+        const section = buildSection(id, phase, data, nameOf, sureFor[id]);
         if (section) {
           if (data.live) {
             section.live = true;
@@ -145,10 +158,10 @@ export function buildActivityReport(engine, meta = {}) {
   };
 }
 
-function buildSection(id, phase, data, nameOf) {
+function buildSection(id, phase, data, nameOf, sure) {
   if (!data || typeof data !== 'object') return null;
   const builder = SECTION_BUILDERS[phase.type] || genericSection;
-  const blocks = builder(phase, data, nameOf) || [];
+  const blocks = builder(phase, data, nameOf, sure) || [];
   if (blocks.length === 0) return null;
 
   const section = { id, type: phase.type, blocks };
@@ -253,7 +266,7 @@ const SECTION_BUILDERS = {
     return blocks;
   },
 
-  'collect-choice'(phase, data) {
+  'collect-choice'(phase, data, nameOf, sure) {
     const blocks = [];
     const correct = data.correctAnswer != null && String(data.correctAnswer).trim() !== ''
       ? String(data.correctAnswer).trim().toLowerCase() : null;
@@ -268,11 +281,19 @@ const SECTION_BUILDERS = {
     }
 
     const picks = (data.responses || []).filter(r => r && r.choice != null);
+    // How sure each student was (a confidenceFor step after this one)
+    const sureOf = (sure && sure.byPlayer) || null;
+    if (sureOf) {
+      const avg = averageSure(sureOf, sure.levels);
+      if (avg) blocks.push(fact('How sure the class was', `${avg.label} on average (${avg.value.toFixed(1)} of ${sure.levels.length})`));
+    }
     if (picks.length > 0) {
       const columns = correct !== null ? ['Student', 'Their pick', 'Correct'] : ['Student', 'Their pick'];
+      if (sureOf) columns.push('How sure');
       const rows = picks.map(r => {
         const row = [r.name || '', cellText(r.choice)];
         if (correct !== null) row.push(isCorrect(r.choice) ? '✓' : '');
+        if (sureOf) row.push(cellText(sureOf[r.playerId] || ''));
         return row;
       });
       blocks.push({ kind: 'table', columns, rows, nameCol: 0 });
