@@ -105,8 +105,11 @@ async function assignedRevealRun() {
     items.push(typeof item.item === 'string' ? item.item : JSON.stringify(item.item));
     drainEvent(players, 'reveal-one-item');
   }
-  check(items.every(t => /Through the eyes of \S/.test(t)),
-    'every circle card names its viewpoint (assigned text resolved)');
+  // The card opens with the viewpoint in bold (#163 reworded the boxes as
+  // questions and the card's lines with them: "They think:", "They worry
+  // about or hope for:", "They would ask:")
+  check(items.every(t => /^\*\*\S[^*]*\*\*/.test(t) && /They think: /.test(t)),
+    'every circle card opens with its viewpoint in bold and says what they think (assigned text resolved)');
   check(items.every(t => /thinking thoughts/.test(t)),
     'circle cards carry the think field (fields.* paths resolve)');
   const matched = items.filter(t => viewpoints.some(v => t.includes(v))).length;
