@@ -250,6 +250,7 @@ import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
 import { guardSocket } from './engine/socket-guard.js';
 import { stampingSocket } from './engine/phase-handlers/phase-context.js';
+import { finishTurnPhase } from './engine/phase-handlers/turn.js';
 import { pickAnonymousName } from './engine/anonymous-names.js';
 import { scoreResponses } from './engine/speed-scoring.js';
 import { whenLineFor } from './engine/when-lines.js';
@@ -1375,6 +1376,35 @@ async function closeRating(code, room) {
 
 // --- Wager helpers ---
 
+// The relay's "finish all" (the host's button, and the generic next step on
+// an open relay): the turns still to come are marked skipped, the text so
+// far is stored, the room moves on. Idempotent through `finished`.
+async function finishRelay(code, room) {
+  const rs = room.phaseState;
+  if (!rs || rs.kind !== 'relay' || rs.finished) return;
+  const phase = room.engine && room.engine.config.phases[rs.phaseId];
+  if (!phase || phase.type !== 'relay') return;
+  rs.finished = true;
+  if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
+
+  while (rs.currentTurnIndex < rs.turnOrder.length) {
+    const pid = rs.turnOrder[rs.currentTurnIndex];
+    const player = room.engine.players.find(pid);
+    rs.sharedResult.push({ playerId: pid, name: player ? player.name : 'Unknown', text: SKIPPED_TEXT, skipped: true });
+    rs.currentTurnIndex++;
+  }
+
+  const fullText = relayFullText(rs.sharedResult, (room.engine && room.engine.language) || 'en');
+  room.engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
+  console.log(`[relay-finish-all] Skipped remaining turns in room ${code}`);
+
+  const nextId = getNextPhaseId(room.engine, phase);
+  if (nextId) {
+    room.engine.transition(nextId);
+    await handlePhase(code, room);
+  }
+}
+
 async function closeWager(code, room) {
   const ws = room.phaseState;
   // kind guard + idempotence (see closeRanking). Note: `closed` only gates
@@ -1411,7 +1441,9 @@ async function resolveWager(code, room, winningOption) {
   const phase = engine.config.phases[ws.phaseId];
   const newScores = { ...ws.scores };
 
-  for (const [playerId, wager] of Object.entries(ws.wagers)) {
+  // No winner named (the teacher moved on before picking one): every bet
+  // comes back, nobody gains or loses.
+  for (const [playerId, wager] of Object.entries(winningOption == null ? {} : ws.wagers)) {
     if (wager.option === winningOption) {
       newScores[playerId] = (newScores[playerId] || 0) + wager.amount;
     } else {
@@ -5948,6 +5980,13 @@ io.on('connection', (socket) => {
       // close-and-move-on semantics (team-split Continue depends on it).
       const fromConsole = socket.id !== roomToHost.get(code);
       const TWO_STAGE = { rate: 1, estimate: 1, match: 1, sort: 1, checklist: 1, 'solo-quiz': 1 };
+      // A wager is three presses at most: the first closes the bets (and
+      // moves on when the step knows the answer), the next moves on with
+      // every bet returned when the teacher never named a winner.
+      if (vs && vs.kind === 'wager') {
+        if (!vs.closed) { await closeWager(code, room); return; }
+        if (!vs.resolved) { await resolveWager(code, room, null); return; }
+      }
       if (vs && !vs.closed) {
         switch (vs.kind) {
           case 'vote':      await tallyAndAdvance(code, room); return;
@@ -5955,6 +5994,11 @@ io.on('connection', (socket) => {
           case 'one-voice': await closeOneVoice(code, room); return;
           case 'buzz':      await closeBuzz(code, room); return;
           case 'merge':     await closeMerge(code, room); return;
+          // The turns still to come are skipped, the text so far is kept
+          case 'relay':     await finishRelay(code, room); return;
+          // The scores so far are stored and the round ends (never a skip
+          // past them; the turn phase advances itself from there)
+          case 'turn':      finishTurnPhase(createPhaseContext(code, room, phaseServices)); return;
           case 'rate':
             // closeRating shows results without advancing — store, then move on
             await closeRating(code, room);
@@ -6932,30 +6976,9 @@ io.on('connection', (socket) => {
   // Timer and could be wired to a host UI button later.
   socket.on(EVENTS.RELAY_FINISH_ALL, async ({ code } = {}) => {
     const room = roomManager.find(code);
-    if (room && room.phaseState && room.phaseState.kind !== 'relay') return;
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'relay') return;
     if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
-    const rs = room.phaseState;
-    const phase = room.engine && room.engine.config.phases[rs.phaseId];
-    if (!phase || phase.type !== 'relay') return;
-    if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
-
-    while (rs.currentTurnIndex < rs.turnOrder.length) {
-      const pid = rs.turnOrder[rs.currentTurnIndex];
-      const player = room.engine.players.find(pid);
-      rs.sharedResult.push({ playerId: pid, name: player ? player.name : 'Unknown', text: SKIPPED_TEXT, skipped: true });
-      rs.currentTurnIndex++;
-    }
-
-    const fullText = relayFullText(rs.sharedResult, (room.engine && room.engine.language) || 'en');
-    room.engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
-    console.log(`[relay-finish-all] Skipped remaining turns in room ${code}`);
-
-    const nextId = getNextPhaseId(room.engine, phase);
-    if (nextId) {
-      room.engine.transition(nextId);
-      await handlePhase(code, room);
-    }
+    await finishRelay(code, room);
   });
 
   // --- Turn (charades/describe-it) events ---
