@@ -744,11 +744,11 @@ function renderRollingDoor(code) {
   }
   const instr = document.getElementById('rolling-door-instructions');
   instr.textContent = '';
-  instr.append('Go to ');
+  instr.append(UiLang.t('Go to') + ' ');
   const hostSpan = document.createElement('strong');
   hostSpan.textContent = window.location.host + '/player';
   instr.append(hostSpan);
-  instr.append(' and enter this code');
+  instr.append(' ' + UiLang.t('and enter this code'));
   const qrEl = document.getElementById('rolling-door-qr');
   qrEl.hidden = true;
   if (currentJoinUrl && typeof qrcode === 'function') {
@@ -806,9 +806,9 @@ let collectStep = 0;  // bumps on every answer step, so a late timer is ignored
 function askNobodyYet(byClock) {
   nobodyAsk = { byClock: !!byClock };
   Dialog.confirm({
-    title: 'Nobody has answered yet.',
-    message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
-    confirmLabel: 'Close anyway', cancelLabel: 'Wait'
+    title: UiLang.t('Nobody has answered yet.'),
+    message: UiLang.t('Closing now moves the class on with no answers. The next step will have nothing to show.'),
+    confirmLabel: UiLang.t('Close anyway'), cancelLabel: UiLang.t('Wait')
   }).then(function (yes) {
     const wasByClock = !!(nobodyAsk && nobodyAsk.byClock);
     nobodyAsk = null;
@@ -1073,12 +1073,12 @@ socket.on('room-created', ({ code, game, theme, teacherPin, teacherKey, hostToke
     // The address itself gets its own big span: 16px body text was
     // unreadable from the back row (field feedback 2026-08-24).
     joinInstructions.textContent = '';
-    joinInstructions.append('Go to ');
+    joinInstructions.append(UiLang.t('Go to') + ' ');
     var hostSpan = document.createElement('strong');
     hostSpan.className = 'join-host';
     hostSpan.textContent = window.location.host + '/player';
     joinInstructions.append(hostSpan);
-    joinInstructions.append(' and enter this code');
+    joinInstructions.append(' ' + UiLang.t('and enter this code'));
     joinInstructions.hidden = false;
   }
 
@@ -1348,7 +1348,7 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
   // A long prompt (a classmate's words plus the ask) opens the column
   // and drops a size, so fewer lines stack before fit-screen has to shrink.
   promptDisplay.classList.toggle('prompt-long', String(prompt || '').length > 160);
-  submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+  submissionCount.textContent = submittedLine(count || 0, total || 0);
   markAllIn(count || 0, total || 0);
   submittedSoFar = count || 0;
   liveTallyOn = !!liveResults;
@@ -1391,23 +1391,29 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
 // When the last student is in, say so and point at Close (the timer used
 // to run on at "1 of 1 submitted" with nothing telling the teacher, a
 // reviewer 2026-09-27); still the teacher's call, a late joiner may land.
+// The counter's words in the room's language (a Spanish room read
+// "0 OF 2 SUBMITTED", the owner's re-check 2026-10-03)
+function submittedLine(count, total) {
+  return UiLang.t('{count} of {total} submitted').replace('{count}', String(count)).replace('{total}', String(total));
+}
+
 function markAllIn(count, total) {
   const allIn = total > 0 && count >= total;
-  if (allIn) submissionCount.textContent = 'Everyone is in (' + count + ' of ' + total + ')';
+  if (allIn) submissionCount.textContent = UiLang.t('Everyone is in ({count} of {total})').replace('{count}', String(count)).replace('{total}', String(total));
   closeSubmissionsBtn.classList.toggle('is-all-in', allIn);
 }
 
 // The counter alone: a late joiner grew the total (no pile, no sound)
 socket.on('submission-count', ({ count, total }) => {
   submittedSoFar = count || 0;
-  submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+  submissionCount.textContent = submittedLine(count || 0, total || 0);
   markAllIn(count || 0, total || 0);
   answersLanded();
 });
 
 socket.on('response-received', ({ playerName, count, total }) => {
   submittedSoFar = count || 0;
-  submissionCount.textContent = count + ' of ' + total + ' submitted';
+  submissionCount.textContent = submittedLine(count, total);
   markAllIn(count, total);
   answersLanded();
   renderSubmissionPile(count);
@@ -2631,7 +2637,7 @@ socket.on('estimate-start', ({ prompt, unit, image, count, total, timer, hostTem
   showSection(estimateSection);
   setRichText(estimatePrompt, prompt + (unit ? ' (' + unit + ')' : ''));
   applyImage(estimateImage, image, show);
-  estimateCounter.textContent = (count || 0) + ' of ' + total + ' guessed';
+  estimateCounter.textContent = guessedLine(count || 0, total);
   estimateCloseBtn.hidden = false;
   estimateCloseBtn.disabled = false;
   estimateResults.hidden = true;
@@ -2654,9 +2660,13 @@ socket.on('estimate-start', ({ prompt, unit, image, count, total, timer, hostTem
 });
 
 socket.on('estimate-progress', ({ count, total }) => {
-  estimateCounter.textContent = count + ' of ' + total + ' guessed';
+  estimateCounter.textContent = guessedLine(count, total);
   if (J) J.sound('blip');
 });
+
+function guessedLine(count, total) {
+  return UiLang.t('{count} of {total} guessed').replace('{count}', String(count)).replace('{total}', String(total));
+}
 
 socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   clearTimer();
@@ -2667,13 +2677,15 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
 
   let html = '';
   if (answer != null) {
-    html += '<div class="estimate-answer">The answer: <strong>' + escapeHtml(groupedNumber(answer)) +
+    html += '<div class="estimate-answer">' + escapeHtml(UiLang.t('The answer:')) + ' <strong>' + escapeHtml(groupedNumber(answer)) +
             (unit ? ' ' + escapeHtml(unit) : '') + '</strong></div>';
   }
   if (stats && stats.count > 0) {
-    html += '<p class="estimate-stats">' + stats.count + ' guesses · average ' +
+    // "1 guess", never "1 guesses" (the owner's re-check, 2026-10-03)
+    const guessCount = stats.count === 1 ? UiLang.t('1 guess') : UiLang.t('{n} guesses').replace('{n}', String(stats.count));
+    html += '<p class="estimate-stats">' + escapeHtml(guessCount) + ' · ' + escapeHtml(UiLang.t('average')) + ' ' +
             escapeHtml(groupedNumber(Math.round(stats.average * 100) / 100)) +
-            ' · median ' + escapeHtml(groupedNumber(stats.median)) + '</p>';
+            ' · ' + escapeHtml(UiLang.t('median')) + ' ' + escapeHtml(groupedNumber(stats.median)) + '</p>';
   }
   // The top score is the highlight; with points for how close (distance)
   // nearly every guess scores, so "scored" can no longer mean "won"

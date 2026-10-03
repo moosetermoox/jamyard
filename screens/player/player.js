@@ -1037,8 +1037,8 @@ const voteSubmittedProgress = document.getElementById('vote-submitted-progress')
 socket.on('room-roster', ({ count, names } = {}) => {
   if (!Array.isArray(names)) return;
   lobbyCount.textContent = names.length <= 1
-    ? 'Just you so far...'
-    : names.length + ' of us here';
+    ? UiLang.t('Just you so far...')
+    : UiLang.t('{n} of us here').replace('{n}', String(names.length));
   lobbyCount.hidden = false;
   lobbyAvatars.innerHTML = '';
   for (const n of names) {
@@ -2520,7 +2520,7 @@ estimateInput.addEventListener('input', function () {
 function submitEstimate() {
   var v = parseFloat(estimateInput.value);
   if (!isFinite(v)) {
-    estimatePlayerStatus.textContent = 'Type a number first.';
+    estimatePlayerStatus.textContent = UiLang.t('Type a number first.');
     return false;
   }
   // A twenty-digit guess turned into 100000000000000000000 without a
@@ -2537,13 +2537,16 @@ function submitEstimate() {
   if (isFinite(hi) && v > hi) v = hi;
   estimateInput.value = String(v);
   socket.emit('estimate-submit', { code: currentRoomCode, value: v });
-  estimatePlayerStatus.textContent =
-    'Got it, you guessed ' + v + '. You can change it until the teacher reveals.';
+  estimatePlayerStatus.textContent = guessedLine(v);
   if (J) J.sound('blip');
   return true;
 }
 
-socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTemplate, show }) => {
+function guessedLine(v) {
+  return UiLang.t('Got it, you guessed {n}. You can change it until the teacher reveals.').replace('{n}', String(v));
+}
+
+socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, myGuess, playerTemplate, show }) => {
   showSection(estimateSection);
   setRichText(estimatePlayerPrompt, prompt || 'Guess the number!');
   applyImage(estimateImage, image, show);
@@ -2556,6 +2559,13 @@ socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTempl
   estimateSubmitBtn.disabled = false;
   estimateSubmitBtn.hidden = false;
   estimatePlayerStatus.textContent = '';
+  // A refreshed screen gets the guess it already sent back (the server
+  // still counts it); the box shows it and the line says so
+  if (typeof myGuess === 'number' && isFinite(myGuess)) {
+    estimateInput.value = String(myGuess);
+    if (!estimateSlider.hidden) estimateSlider.value = String(myGuess);
+    estimatePlayerStatus.textContent = guessedLine(myGuess);
+  }
   estimatePlayerResults.hidden = true;
   estimatePlayerResults.innerHTML = '';
   applyTemplate(estimateSection, playerTemplate);

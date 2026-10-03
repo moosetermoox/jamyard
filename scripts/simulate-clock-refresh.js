@@ -117,6 +117,12 @@ async function main() {
         continue;
       }
 
+      if (id === 'guess') {
+        // a guess sent before the refresh comes back with the screen (the
+        // owner's re-check 2026-10-03: the box came back empty)
+        players[who].emit('estimate-submit', { code, value: 500, phaseInstanceId: lastInstance });
+        await wait(300);
+      }
       await wait(1500);
       const rejoined = await refresh(who);
       r.check(rejoined.reconnected === true, `${id}: the refreshed student is seated again`);
@@ -124,6 +130,9 @@ async function main() {
       const left = again.timer;
       r.check(typeof left === 'number' && left >= TIMER - 10 && left <= TIMER - 1,
         `${id}: the re-sent step carries the time left, not null and not a restarted clock (${left})`);
+      if (id === 'guess') {
+        r.check(again.myGuess === 500 && again.count === 1, `${id}: the refreshed screen gets its own guess back and the count still holds it (${again.myGuess}, ${again.count} guessed)`);
+      }
     }
 
     r.check(serverErrors.length === 0, 'no server-side errors during the run' + (serverErrors.length ? ': ' + serverErrors[0].slice(0, 200) : ''));

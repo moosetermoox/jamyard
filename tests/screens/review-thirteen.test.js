@@ -49,7 +49,7 @@ describe('the projector asks before showing unreviewed work', () => {
     expect(js).toContain('if (previewLookedHere || !(window.Dialog && Dialog.confirm)) { send(); return; }');
   });
   it('the counter says Everyone is in and Close pulses; still host-paced', () => {
-    expect(js).toContain("submissionCount.textContent = 'Everyone is in (' + count + ' of ' + total + ')';");
+    expect(js).toContain("submissionCount.textContent = UiLang.t('Everyone is in ({count} of {total})')");
     expect(js).toContain("closeSubmissionsBtn.classList.toggle('is-all-in', allIn);");
     expect((js.match(/markAllIn\(/g) || []).length).toBeGreaterThanOrEqual(4);
     expect(read('screens/host/styles.css')).toContain('#close-submissions-btn.is-all-in { animation: all-in-pulse');
