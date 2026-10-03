@@ -9,6 +9,7 @@ import { EVENTS } from '../events.js';
 import { ballotFor, proposalsForProjector, bracketMatchups, bracketLines, tallyBracket, mergeSameAnswers, authorsOf } from '../phases/vote-handler.js';
 import { thumbnailStrokes } from '../drawing.js';
 import { admitLateVoter } from '../phases/late-seating.js';
+import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 
 // The vote's own question ("Who should play Brian?"), resolved; both
 // screens said only "Pick your favorite!" / "Pick One" (a reviewer,
@@ -248,6 +249,16 @@ registerHandler('vote', {
     ctx.emitToHost(EVENTS.VOTE_START, hostPayload);
 
     console.log(`[handlePhase] Vote started: ${phase.mode}, ${candidateIds.length} candidates, ${eligible.length} voters`);
+
+    // Nobody can cast a vote (no eligible voter, or every voter had only
+    // their own answer to pick from): tally now, the way the last vote
+    // would (engine/phases/nobody-can-answer.js, the sweep 2026-10-03: one
+    // student and excludeAuthors sat on "0 of 1 voted" until a press)
+    const canVote = eligible.filter(v => !room.phaseState.votersCompleted.has(v.id)).length;
+    if (nobodyCanAnswer(engine, canVote) && ctx.services.tallyVote) {
+      console.log(`[handlePhase] '${phase.id}': nobody can vote, tallying it`);
+      await ctx.services.tallyVote(ctx.code, room);
+    }
   },
 
   // A student who joins while the vote is open votes too (cause 4 sweep,

@@ -7,6 +7,7 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
 import { admitLateSolo } from '../phases/late-seating.js';
+import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 
 registerHandler('rank', {
   async onEnter(ctx) {
@@ -88,6 +89,13 @@ registerHandler('rank', {
 
     if (phase.timer) {
       armPhaseTimer(room, phase.timer, () => ctx.services.closeRanking(room.code || code, room));
+    }
+
+    // Nobody in the room may rank: close it now, the way the teacher's
+    // press would (engine/phases/nobody-can-answer.js)
+    if (nobodyCanAnswer(engine, rkEligible.length) && ctx.services.closeRanking) {
+      console.log(`[handlePhase] '${phase.id}': nobody can rank, closing it`);
+      await ctx.services.closeRanking(room.code || code, room);
     }
   },
 

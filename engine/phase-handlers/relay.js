@@ -6,6 +6,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { seatInRelayOrder } from '../phases/late-seating.js';
+import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 
 registerHandler('relay', {
   async onEnter(ctx) {
@@ -32,6 +33,14 @@ registerHandler('relay', {
     };
 
     console.log(`[handlePhase] Relay: ${turnOrder.length} players, order=${phase.order || 'random'}`);
+
+    // Nobody in the room may write: finish it now with nothing added, the
+    // way Finish all would (engine/phases/nobody-can-answer.js)
+    if (nobodyCanAnswer(engine, turnOrder.length) && ctx.services.finishRelay) {
+      console.log(`[handlePhase] '${phase.id}': nobody can write, finishing it`);
+      await ctx.services.finishRelay(code, room);
+      return;
+    }
 
     ctx.services.emitRelayTurn(code, room);
   },

@@ -1,0 +1,28 @@
+{
+  "name": "Nobody can vote fixture",
+  "description": "A test fixture (2026-10-03): one answer, then a vote over the answers that leaves out your own, so a vote nobody can cast can be checked to tally itself (scripts/simulate-nobody-votes.js). Never listed.",
+  "minPlayers": 1,
+  "earlyJoke": false,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "ask" },
+    "ask": {
+      "type": "collect",
+      "prompt": "Name a book the class should read.",
+      "next": "pick"
+    },
+    "pick": {
+      "type": "vote",
+      "mode": "pick-one",
+      "question": "Which one?",
+      "candidates": "ask.responses",
+      "excludeAuthors": true,
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "announce",
+      "message": "The vote is in.",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}

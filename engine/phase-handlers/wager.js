@@ -7,6 +7,7 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
 import { admitLateSolo } from '../phases/late-seating.js';
+import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 
 // If scoresFrom isn't set, every player starts with a default pool so the
 // simplest case (a one-off bet with no prior score chain) just works.
@@ -68,6 +69,13 @@ registerHandler('wager', {
 
     if (phase.timer) {
       armPhaseTimer(room, phase.timer, () => ctx.services.closeWager(room.code || code, room));
+    }
+
+    // Nobody in the room may bet: close it now, the way the teacher's
+    // press would (engine/phases/nobody-can-answer.js)
+    if (nobodyCanAnswer(engine, wgEligible.length) && ctx.services.closeWager) {
+      console.log(`[handlePhase] '${phase.id}': nobody can bet, closing it`);
+      await ctx.services.closeWager(room.code || code, room);
     }
   },
 

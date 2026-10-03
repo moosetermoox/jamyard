@@ -2438,6 +2438,10 @@ const phaseServices = {
   // A collect or collect-choice nobody can answer closes itself on enter
   // (engine/phases/nobody-can-answer.js)
   closeCollect: (code, room) => closeCollect(code, room),
+  // ...and so does a vote nobody can cast and a relay with nobody to write
+  // (the sweep, 2026-10-03)
+  tallyVote: (code, room) => tallyAndAdvance(code, room),
+  finishRelay: (code, room) => finishRelay(code, room),
   emitRelayTurn: (code, room) => emitRelayTurn(code, room),
   shuffleArray,
   setupForeachIteration,

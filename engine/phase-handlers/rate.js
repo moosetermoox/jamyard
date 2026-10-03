@@ -2,6 +2,7 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
 import { admitLateSolo } from '../phases/late-seating.js';
+import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 
 /**
  * Rate phase — class rates a target (a presentation, an idea, a pitch
@@ -84,6 +85,13 @@ registerHandler('rate', {
 
     if (phase.timer) {
       armPhaseTimer(room, phase.timer, () => ctx.services.closeRating(ctx.code, room));
+    }
+
+    // Nobody in the room may rate: close it now, the way the teacher's
+    // press would (engine/phases/nobody-can-answer.js)
+    if (nobodyCanAnswer(engine, eligible.length) && ctx.services.closeRating) {
+      console.log(`[handlePhase] '${phase.id}': nobody can rate, closing it`);
+      await ctx.services.closeRating(ctx.code, room);
     }
   },
 
