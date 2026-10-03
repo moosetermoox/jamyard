@@ -202,7 +202,7 @@ import { ensureMeadowState, meadowIndexFor, allowNudge, clampFrac } from './engi
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
-import { extendPhaseTimer } from './engine/phase-timer.js';
+import { extendPhaseTimer, recordDeadline } from './engine/phase-timer.js';
 import { pressMoreTime } from './engine/more-time.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
 import { guessedRightLine } from './engine/phases/guessed-right.js';
@@ -1504,8 +1504,10 @@ function emitRelayTurn(code, room) {
     });
   }
 
-  // Per-turn timer
+  // Per-turn timer. The clock restarts every turn, so the deadline a
+  // refreshed screen reads (phase-context.js) is re-recorded here.
   if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
+  recordDeadline(room, rs.timer);
   if (rs.timer) {
     rs.turnTimer = setTimeout(async () => {
       if (room.phaseState && room.phaseState.phaseId === rs.phaseId &&

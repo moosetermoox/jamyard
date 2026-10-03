@@ -22,6 +22,7 @@ import { audienceLine } from '../phases/audience-line.js';
 import { splitPartnerTokens } from '../per-player-template.js';
 import { dealPairs, joinLatePair } from '../phases/pair-deal.js';
 import { withoutPlaceholderLines } from '../phases/host-prompt.js';
+import { secondsLeft, recordDeadline } from '../phase-timer.js';
 
 // The partner's piece rides beside the prompt, never inside it: the
 // student screen shows it on a card of its own under the instruction.
@@ -487,17 +488,10 @@ function buildPairwiseAssignment(ctx) {
   return { pairs, assignment };
 }
 
-/**
- * Seconds left on this step's clock for a student who reconnects mid-step,
- * or null when the step has no clock (rolling start, no timer, or the
- * deadline already passed: the projector is about to close it).
- */
-export function secondsLeft(room, now = Date.now()) {
-  const ends = room && room.phaseState && room.phaseState.timerEndsAt;
-  if (!ends) return null;
-  const left = Math.ceil((ends - now) / 1000);
-  return left > 0 ? left : null;
-}
+// The clock helpers live in engine/phase-timer.js (every step's deadline,
+// one place); re-exported here for the handlers that learned them from
+// collect first.
+export { secondsLeft };
 
 registerHandler('collect', {
   async onEnter(ctx) {
@@ -513,9 +507,7 @@ registerHandler('collect', {
     // mid-step needs the time left too (a phone that locked came back with
     // no timer, 2026-09-26): remember the deadline, "A bit more time"
     // pushes it back (server.js extend-timer), onReconnect reads it.
-    if (timer && ctx.room && ctx.room.phaseState) {
-      ctx.room.phaseState.timerEndsAt = Date.now() + timer * 1000;
-    }
+    recordDeadline(ctx.room, timer);
 
     // Clear previous responses for multi-round games
     for (const p of engine.players.list()) {

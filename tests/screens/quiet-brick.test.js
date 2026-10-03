@@ -86,7 +86,7 @@ describe('quiet brick: wiring', () => {
 
   it('a timed announce keeps its deadline and a returning screen gets the time left', () => {
     const src = read('engine/phase-handlers/announce.js');
-    expect(src).toMatch(/phaseState\.timerEndsAt = Date\.now\(\) \+ ctx\.phase\.timer \* 1000/);
+    expect(src).toContain('recordDeadline(ctx.room, ctx.phase.timer);');
     expect(src).not.toMatch(/timer: null/);
     expect(src.match(/timer: secondsLeft\(ctx\.room\)/g)).toHaveLength(2);
   });

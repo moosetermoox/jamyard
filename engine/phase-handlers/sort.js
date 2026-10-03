@@ -121,7 +121,7 @@ registerHandler('sort', {
         prompt: state.prompt || '',
         buckets: state.buckets,
         items: state.items.map(it => it.text),
-        timer: null, // reconnectors don't restart the countdown
+        timer: null, // the reconnect socket fills in the time left (phase-context.js)
         playerTemplate: sc.playerTemplate, show: sc.playerShow,
         phaseInstanceId: ctx.phaseInstanceId
       });

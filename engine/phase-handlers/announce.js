@@ -10,7 +10,7 @@ import { EVENTS } from '../events.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { PER_PLAYER_TOKEN } from '../resolver-grammar.js';
-import { secondsLeft } from './collect.js';
+import { secondsLeft, recordDeadline } from '../phase-timer.js';
 
 // {{x.mine}} or {{x.assigned}}: each player gets their own resolved copy.
 const PER_PLAYER_REF = PER_PLAYER_TOKEN;
@@ -46,7 +46,7 @@ registerHandler('announce', {
     // during two minutes of quiet time, the projector rejoining) gets the
     // time left, never a clock that vanished (2026-10-01, the quiet brick).
     if (ctx.phase.timer) {
-      if (ctx.room && ctx.room.phaseState) ctx.room.phaseState.timerEndsAt = Date.now() + ctx.phase.timer * 1000;
+      recordDeadline(ctx.room, ctx.phase.timer);
       setTimeout(async () => {
         if (ctx.isStale()) return; // host already advanced (Skip / manual continue)
         await ctx.advanceToNext();

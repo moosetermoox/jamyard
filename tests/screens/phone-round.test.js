@@ -108,7 +108,7 @@ describe('A drawing survives a refresh', () => {
   });
   it('a reconnect gets the seconds left, and more time pushes the deadline back', () => {
     const collect = read('engine/phase-handlers/collect.js');
-    expect(collect).toContain('ctx.room.phaseState.timerEndsAt = Date.now() + timer * 1000;');
+    expect(collect).toContain('recordDeadline(ctx.room, timer);');
     expect(collect).toContain('timer: secondsLeft(ctx.room)');
     const server = read('server.js');
     expect(server).toContain('room.phaseState.timerEndsAt = Math.max(room.phaseState.timerEndsAt, Date.now()) + EXTEND_TIMER_SECONDS * 1000;');
