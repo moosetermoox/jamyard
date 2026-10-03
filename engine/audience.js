@@ -120,7 +120,11 @@ const CLASS_TYPES = new Set([
   'reveal', 'reveal-one', 'announce', 'winner', 'leaderboard', 'vote', 'rank',
   'rate', 'collect-choice', 'foreach', 'estimate', 'match', 'sort', 'checklist',
   'turn', 'relay', 'eliminate', 'wager', 'buzz', 'one-voice', 'team-split',
-  'team-roles', 'end'
+  'team-roles', 'end',
+  // a quiz built from the answers puts them on every student's screen; a
+  // hand-out board puts the ranked items on the projector (the sweep,
+  // 2026-10-03: both read as teacher-only)
+  'solo-quiz', 'assign'
 ]);
 
 // Does this string reference the step? Bare "notes", "notes.responses",
@@ -195,6 +199,8 @@ function classify(consumer, phaseId) {
     }
     if (consumer.rotateFrom === phaseId || consumer.rotatePairsFrom === phaseId ||
         consumer.reusePairsFrom === phaseId) return AUDIENCE.CLASSMATE;
+    // One prompt per pair drawn from the answers: a pair reads each
+    if (consumer.pairsFrom === phaseId) return AUDIENCE.CLASSMATE;
     if (consumer.dealItems === phaseId) return AUDIENCE.CLASSMATE;
     // A prompt quoting the partner's piece ({{X.partner}}): one classmate reads it
     if (typeof consumer.prompt === 'string' &&
@@ -450,7 +456,7 @@ function readingGroupSize(consumer) {
   }
   if (consumer.type === 'collect') {
     if (consumer.assign === 'pairwise' || consumer.rotatePairsFrom || consumer.reusePairsFrom ||
-        (consumer.pairBy && typeof consumer.pairBy === 'object')) return 2;
+        consumer.pairsFrom || (consumer.pairBy && typeof consumer.pairBy === 'object')) return 2;
     return null;
   }
   if (consumer.type === 'reveal' && consumer.scope === 'pair') return 2;
