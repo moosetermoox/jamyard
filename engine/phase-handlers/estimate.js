@@ -1,7 +1,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { effectiveRange } from '../phases/estimate-range.js';
-import { secondsLeft } from './collect.js';
+import { secondsLeft } from '../phase-timer.js';
 
 /**
  * estimate — numeric guessing with closeness scoring.

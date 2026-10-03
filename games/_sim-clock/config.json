@@ -1,0 +1,107 @@
+{
+  "name": "Clock refresh fixture",
+  "description": "A test fixture (2026-10-03): every timed step type in a row, so a student who refreshes mid-step can be checked for the time left on each one (scripts/simulate-clock-refresh.js). Never listed.",
+  "minPlayers": 2,
+  "earlyJoke": false,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "poll" },
+    "poll": {
+      "type": "collect-choice",
+      "prompt": "Cats or dogs?",
+      "choices": ["Cats", "Dogs", "Fish"],
+      "timer": 60,
+      "next": "pick"
+    },
+    "pick": {
+      "type": "vote",
+      "mode": "pick-one",
+      "question": "Which trip?",
+      "candidates": ["The zoo", "The museum", "The park"],
+      "timer": 60,
+      "next": "order"
+    },
+    "order": {
+      "type": "rank",
+      "prompt": "Coldest first.",
+      "candidates": ["Ice", "Water", "Steam"],
+      "timer": 60,
+      "next": "pairs"
+    },
+    "pairs": {
+      "type": "match",
+      "prompt": "Match each term to its meaning",
+      "pairs": [
+        { "left": "simile", "right": "compares with like or as" },
+        { "left": "metaphor", "right": "says one thing is another" },
+        { "left": "hyperbole", "right": "exaggerates on purpose" }
+      ],
+      "timer": 60,
+      "next": "buckets"
+    },
+    "buckets": {
+      "type": "sort",
+      "prompt": "Where does each one belong?",
+      "buckets": ["Genius", "Chaos"],
+      "items": [{ "text": "Pineapple on pizza" }, { "text": "Socks with sandals" }],
+      "timer": 60,
+      "next": "rate-it"
+    },
+    "rate-it": {
+      "type": "rate",
+      "prompt": "Rate the idea.",
+      "scales": [{ "id": "fresh", "label": "Freshness", "min": 1, "max": 5, "labels": { "min": "Stale", "max": "Fresh" } }],
+      "timer": 60,
+      "next": "bet"
+    },
+    "bet": {
+      "type": "wager",
+      "prompt": "Which janitor tool would win in a fight?",
+      "options": ["Mop", "Broom", "Wet floor sign"],
+      "timer": 60,
+      "next": "tasks"
+    },
+    "tasks": {
+      "type": "checklist",
+      "prompt": "Get it done.",
+      "items": ["Plain task", "Another task"],
+      "timer": 60,
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect",
+      "prompt": "What is the most important idea from this unit?",
+      "timer": 60,
+      "next": "combine"
+    },
+    "combine": {
+      "type": "merge",
+      "seedFrom": "ask.responses",
+      "instruction": "Combine your answers into one stronger answer.",
+      "groupSize": 2,
+      "agreeMode": "both",
+      "timer": 60,
+      "next": "story"
+    },
+    "story": {
+      "type": "relay",
+      "prompt": "Add one line to the story.",
+      "order": "join-order",
+      "turns": 1,
+      "timer": 60,
+      "next": "guess"
+    },
+    "guess": {
+      "type": "estimate",
+      "prompt": "How many jelly beans are in the jar?",
+      "timer": 60,
+      "next": "gallery"
+    },
+    "gallery": {
+      "type": "reveal-one",
+      "from": "ask.responses",
+      "timer": 60,
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}

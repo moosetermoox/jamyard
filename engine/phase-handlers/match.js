@@ -125,7 +125,7 @@ registerHandler('match', {
         prompt: state.prompt || '',
         leftItems: state.pairs.map(p => p.left),
         rightItems: state.rightItems,
-        timer: null, // reconnectors don't restart the countdown
+        timer: null, // the reconnect socket fills in the time left (phase-context.js)
         playerTemplate: sc.playerTemplate, show: sc.playerShow,
         phaseInstanceId: ctx.phaseInstanceId
       });

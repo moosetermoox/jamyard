@@ -219,7 +219,7 @@ registerHandler('checklist', {
         itemRoles: itemRolesFor(state, socket.id),
         yourRole: (state.playerRole || {})[socket.id] || null,
         group: view,
-        timer: null, // reconnectors don't restart the countdown
+        timer: null, // the reconnect socket fills in the time left (phase-context.js)
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     } else {
