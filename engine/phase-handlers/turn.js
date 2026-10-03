@@ -174,9 +174,13 @@ function endCurrentTurn(ctx, reason) {
   }, 1500);
 }
 
+// Also the server's generic "next step" on an open turn phase (advance-phase):
+// the scores so far are stored and the room moves on, never skipped past.
+export function finishTurnPhase(ctx) { return finishPhase(ctx); }
+
 function finishPhase(ctx) {
   const vs = ctx.room.phaseState;
-  if (vs.ended) return;
+  if (!vs || vs.kind !== 'turn' || vs.ended) return;
   vs.ended = true;
   if (vs.turnTimer) { clearTimeout(vs.turnTimer); vs.turnTimer = null; }
   ctx.engine.storePhaseData(ctx.phase.id, {

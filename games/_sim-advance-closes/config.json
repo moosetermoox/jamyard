@@ -1,0 +1,52 @@
+{
+  "name": "Advance closes fixture",
+  "description": "A test fixture (2026-10-03): a wager, a relay, and a turn round, each cut short by the console's Next step. The scores and the text must survive the press. Never listed.",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "bet" },
+    "bet": {
+      "type": "wager",
+      "prompt": "Which janitor tool would win in a fight?",
+      "options": ["Mop", "Broom", "Wet floor sign"],
+      "next": "board"
+    },
+    "board": {
+      "type": "leaderboard",
+      "from": "bet.scores",
+      "next": "story"
+    },
+    "story": {
+      "type": "relay",
+      "prompt": "Add one line to the story.",
+      "turns": 1,
+      "timer": 60,
+      "next": "show"
+    },
+    "show": {
+      "type": "reveal",
+      "template": "**The story so far**\n\n{{story.text}}",
+      "next": "teams"
+    },
+    "teams": {
+      "type": "team-split",
+      "method": "random",
+      "teamCount": 2,
+      "next": "phrases"
+    },
+    "phrases": {
+      "type": "collect",
+      "prompt": "Write a phrase for the round.",
+      "timer": 60,
+      "next": "round"
+    },
+    "round": {
+      "type": "turn",
+      "pool": "phrases.responses",
+      "teamsFrom": "teams",
+      "timer": 60,
+      "instruction": "Describe the phrase without saying it.",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}
