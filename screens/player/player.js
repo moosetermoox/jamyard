@@ -4013,14 +4013,18 @@ socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
 
 // --- Socket events - Waiting ---
 
+// The waiting line is a fixed label the server picks ("Waiting for others
+// to rank..."), so it goes through the language table like every other
+// label (2026-10-03: a Spanish room read forty-one of them in English); a
+// line the table does not know shows as sent.
 socket.on('waiting', ({ message }) => {
   showSection(gameWaitingSection);
-  gameWaitingMessage.textContent = message;
+  gameWaitingMessage.textContent = UiLang.t(message || '');
 });
 
 socket.on('phase-paused', ({ message }) => {
   showSection(gameWaitingSection);
-  gameWaitingMessage.textContent = message || 'The teacher is resolving an issue. Please wait...';
+  gameWaitingMessage.textContent = UiLang.t(message || 'The teacher is resolving an issue. Please wait...');
 });
 
 // --- Socket events - Voting ---

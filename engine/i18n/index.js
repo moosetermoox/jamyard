@@ -434,7 +434,33 @@ export const STRINGS = {
     'Add 30 seconds': 'Añadir 30 segundos',
     'Pick a rating on each scale.': 'Elige una calificación en cada escala.',
     'The quiz is over.': 'El cuestionario terminó.',
-    'You did not answer any questions this time.': 'Esta vez no respondiste ninguna pregunta.'
+    'You did not answer any questions this time.': 'Esta vez no respondiste ninguna pregunta.',
+    // The waiting lines every answer step sends (cause 4 sweep, 2026-10-03:
+    // forty-one of them reached a Spanish room in English)
+    'The class is working on the checklist...': 'La clase está trabajando en la lista...',
+    'Waiting for other players...': 'Esperando a los demás...',
+    'Sitting out this round, waiting for others...': 'Esta ronda no participas, esperando a los demás...',
+    'Game in progress...': 'Actividad en marcha...',
+    'Waiting for others to match...': 'Esperando a que los demás emparejen...',
+    'Matches submitted. Waiting for others...': 'Parejas enviadas. Esperando a los demás...',
+    'Groups are merging their answers, hang tight...': 'Los grupos están uniendo sus respuestas, un momento...',
+    'Merged! Waiting for the other groups...': '¡Listo! Esperando a los otros grupos...',
+    'Waiting for others to rank...': 'Esperando a que los demás ordenen...',
+    'Ranking submitted. Waiting for others...': 'Orden enviado. Esperando a los demás...',
+    'Waiting for the class to rate...': 'Esperando a que la clase califique...',
+    'Ratings submitted. Waiting for others...': 'Calificaciones enviadas. Esperando a los demás...',
+    'Waiting for others to sort...': 'Esperando a que los demás clasifiquen...',
+    'Sorting submitted. Waiting for others...': 'Clasificación enviada. Esperando a los demás...',
+    'Roles are being picked...': 'Se están eligiendo los roles...',
+    'Your teacher is arranging the teams...': 'Tu profesor está armando los equipos...',
+    'Teams are forming...': 'Se están formando los equipos...',
+    'Nothing for you to vote on this round, waiting for others...': 'Esta ronda no tienes nada que votar, esperando a los demás...',
+    'Waiting for votes...': 'Esperando los votos...',
+    'Vote submitted. Waiting for results...': 'Voto enviado. Esperando los resultados...',
+    'Waiting for others to place wagers...': 'Esperando a que los demás apuesten...',
+    'Wager placed. Waiting for others...': 'Apuesta hecha. Esperando a los demás...',
+    "Reconnecting, waiting for your teacher's screen…": 'Reconectando, esperando la pantalla de tu profesor…',
+    'The teacher is resolving an issue. Please wait...': 'El profesor está resolviendo un problema. Espera un momento...'
   },
   fr: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -720,7 +746,33 @@ export const STRINGS = {
     'Add 30 seconds': 'Ajouter 30 secondes',
     'Pick a rating on each scale.': 'Choisis une note sur chaque échelle.',
     'The quiz is over.': 'Le quiz est terminé.',
-    'You did not answer any questions this time.': 'Tu n\'as répondu à aucune question cette fois.'
+    'You did not answer any questions this time.': 'Tu n\'as répondu à aucune question cette fois.',
+    // The waiting lines every answer step sends (cause 4 sweep, 2026-10-03:
+    // forty-one of them reached a Spanish room in English)
+    'The class is working on the checklist...': 'La classe travaille sur la liste...',
+    'Waiting for other players...': 'En attente des autres...',
+    'Sitting out this round, waiting for others...': 'Tu passes ce tour, en attente des autres...',
+    'Game in progress...': 'Activité en cours...',
+    'Waiting for others to match...': 'En attente que les autres associent...',
+    'Matches submitted. Waiting for others...': 'Associations envoyées. En attente des autres...',
+    'Groups are merging their answers, hang tight...': 'Les groupes combinent leurs réponses, un instant...',
+    'Merged! Waiting for the other groups...': 'Combiné ! En attente des autres groupes...',
+    'Waiting for others to rank...': 'En attente que les autres classent...',
+    'Ranking submitted. Waiting for others...': 'Classement envoyé. En attente des autres...',
+    'Waiting for the class to rate...': 'En attente que la classe note...',
+    'Ratings submitted. Waiting for others...': 'Notes envoyées. En attente des autres...',
+    'Waiting for others to sort...': 'En attente que les autres trient...',
+    'Sorting submitted. Waiting for others...': 'Tri envoyé. En attente des autres...',
+    'Roles are being picked...': 'Les rôles sont en cours de choix...',
+    'Your teacher is arranging the teams...': 'Ton professeur organise les équipes...',
+    'Teams are forming...': 'Les équipes se forment...',
+    'Nothing for you to vote on this round, waiting for others...': 'Rien à voter pour toi ce tour, en attente des autres...',
+    'Waiting for votes...': 'En attente des votes...',
+    'Vote submitted. Waiting for results...': 'Vote envoyé. En attente des résultats...',
+    'Waiting for others to place wagers...': 'En attente que les autres parient...',
+    'Wager placed. Waiting for others...': 'Pari placé. En attente des autres...',
+    "Reconnecting, waiting for your teacher's screen…": 'Reconnexion, en attente de l’écran de ton professeur…',
+    'The teacher is resolving an issue. Please wait...': 'Le professeur règle un problème. Un instant...'
   },
   de: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1006,7 +1058,33 @@ export const STRINGS = {
     'Add 30 seconds': '30 Sekunden mehr',
     'Pick a rating on each scale.': 'Wähle auf jeder Skala eine Bewertung.',
     'The quiz is over.': 'Das Quiz ist vorbei.',
-    'You did not answer any questions this time.': 'Diesmal hast du keine Frage beantwortet.'
+    'You did not answer any questions this time.': 'Diesmal hast du keine Frage beantwortet.',
+    // The waiting lines every answer step sends (cause 4 sweep, 2026-10-03:
+    // forty-one of them reached a Spanish room in English)
+    'The class is working on the checklist...': 'Die Klasse arbeitet an der Liste...',
+    'Waiting for other players...': 'Warten auf die anderen...',
+    'Sitting out this round, waiting for others...': 'Diese Runde setzt du aus, warten auf die anderen...',
+    'Game in progress...': 'Aktivität läuft...',
+    'Waiting for others to match...': 'Warten, bis die anderen zugeordnet haben...',
+    'Matches submitted. Waiting for others...': 'Zuordnung abgeschickt. Warten auf die anderen...',
+    'Groups are merging their answers, hang tight...': 'Die Gruppen fassen ihre Antworten zusammen, einen Moment...',
+    'Merged! Waiting for the other groups...': 'Zusammengeführt! Warten auf die anderen Gruppen...',
+    'Waiting for others to rank...': 'Warten, bis die anderen sortiert haben...',
+    'Ranking submitted. Waiting for others...': 'Reihenfolge abgeschickt. Warten auf die anderen...',
+    'Waiting for the class to rate...': 'Warten, bis die Klasse bewertet hat...',
+    'Ratings submitted. Waiting for others...': 'Bewertung abgeschickt. Warten auf die anderen...',
+    'Waiting for others to sort...': 'Warten, bis die anderen einsortiert haben...',
+    'Sorting submitted. Waiting for others...': 'Einteilung abgeschickt. Warten auf die anderen...',
+    'Roles are being picked...': 'Die Rollen werden gewählt...',
+    'Your teacher is arranging the teams...': 'Deine Lehrkraft stellt die Teams zusammen...',
+    'Teams are forming...': 'Die Teams werden gebildet...',
+    'Nothing for you to vote on this round, waiting for others...': 'Diese Runde gibt es nichts für dich zu wählen, warten auf die anderen...',
+    'Waiting for votes...': 'Warten auf die Stimmen...',
+    'Vote submitted. Waiting for results...': 'Stimme abgegeben. Warten auf das Ergebnis...',
+    'Waiting for others to place wagers...': 'Warten, bis die anderen gesetzt haben...',
+    'Wager placed. Waiting for others...': 'Einsatz gesetzt. Warten auf die anderen...',
+    "Reconnecting, waiting for your teacher's screen…": 'Verbindung wird wiederhergestellt, warten auf den Bildschirm der Lehrkraft…',
+    'The teacher is resolving an issue. Please wait...': 'Die Lehrkraft löst gerade ein Problem. Bitte warten...'
   },
   pt: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1292,7 +1370,33 @@ export const STRINGS = {
     'Add 30 seconds': 'Adicionar 30 segundos',
     'Pick a rating on each scale.': 'Escolha uma nota em cada escala.',
     'The quiz is over.': 'O quiz terminou.',
-    'You did not answer any questions this time.': 'Desta vez você não respondeu nenhuma pergunta.'
+    'You did not answer any questions this time.': 'Desta vez você não respondeu nenhuma pergunta.',
+    // The waiting lines every answer step sends (cause 4 sweep, 2026-10-03:
+    // forty-one of them reached a Spanish room in English)
+    'The class is working on the checklist...': 'A turma está trabalhando na lista...',
+    'Waiting for other players...': 'Esperando os outros...',
+    'Sitting out this round, waiting for others...': 'Você fica de fora nesta rodada, esperando os outros...',
+    'Game in progress...': 'Atividade em andamento...',
+    'Waiting for others to match...': 'Esperando os outros combinarem...',
+    'Matches submitted. Waiting for others...': 'Pares enviados. Esperando os outros...',
+    'Groups are merging their answers, hang tight...': 'Os grupos estão juntando suas respostas, um momento...',
+    'Merged! Waiting for the other groups...': 'Pronto! Esperando os outros grupos...',
+    'Waiting for others to rank...': 'Esperando os outros ordenarem...',
+    'Ranking submitted. Waiting for others...': 'Ordem enviada. Esperando os outros...',
+    'Waiting for the class to rate...': 'Esperando a turma avaliar...',
+    'Ratings submitted. Waiting for others...': 'Avaliações enviadas. Esperando os outros...',
+    'Waiting for others to sort...': 'Esperando os outros classificarem...',
+    'Sorting submitted. Waiting for others...': 'Classificação enviada. Esperando os outros...',
+    'Roles are being picked...': 'Os papéis estão sendo escolhidos...',
+    'Your teacher is arranging the teams...': 'Seu professor está organizando as equipes...',
+    'Teams are forming...': 'As equipes estão se formando...',
+    'Nothing for you to vote on this round, waiting for others...': 'Nesta rodada não há nada para você votar, esperando os outros...',
+    'Waiting for votes...': 'Esperando os votos...',
+    'Vote submitted. Waiting for results...': 'Voto enviado. Esperando os resultados...',
+    'Waiting for others to place wagers...': 'Esperando os outros apostarem...',
+    'Wager placed. Waiting for others...': 'Aposta feita. Esperando os outros...',
+    "Reconnecting, waiting for your teacher's screen…": 'Reconectando, esperando a tela do seu professor…',
+    'The teacher is resolving an issue. Please wait...': 'O professor está resolvendo um problema. Aguarde...'
   },
   it: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1578,6 +1682,32 @@ export const STRINGS = {
     'Add 30 seconds': 'Aggiungi 30 secondi',
     'Pick a rating on each scale.': 'Scegli un voto su ogni scala.',
     'The quiz is over.': 'Il quiz è finito.',
-    'You did not answer any questions this time.': 'Questa volta non hai risposto a nessuna domanda.'
+    'You did not answer any questions this time.': 'Questa volta non hai risposto a nessuna domanda.',
+    // The waiting lines every answer step sends (cause 4 sweep, 2026-10-03:
+    // forty-one of them reached a Spanish room in English)
+    'The class is working on the checklist...': 'La classe sta lavorando alla lista...',
+    'Waiting for other players...': 'In attesa degli altri...',
+    'Sitting out this round, waiting for others...': 'Questo turno stai fuori, in attesa degli altri...',
+    'Game in progress...': 'Attività in corso...',
+    'Waiting for others to match...': 'In attesa che gli altri abbinino...',
+    'Matches submitted. Waiting for others...': 'Abbinamenti inviati. In attesa degli altri...',
+    'Groups are merging their answers, hang tight...': 'I gruppi stanno unendo le risposte, un momento...',
+    'Merged! Waiting for the other groups...': 'Fatto! In attesa degli altri gruppi...',
+    'Waiting for others to rank...': 'In attesa che gli altri ordinino...',
+    'Ranking submitted. Waiting for others...': 'Ordine inviato. In attesa degli altri...',
+    'Waiting for the class to rate...': 'In attesa che la classe valuti...',
+    'Ratings submitted. Waiting for others...': 'Valutazioni inviate. In attesa degli altri...',
+    'Waiting for others to sort...': 'In attesa che gli altri smistino...',
+    'Sorting submitted. Waiting for others...': 'Smistamento inviato. In attesa degli altri...',
+    'Roles are being picked...': 'Si stanno scegliendo i ruoli...',
+    'Your teacher is arranging the teams...': 'L’insegnante sta formando le squadre...',
+    'Teams are forming...': 'Le squadre si stanno formando...',
+    'Nothing for you to vote on this round, waiting for others...': 'Questo turno non hai nulla da votare, in attesa degli altri...',
+    'Waiting for votes...': 'In attesa dei voti...',
+    'Vote submitted. Waiting for results...': 'Voto inviato. In attesa dei risultati...',
+    'Waiting for others to place wagers...': 'In attesa che gli altri puntino...',
+    'Wager placed. Waiting for others...': 'Puntata fatta. In attesa degli altri...',
+    "Reconnecting, waiting for your teacher's screen…": 'Riconnessione, in attesa dello schermo dell’insegnante…',
+    'The teacher is resolving an issue. Please wait...': 'L’insegnante sta risolvendo un problema. Attendi...'
   }
 };
