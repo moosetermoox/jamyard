@@ -70,6 +70,7 @@
 
 import { validateParams, RECIPE_DIAGNOSTIC_CODES } from './recipe-schema.js';
 import { mkDiagnostic } from './diagnostics.js';
+import { mapTransitionTargets } from './transitions.js';
 
 // =======================================================================
 // Public API
@@ -561,9 +562,9 @@ function substituteAll(template, params, recipe, dropped) {
  * phase declared where it would have gone (its own "next"); pointers to
  * it skip through, like unlinking a node from a list. Chains of
  * consecutive drops are followed. A ref with nowhere to go throws.
+ * Every transition field is re-pointed (engine/transitions.js: next, a
+ * preview's doors, a loop, a vote's branches).
  */
-const PHASE_REF_FIELDS = ['next', 'approveNext', 'rejectNext', 'loopBack'];
-
 function rewireDroppedPhases(config, dropped, recipe) {
   if (!dropped.length || !config || typeof config !== 'object' || !config.phases) return;
   const droppedNext = new Map(dropped.map(d => [d.key, d.next]));
@@ -588,19 +589,7 @@ function rewireDroppedPhases(config, dropped, recipe) {
 
   for (const [name, phase] of Object.entries(config.phases)) {
     if (!phase || typeof phase !== 'object') continue;
-    for (const field of PHASE_REF_FIELDS) {
-      if (typeof phase[field] === 'string' && droppedNext.has(phase[field])) {
-        phase[field] = resolve(phase[field], name);
-      }
-    }
-    // Branching votes: nextByWinner values are phase refs too
-    if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
-      for (const key of Object.keys(phase.nextByWinner)) {
-        if (typeof phase.nextByWinner[key] === 'string' && droppedNext.has(phase.nextByWinner[key])) {
-          phase.nextByWinner[key] = resolve(phase.nextByWinner[key], name);
-        }
-      }
-    }
+    mapTransitionTargets(phase, target => (droppedNext.has(target) ? resolve(target, name) : target));
   }
 }
 

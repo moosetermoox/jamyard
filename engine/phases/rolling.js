@@ -13,6 +13,7 @@
  * Pure helpers, no I/O. The engine, server and screens all ask these.
  */
 import { PHASE_SCHEMAS } from '../phase-schemas.js';
+import { primaryNext } from '../transitions.js';
 
 export const START_MODES = Object.freeze(['together', 'rolling']);
 
@@ -45,8 +46,8 @@ export function isRosterBound(phase) {
  * Does anything after `phaseId` on the main next-chain still ask this
  * student for input? When nothing does, a student who has just submitted
  * is DONE with the activity and can be told so (exit ticket: answer, then
- * put the device away). Branches (nextByWinner, approve/reject) are
- * followed only through `next`; a cycle stops the walk.
+ * put the device away). The walk follows the primary path (next, a
+ * preview's approve door, a vote's first branch); a cycle stops it.
  * @param {object} config
  * @param {string} phaseId
  * @returns {boolean} true when at least one input step is still ahead
@@ -54,7 +55,7 @@ export function isRosterBound(phase) {
 export function moreInputAhead(config, phaseId) {
   const phases = (config && config.phases) || {};
   const seen = new Set([phaseId]);
-  let cur = phases[phaseId] ? phases[phaseId].next : null;
+  let cur = phases[phaseId] ? primaryNext(phases[phaseId]) : null;
   while (cur && phases[cur] && !seen.has(cur)) {
     seen.add(cur);
     const type = phases[cur].type;
@@ -62,7 +63,7 @@ export function moreInputAhead(config, phaseId) {
     // vote is filed as a compute step in the schema (it tallies), but the
     // class still has to tap a ballot, so it counts as input here.
     if ((schema && schema.role === 'input') || type === 'vote') return true;
-    cur = phases[cur].next;
+    cur = primaryNext(phases[cur]);
   }
   return false;
 }

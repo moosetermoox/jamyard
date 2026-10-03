@@ -27,6 +27,8 @@
  */
 
 // Seconds. Each is a single, nameable classroom moment.
+import { primaryNext } from './transitions.js';
+
 export const ALLOWANCES = Object.freeze({
   lobbyJoin: 60,        // codes typed, names typed, the last Chromebook waking up
   transition: 10,       // every step change: screens switch, the teacher glances up
@@ -115,18 +117,8 @@ export function parseRequestedMinutes(text) {
   return null;
 }
 
-// The primary path: next, then a preview's approve door, then a branching
-// vote's first branch. Same walk as engine/activity-map.js.
-function primaryNext(phase) {
-  if (typeof phase.next === 'string') return phase.next;
-  if (typeof phase.approveNext === 'string') return phase.approveNext;
-  if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
-    for (const target of Object.values(phase.nextByWinner)) {
-      if (typeof target === 'string') return target;
-    }
-  }
-  return null;
-}
+// The primary path (next, then a preview's approve door, then a branching
+// vote's first branch) is `primaryNext` from engine/transitions.js.
 
 function timerOf(phase) {
   const t = phase.timer;

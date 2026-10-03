@@ -1047,14 +1047,14 @@ function buildPhaseOrder() {
     }
   }
 
-  // Follow the next chain (preview uses approveNext instead of next)
+  // Follow the primary path (next, a preview's approve door, a vote's
+  // first branch: shared/transitions.js, the same walk the engine uses)
   if (startId) {
     var current = startId;
     while (current && !visited[current] && phases[current]) {
       order.push(current);
       visited[current] = true;
-      var p = phases[current];
-      current = p.next || p.approveNext || null;
+      current = Transitions.primaryNext(phases[current]);
     }
   }
 
@@ -1210,7 +1210,7 @@ function renderCanvas() {
     phaseList.appendChild(box);
 
     // Arrow between phases
-    var phaseNext = phase.next || phase.approveNext;
+    var phaseNext = Transitions.primaryNext(phase);
     if (i < order.length - 1 && phaseNext === order[i + 1]) {
       var arrow = document.createElement('div');
       arrow.className = 'phase-arrow';
@@ -5797,7 +5797,7 @@ function addPhaseOfType(type) {
   if (endId) {
     for (var id in gameConfig.phases) {
       var p = gameConfig.phases[id];
-      if (p.next === endId || p.approveNext === endId) {
+      if (Transitions.primaryNext(p) === endId) {
         beforeEnd = id;
         break;
       }
@@ -5960,32 +5960,17 @@ function deletePhase(phaseId) {
     return;
   }
 
-  // Re-link: any phase pointing to this one should point to this phase's next
-  var nextId = phase.next || phase.approveNext || undefined;
+  // Re-link: every transition pointing at this phase follows it to where
+  // it was going (shared/transitions.js walks them all); a loop that
+  // started here has nowhere to repeat from, so the loop goes.
+  var nextId = Transitions.primaryNext(phase);
   for (var id in gameConfig.phases) {
-    if (gameConfig.phases[id].next === phaseId) {
-      gameConfig.phases[id].next = nextId;
+    var other = gameConfig.phases[id];
+    if (other.loopBack === phaseId) {
+      delete other.loopBack;
+      delete other.loopCount;
     }
-    if (gameConfig.phases[id].approveNext === phaseId) {
-      gameConfig.phases[id].approveNext = nextId;
-    }
-    if (gameConfig.phases[id].rejectNext === phaseId) {
-      gameConfig.phases[id].rejectNext = nextId;
-    }
-    // Branching votes: branch targets pointing at the deleted phase follow its next
-    var nbw = gameConfig.phases[id].nextByWinner;
-    if (nbw && typeof nbw === 'object') {
-      for (var nbwKey in nbw) {
-        if (nbw[nbwKey] === phaseId) {
-          if (nextId) { nbw[nbwKey] = nextId; } else { delete nbw[nbwKey]; }
-        }
-      }
-      if (Object.keys(nbw).length === 0) delete gameConfig.phases[id].nextByWinner;
-    }
-    if (gameConfig.phases[id].loopBack === phaseId) {
-      delete gameConfig.phases[id].loopBack;
-      delete gameConfig.phases[id].loopCount;
-    }
+    Transitions.retarget(other, phaseId, nextId);
   }
 
   delete gameConfig.phases[phaseId];
@@ -6266,21 +6251,13 @@ function validateConfig() {
           errors.push(label + ': Needs at least 2 options to vote on.');
         }
       }
-      if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
-        for (var nbwOpt in phase.nextByWinner) {
-          var nbwTarget = phase.nextByWinner[nbwOpt];
-          if (!phases[nbwTarget]) {
-            errors.push(label + ': "If this wins" for option "' + nbwOpt + '" points to a step that does not exist.');
-          }
-        }
-      }
+      // (a branch that points at a missing step is reported with the other
+      // transitions, below)
     }
 
     // Loop validation
     if (phase.loopBack !== undefined && phase.loopBack !== null && phase.loopBack !== '') {
-      if (!phases[phase.loopBack]) {
-        errors.push(label + ': "Loop back to" points to "' + phase.loopBack + '" which does not exist.');
-      }
+      // (a loop back to a missing step is reported with the other transitions)
       if (phase.loopCount === undefined || phase.loopCount === null) {
         errors.push(label + ': Has "Loop back to" but is missing "Number of rounds".');
       } else if (typeof phase.loopCount !== 'number' || phase.loopCount < 2 || phase.loopCount > 100) {
@@ -6512,15 +6489,15 @@ function validateConfig() {
       }
     }
 
-    // Next/approveNext/rejectNext refs
-    if (phase.next && !phases[phase.next]) {
-      errors.push(label + ': "Next step" points to "' + phase.next + '" which does not exist.');
-    }
-    if (phase.approveNext && !phases[phase.approveNext]) {
-      errors.push(label + ': "Approve next" points to "' + phase.approveNext + '" which does not exist.');
-    }
-    if (phase.rejectNext && !phases[phase.rejectNext]) {
-      errors.push(label + ': "Reject next" points to "' + phase.rejectNext + '" which does not exist.');
+    // Every transition points at a step that exists (next, a preview's
+    // doors, a loop, a vote's branches: shared/transitions.js, the same
+    // list the server checks)
+    var tEdges = Transitions.edges(phase);
+    for (var te = 0; te < tEdges.length; te++) {
+      if (phases[tEdges[te].target]) continue;
+      var teLabel = '"' + Transitions.labelOf(tEdges[te].field) + '"';
+      if (tEdges[te].key !== undefined) teLabel += ' for option "' + tEdges[te].key + '"';
+      errors.push(label + ': ' + teLabel + ' points to "' + tEdges[te].target + '" which does not exist.');
     }
   }
 
@@ -6540,15 +6517,10 @@ function validateConfig() {
       reachable[cur] = true;
       var p = phases[cur];
       if (p) {
-        if (p.next && !reachable[p.next]) queue.push(p.next);
-        if (p.approveNext && !reachable[p.approveNext]) queue.push(p.approveNext);
-        if (p.rejectNext && !reachable[p.rejectNext]) queue.push(p.rejectNext);
-        if (p.loopBack && !reachable[p.loopBack]) queue.push(p.loopBack);
-        // Branching votes: nextByWinner targets are reachable too
-        if (p.nextByWinner && typeof p.nextByWinner === 'object') {
-          for (var nbw in p.nextByWinner) {
-            if (p.nextByWinner[nbw] && !reachable[p.nextByWinner[nbw]]) queue.push(p.nextByWinner[nbw]);
-          }
+        // every transition edge, a vote's branches included
+        var tTargets = Transitions.targets(p);
+        for (var tt = 0; tt < tTargets.length; tt++) {
+          if (!reachable[tTargets[tt]]) queue.push(tTargets[tt]);
         }
       }
     }

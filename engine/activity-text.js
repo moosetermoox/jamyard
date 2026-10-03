@@ -14,6 +14,8 @@
  * text) are walked by the same keys.
  */
 
+import { TRANSITION_NAMES } from './transitions.js';
+
 export const TEXT_KEYS = new Set([
   'prompt', 'message', 'instruction', 'content', 'heading', 'title', 'label', 'text',
   'chainHeading', 'chainGrewHeading', 'template', 'itemTemplate', 'question', 'choices',
@@ -21,8 +23,8 @@ export const TEXT_KEYS = new Set([
   'fields', 'pairs', 'left', 'right', 'sides', 'roles', 'name', 'description', 'correctAnswer'
 ]);
 
-// Keys never walked into: ids, refs, and the provenance stamp
-const SKIP_KEYS = new Set(['recipe', 'next', 'id', 'from', 'rotateFrom', 'pairsFrom', 'chainFrom', 'teamsFrom', 'rolesFrom', 'groupsFrom', 'reusePairsFrom', 'rotatePairsFrom', 'input', 'image', 'video', 'drawing', 'drawingFrom', 'sampleAnswers', 'approveNext', 'rejectNext', 'nextByWinner', 'loopBack']);
+// Keys never walked into: ids, refs, transitions, and the provenance stamp
+const SKIP_KEYS = new Set(['recipe', 'id', 'from', 'rotateFrom', 'pairsFrom', 'chainFrom', 'teamsFrom', 'rolesFrom', 'groupsFrom', 'reusePairsFrom', 'rotatePairsFrom', 'input', 'image', 'video', 'drawing', 'drawingFrom', 'sampleAnswers', ...TRANSITION_NAMES]);
 
 function isWordy(s) {
   return typeof s === 'string' && s.trim() !== '';
