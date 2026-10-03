@@ -10,6 +10,25 @@
  * `listPublic()` when sending to clients — it strips reconnect tokens so they
  * never reach the browser.
  */
+import { filterName } from './content-filter.js';
+
+/**
+ * A name the filter refuses never enters a roster, whichever path brought
+ * it (2026-10-03, cause 4 of the architecture review: the rule "a new place
+ * a name enters the room must call filterName" is enforced here, the one
+ * place every name passes). The server's own checks run first and answer
+ * the student in their language; this is the backstop for a path that
+ * forgot. `category` is the filter's.
+ */
+export class NameRefusedError extends Error {
+  constructor(name, category) {
+    super(`Name refused by the filter (${category || 'blocked'})`);
+    this.name = 'NameRefusedError';
+    this.refusedName = name;
+    this.category = category || 'blocked';
+  }
+}
+
 export class PlayerRegistry {
   constructor() {
     this.players = new Map();
@@ -103,8 +122,15 @@ export class PlayerRegistry {
   update(id, data) {
     const player = this.players.get(id);
     if (player) {
+      if (data && typeof data.name === 'string') this.assertNameAllowed(data.name);
       this.players.set(id, { ...player, ...data });
     }
+  }
+
+  /** Throws NameRefusedError when the filter refuses the name. */
+  assertNameAllowed(name) {
+    const verdict = filterName(name);
+    if (verdict && verdict.blocked) throw new NameRefusedError(name, verdict.category);
   }
 
   processName(name) {
@@ -118,6 +144,7 @@ export class PlayerRegistry {
       throw new Error(`Name must be at least 2 characters, got '${processedName}'`);
     }
 
+    this.assertNameAllowed(processedName);
     return this.makeUnique(processedName);
   }
 
