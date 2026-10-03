@@ -2,7 +2,7 @@
   "id": "closer",
   "name": "Closer",
   "icon": "🤝",
-  "description": "The typed version of Closer: pairs type an answer to the same question on their own screens, then see each other's answers at the same moment. (The Closer in the yard has nothing to type; partners talk.) Three tiers of prompts move from playful to reflective, with a new partner each tier. No points, no winners, just real conversations. Good for belonging, trust, and calm.",
+  "description": "The typed version of Closer: pairs type an answer to the same question on their own screens, then see each other's answers at the same moment. (The Closer in the yard has nothing to type; partners talk.) The prompts move in tiers from playful to reflective, with a new partner each tier. No points, no winners, just real conversations. Good for belonging, trust, and calm.",
   "tagline": "Perfect for advisory, the first week of school, or rebuilding class culture after a rough patch.",
   "family": "connection",
   "feel": [
@@ -21,7 +21,7 @@
       },
       "minItems": 3,
       "maxItems": 3,
-      "label": "Tier 1, light & playful (3 prompts)",
+      "label": "Tier 1, light & playful",
       "helper": "Warm-up questions. Easy, fun, zero risk.",
       "default": [
         "Window seat or aisle seat, and why?",
@@ -38,7 +38,7 @@
       },
       "minItems": 3,
       "maxItems": 3,
-      "label": "Tier 2, values & preferences (3 prompts)",
+      "label": "Tier 2, values & preferences",
       "helper": "A little deeper. What matters to them, what they're like.",
       "default": [
         "What's something you've changed your mind about in the last year?",
@@ -55,7 +55,7 @@
       },
       "minItems": 3,
       "maxItems": 3,
-      "label": "Tier 3, reflective (3 prompts)",
+      "label": "Tier 3, reflective",
       "helper": "Proud-of, gratitude, growth. Best after the class has done Tiers 1-2 at least once before.",
       "default": [
         "What's something you're proud of that you rarely get to talk about?",
@@ -90,7 +90,7 @@
       },
       "tier1-intro": {
         "type": "announce",
-        "message": "Tier 1. Warm-up.\n\nYou have a partner, their name will appear on your screen. Answer from where you're sitting now; you'll go sit next to them when the answers appear.\n\nThree quick questions, just for fun.",
+        "message": "Tier 1. Warm-up.\n\nYou have a partner, their name will appear on your screen. Answer from where you're sitting now; you'll go sit next to them when the answers appear.\n\nA few quick questions, just for fun.",
         "next": "t1q1"
       },
       "t1q1": {
