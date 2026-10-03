@@ -129,6 +129,11 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'role-pick': {
+    code: 'string:required',
+    role: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'team-pick': {
     code: 'string:required',
     team: 'string:required',
@@ -250,6 +255,47 @@ export const EVENT_SCHEMAS = {
   },
   'end-game': {
     code: 'string:required'
+  },
+  // The host's recovery buttons: never dropped as stale, the room is stuck.
+  'retry-phase': {
+    code: 'string:required'
+  },
+  'skip-phase': {
+    code: 'string:required'
+  },
+  'reveal-next': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-ranking': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-wager': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'wager-resolve': {
+    code: 'string:required',
+    winningOption: 'any:optional',
+    phaseInstanceId: 'number:optional'
+  },
+  'relay-finish-all': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'preview-approve': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'preview-reject': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'preview-edit': {
+    code: 'string:required',
+    content: 'any:optional',
+    phaseInstanceId: 'number:optional'
   }
 };
 

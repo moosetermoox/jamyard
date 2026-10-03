@@ -3,13 +3,28 @@
  * Bundles room state, I/O, and utilities so handlers don't need
  * to reach into server.js globals.
  */
-function withPhaseSeq(data, room) {
+export function withPhaseSeq(data, room) {
   const seq = room.phaseInstanceId || 0;
   if (data == null) return { phaseInstanceId: seq };
   if (typeof data === 'object' && !Array.isArray(data)) {
     return { ...data, phaseInstanceId: seq };
   }
   return data;
+}
+
+/**
+ * The socket a handler's `onReconnect` gets: every `emit` carries the
+ * room's phaseInstanceId, like `ctx.emitToPlayer` does (2026-10-03, cause 4
+ * of the architecture review). A payload without it made the student screen
+ * echo the previous step's id and the server drop every follow-up as stale
+ * (solo-quiz feedback 2026-09-02, the relay in real classes, #134). Handlers
+ * only read `id` and call `emit`, so that is the whole surface.
+ */
+export function stampingSocket(socket, room) {
+  return {
+    id: socket.id,
+    emit(event, data) { return socket.emit(event, withPhaseSeq(data, room)); }
+  };
 }
 
 export function createPhaseContext(code, room, services) {
