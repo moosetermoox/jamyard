@@ -23,6 +23,8 @@
  * Pure and dependency-free; the collect handlers translate the label.
  */
 
+import { primaryNext, TRANSITION_NAMES } from './transitions.js';
+
 export const AUDIENCE = Object.freeze({
   CLASSMATE: 'classmate',
   CLASS: 'class',
@@ -133,7 +135,7 @@ function stringRefs(value, phaseId) {
 
 // Deep-walk a phase's fields (routing fields excluded) for a reference.
 function phaseRefs(phase, phaseId) {
-  const skip = new Set(['id', 'type', 'next', 'approveNext', 'rejectNext', 'loopBack', 'nextByWinner']);
+  const skip = new Set(['id', 'type', ...TRANSITION_NAMES]);
   const seen = new Set();
   function walk(value) {
     if (typeof value === 'string') return stringRefs(value, phaseId);
@@ -152,12 +154,11 @@ function phaseRefs(phase, phaseId) {
 function pathFrom(phases, startId) {
   const order = [];
   const seen = new Set();
-  let current = phases[startId] && (phases[startId].next || phases[startId].approveNext);
+  let current = phases[startId] && primaryNext(phases[startId]);
   while (typeof current === 'string' && phases[current] && !seen.has(current)) {
     order.push(current);
     seen.add(current);
-    const p = phases[current];
-    current = p.next || p.approveNext;
+    current = primaryNext(phases[current]);
   }
   return order;
 }
@@ -375,7 +376,7 @@ const TOTAL_OUTPUTS = new Set([
 // reference ("ask") or one to the answers ("ask.responses", "ask.byPlayer")
 // puts single answers in front of the class.
 function readsOnlyTotals(consumer, phaseId) {
-  const skip = new Set(['id', 'type', 'next', 'approveNext', 'rejectNext', 'loopBack', 'nextByWinner']);
+  const skip = new Set(['id', 'type', ...TRANSITION_NAMES]);
   const escaped = phaseId.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
   const inTemplate = new RegExp('\\{\\{\\s*' + escaped + '(?:\\.([A-Za-z0-9_]+))?\\s*[.}|]', 'g');
   let onlyTotals = true;

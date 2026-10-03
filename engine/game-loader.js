@@ -36,6 +36,7 @@ import {
 import { parseTemplateTokens, parseRef, classifyRef, checkDataRefCompat } from './resolver-grammar.js';
 import { ungatedRounds } from './review-gate.js';
 import { guessesAuthors } from './names-needed.js';
+import { TRANSITION_FIELDS, transitionEdges, transitionTargets, forwardEdges } from './transitions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAMES_DIR = join(__dirname, '..', 'games');
@@ -320,8 +321,7 @@ export function validate(config, gameId, options) {
 
     // Schema-driven required-fields + allow-list. The schema's getFields
     // returns the merged map of base fields + applicable mixins;
-    // getAllowedFields adds transition keys ('next', 'loopBack', etc.)
-    // and 'type' itself.
+    // getAllowedFields adds the transition keys and 'type' itself.
     const schemaFields = schemaGetFields(phase.type);
     const allowedFields = schemaGetAllowedFieldNames(phase.type);
 
@@ -1090,8 +1090,10 @@ export function validate(config, gameId, options) {
             `Game "${gameId}": phase "${name}" nextByWinner must be an object mapping an option's text to a phase id, e.g. {"Enter the cave": "cave-intro"}.`
           );
         } else {
+          // (a string target that names no phase is reported with the
+          // other transitions, below)
           for (const [optText, target] of Object.entries(phase.nextByWinner)) {
-            if (typeof target !== 'string' || !config.phases[target]) {
+            if (typeof target !== 'string' || !target) {
               errors.push(
                 `Game "${gameId}": phase "${name}" has nextByWinner target "${target}" (for option "${optText}") which does not exist`
               );
@@ -1184,11 +1186,7 @@ export function validate(config, gameId, options) {
 
     // Loop validation
     if (phase.loopBack !== undefined && phase.loopBack !== null && phase.loopBack !== '') {
-      if (!config.phases[phase.loopBack]) {
-        errors.push(
-          `Game "${gameId}": phase "${name}" has loopBack "${phase.loopBack}" which does not exist`
-        );
-      }
+      // (a loopBack that names no phase is reported with the other transitions)
       if (phase.loopCount === undefined || phase.loopCount === null) {
         errors.push(
           `Game "${gameId}": phase "${name}" has loopBack but is missing loopCount`
@@ -1410,23 +1408,22 @@ export function validate(config, gameId, options) {
       }
     }
 
-    // Next/approveNext/rejectNext reference validation
-    if (phase.next && !config.phases[phase.next]) {
+    // Every transition must point at a phase that exists (next, a
+    // preview's doors, a loop, a vote's branches: engine/transitions.js)
+    for (const edge of transitionEdges(phase)) {
+      if (config.phases[edge.target]) continue;
       errors.push(
-        `Game "${gameId}": phase "${name}" has next "${phase.next}" which does not exist`
+        edge.key === undefined
+          ? `Game "${gameId}": phase "${name}" has ${edge.field} "${edge.target}" which does not exist`
+          : `Game "${gameId}": phase "${name}" has ${edge.field} target "${edge.target}" (for option "${edge.key}") which does not exist`
       );
     }
-
-    if (phase.approveNext && !config.phases[phase.approveNext]) {
-      errors.push(
-        `Game "${gameId}": phase "${name}" has approveNext "${phase.approveNext}" which does not exist`
-      );
-    }
-
-    if (phase.rejectNext && !config.phases[phase.rejectNext]) {
-      errors.push(
-        `Game "${gameId}": phase "${name}" has rejectNext "${phase.rejectNext}" which does not exist`
-      );
+    // A ref-shaped transition holding something other than a step id (a
+    // number, an object) names no phase either; the edge walk reads strings only
+    for (const f of TRANSITION_FIELDS) {
+      const v = phase[f.name];
+      if (f.shape !== 'ref' || v === undefined || v === null || v === '' || typeof v === 'string') continue;
+      errors.push(`Game "${gameId}": phase "${name}" has ${f.name} "${v}" which does not exist`);
     }
 
     // rotateFrom reference + source-type validation. Source must produce a
@@ -1872,14 +1869,8 @@ function phaseAlwaysPrecedes(config, requiredId, targetId) {
       seen.add(cur);
       const p = phases[cur];
       if (!p) continue;
-      for (const f of ['next', 'approveNext', 'rejectNext', 'loopBack']) {
-        if (p[f] && phases[p[f]] && !seen.has(p[f])) queue.push(p[f]);
-      }
-      // Branching votes: nextByWinner values are edges too
-      if (p.nextByWinner && typeof p.nextByWinner === 'object') {
-        for (const target of Object.values(p.nextByWinner)) {
-          if (typeof target === 'string' && phases[target] && !seen.has(target)) queue.push(target);
-        }
+      for (const target of transitionTargets(p)) {
+        if (phases[target] && !seen.has(target)) queue.push(target);
       }
     }
     return seen;
@@ -1889,8 +1880,10 @@ function phaseAlwaysPrecedes(config, requiredId, targetId) {
   return !reachableSkipping(requiredId).has(targetId);
 }
 
-// DFS cycle detection on the next/approveNext/rejectNext graph (loopBack edges
-// excluded — those are explicit, intentional loops). Reports the first cycle.
+// DFS cycle detection on the forward transition graph (rejectNext and
+// loopBack are intentional back-edges, engine/transitions.js marks them;
+// a branching vote goes forward, a backward branch is a cycle bug, use
+// loopBack to repeat a section). Reports the first cycle.
 function detectCycles(config, gameId, errors) {
   const phaseNames = Object.keys(config.phases);
   const lobbyName = phaseNames.find(n => config.phases[n].type === 'lobby');
@@ -1909,19 +1902,7 @@ function detectCycles(config, gameId, errors) {
     stack.push(node);
     const phase = config.phases[node];
     if (phase) {
-      const edges = [];
-      if (phase.next) edges.push(['next', phase.next]);
-      if (phase.approveNext) edges.push(['approveNext', phase.approveNext]);
-      // Branching votes go FORWARD — a backward branch is a cycle bug
-      // (use loopBack to repeat a section).
-      if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
-        for (const target of Object.values(phase.nextByWinner)) {
-          if (typeof target === 'string') edges.push(['nextByWinner', target]);
-        }
-      }
-      // rejectNext is intentionally a back-edge on preview phases (the "redo"
-      // primitive), so we don't count it as a cycle. Same for loopBack.
-      for (const [edgeName, target] of edges) {
+      for (const { field: edgeName, target } of forwardEdges(phase)) {
         if (!config.phases[target]) continue; // already reported as bad ref
         if (color[target] === GRAY) {
           const start = stack.indexOf(target);
@@ -1950,8 +1931,8 @@ function detectCycles(config, gameId, errors) {
 // Phase fields that hold templates the engine resolves at runtime.
 const TEMPLATE_FIELDS = ['template', 'content', 'message', 'prompt', 'instruction', 'itemTemplate', 'hostTemplate', 'playerTemplate'];
 
-// BFS from lobby across next/approveNext/rejectNext/loopBack edges. Any phase
-// not reached is an orphan — usually means an earlier phase is missing a `next`.
+// BFS from lobby across every transition edge (engine/transitions.js). Any
+// phase not reached is an orphan — usually an earlier phase is missing a `next`.
 function detectUnreachablePhases(config, gameId, warnings) {
   const phaseNames = Object.keys(config.phases);
   const lobby = phaseNames.find(n => config.phases[n].type === 'lobby');
@@ -1965,14 +1946,8 @@ function detectUnreachablePhases(config, gameId, warnings) {
     reached.add(cur);
     const p = config.phases[cur];
     if (!p) continue;
-    for (const f of ['next', 'approveNext', 'rejectNext', 'loopBack']) {
-      if (p[f] && config.phases[p[f]] && !reached.has(p[f])) queue.push(p[f]);
-    }
-    // Branching votes: nextByWinner values are edges too
-    if (p.nextByWinner && typeof p.nextByWinner === 'object') {
-      for (const target of Object.values(p.nextByWinner)) {
-        if (typeof target === 'string' && config.phases[target] && !reached.has(target)) queue.push(target);
-      }
+    for (const target of transitionTargets(p)) {
+      if (config.phases[target] && !reached.has(target)) queue.push(target);
     }
   }
 

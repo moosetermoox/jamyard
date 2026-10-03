@@ -32,6 +32,8 @@
  * clients must put `detail` through textContent, never innerHTML.
  */
 
+import { primaryNext, transitionEdges } from './transitions.js';
+
 const EXCERPT_FIELDS = ['prompt', 'question', 'message', 'instruction'];
 const EXCERPT_MAX = 64;
 
@@ -202,23 +204,14 @@ function orderedSubTypes(subPhases) {
   return order.map(id => subPhases[id].type).filter(Boolean);
 }
 
-// The primary path: next, then a preview's approve door, then a branching
-// vote's first branch. Matches the editor's buildPhaseOrder walk.
-function primaryNext(phase) {
-  if (typeof phase.next === 'string') return phase.next;
-  if (typeof phase.approveNext === 'string') return phase.approveNext;
-  if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
-    for (const target of Object.values(phase.nextByWinner)) {
-      if (typeof target === 'string') return target;
-    }
-  }
-  return null;
-}
+// The primary path (next, then a preview's approve door, then a branching
+// vote's first branch) is `primaryNext` from engine/transitions.js, the
+// same walk the editor's phase order uses.
 
+// How many places a branching vote can go (its map-shaped transitions).
 function branchCount(phase) {
-  if (!phase.nextByWinner || typeof phase.nextByWinner !== 'object') return 0;
   const targets = new Set(
-    Object.values(phase.nextByWinner).filter(t => typeof t === 'string')
+    transitionEdges(phase).filter(e => e.key !== undefined).map(e => e.target)
   );
   return targets.size;
 }

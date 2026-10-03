@@ -26,6 +26,7 @@ import { resolveLanguage } from './i18n/index.js';
 import { localizeConfidence } from './phases/confidence.js';
 import { guessesAuthors } from './names-needed.js';
 import { markPromisedUnattributed } from './anonymity-promise.js';
+import { transitionTargets, primaryNext } from './transitions.js';
 
 export class GameEngine {
   constructor(config) {
@@ -98,7 +99,7 @@ export class GameEngine {
   }
 
   _isInLoopBody(phaseId, loopStart, loopEnd) {
-    // Walk from loopStart following next/approveNext until we hit loopEnd
+    // Walk from loopStart along the primary path until we hit loopEnd
     let current = loopStart;
     const visited = new Set();
     while (current && !visited.has(current)) {
@@ -107,7 +108,7 @@ export class GameEngine {
       visited.add(current);
       const p = this.config.phases[current];
       if (!p) break;
-      current = p.next || p.approveNext || null;
+      current = primaryNext(p);
     }
     return false;
   }
@@ -368,20 +369,11 @@ function buildStateMachineConfig(phases) {
   const phaseNames = Object.keys(phases);
   const lobbyPhase = phaseNames.find(name => phases[name].type === 'lobby');
 
+  // Every transition field (a branching vote's targets included) is a
+  // legal move; the list lives in engine/transitions.js.
   const transitions = {};
   for (const [name, phase] of Object.entries(phases)) {
-    const targets = [];
-    if (phase.next) targets.push(phase.next);
-    if (phase.approveNext) targets.push(phase.approveNext);
-    if (phase.rejectNext) targets.push(phase.rejectNext);
-    if (phase.loopBack) targets.push(phase.loopBack);
-    // Branching votes: every nextByWinner target is a legal transition
-    if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
-      for (const target of Object.values(phase.nextByWinner)) {
-        if (typeof target === 'string' && target) targets.push(target);
-      }
-    }
-    transitions[name] = targets;
+    transitions[name] = transitionTargets(phase);
   }
 
   return { initialState: lobbyPhase, transitions };
