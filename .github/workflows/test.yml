@@ -27,8 +27,24 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  # Every visible activity played to the end with 1, 2, and 3 students and
+  # with every answer step closed empty, on its own server with mock AI
+  # (scripts/simulate-small-classes.js). The shared contract for tiny classes
+  # and empty steps (docs/ARCHITECTURE-REVIEW-2026-10.md, cause 3).
+  small-classes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run sweep -- --jobs 6
+
   deploy:
-    needs: test
+    needs: [test, small-classes]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:

@@ -99,7 +99,10 @@ registerHandler('ai-process', {
         rosterNames: engine.players.list().map(p => p.name),
         // A prose step over answers counts what it left out; a JSON step
         // cannot carry the trailing line
-        countSkipped: !expectJson && responses.length > 0
+        countSkipped: !expectJson && responses.length > 0,
+        // The mock answers a JSON step with a JSON list, so a robot
+        // playtest of a format: json step gets past it (2026-10-02)
+        expectJson
       });
       lastCount = { total: responses.length, leftOut: Number(aiResult.leftOut) || 0 };
       console.log(`[handlePhase] AI returned ${String(aiResult.text || '').length} chars`);

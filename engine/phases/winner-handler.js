@@ -63,7 +63,9 @@ export function findWinnerEntries(winnerIds, records) {
  * @returns {{ winnerId: string|null, winnerName: string|null, winnerScore: number, winnerIds: string[], winnerNames: string[], isTie: boolean, standings: Array }}
  */
 export function determineWinner(scores, players) {
-  const entries = Object.entries(scores);
+  // No scores at all (nobody voted, an empty round) is an empty crown,
+  // never a crash (the small-class sweep, 2026-10-02)
+  const entries = Object.entries(scores || {});
 
   const standings = entries
     .map(([playerId, score]) => {

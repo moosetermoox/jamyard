@@ -108,6 +108,31 @@ export function waitForAnyPlayerEvent(players, event, timeout = 15000) {
 }
 
 /**
+ * Wait until ANY of the named events is buffered or arrives on ANY of the
+ * sockets. Resolves with the event name; nothing is consumed, so the
+ * caller's own wait for that event finds it in the buffer. The universal
+ * sim does one of these per loop and then peeks each step type with a
+ * tiny timeout (2026-10-02: thirty sequential two-second waits made a
+ * quiet moment cost a minute).
+ */
+export function waitForAnyOf(sockets, events, timeout = 3000) {
+  return new Promise((resolve, reject) => {
+    for (const s of sockets) {
+      for (const ev of events) {
+        if (s._buffer[ev] && s._buffer[ev].length > 0) { resolve(ev); return; }
+      }
+    }
+    const off = () => { for (const s of sockets) for (const ev of events) s.off(ev, handlers[ev]); };
+    const handlers = {};
+    const timer = setTimeout(() => { off(); reject(new Error('Timeout waiting for any step event')); }, timeout);
+    for (const ev of events) {
+      handlers[ev] = () => { clearTimeout(timer); off(); resolve(ev); };
+      for (const s of sockets) s.on(ev, handlers[ev]);
+    }
+  });
+}
+
+/**
  * Wait until EVERY socket in the list has an event of this type buffered,
  * then return them in socket order. Use for per-player emits (pair reveal,
  * per-player prompts) where waitForAnyPlayerEvent would drop the rest.

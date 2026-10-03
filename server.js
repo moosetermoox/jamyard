@@ -2397,6 +2397,9 @@ const phaseServices = {
   closeRating: (code, room) => closeRating(code, room),
   closeWager: (code, room) => closeWager(code, room),
   closeMerge: (code, room) => closeMerge(code, room),
+  // A collect or collect-choice nobody can answer closes itself on enter
+  // (engine/phases/nobody-can-answer.js)
+  closeCollect: (code, room) => closeCollect(code, room),
   emitRelayTurn: (code, room) => emitRelayTurn(code, room),
   shuffleArray,
   setupForeachIteration,
@@ -6724,7 +6727,9 @@ io.on('connection', (socket) => {
     const hostId = roomToHost.get(code);
     if (hostId) io.to(hostId).emit(EVENTS.MATCH_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
     // The consoles (and Try it out's card) count a match like any answer.
-    const matchPlayer = room.engine.players.get(socket.id);
+    // (`.get` is not a registry method; every match submit threw here and the
+    // consoles never counted a match, found by the small-class sweep 2026-10-02)
+    const matchPlayer = room.engine.players.find(socket.id);
     io.to(teachersChannel(code)).emit(EVENTS.RESPONSE_RECEIVED, {
       playerName: matchPlayer ? matchPlayer.name : null,
       count: state.completed.size,

@@ -16,7 +16,7 @@
 // simulate-*.js script (and scripted-timing tests) reuses one implementation.
 import {
   DEFAULT_SERVER, PLAYER_NAMES,
-  wait, log, connect, waitForEvent, waitForAnyPlayerEvent, drainEvent,
+  wait, log, connect, waitForEvent, waitForAnyPlayerEvent, waitForAnyOf, drainEvent,
   makeReporter
 } from './sim-harness.js';
 
@@ -24,6 +24,42 @@ const SERVER = DEFAULT_SERVER;
 const GAME_ID = process.argv[2];
 const NUM_PLAYERS = parseInt(process.argv[3]) || 4;
 const NAMES = PLAYER_NAMES;
+// SIM_FAST=1: the host presses continue on timed announces and boards
+// instead of waiting the clock out (the small-class sweep runs every
+// activity, so real timers would take hours). A timed step that fires
+// after the press is caught by the server's stale check.
+// SIM_EMPTY=1: nobody answers any answer step; the host closes it empty
+// (the zero-submissions sweep, 2026-10-02).
+const FAST = process.env.SIM_FAST === '1';
+const EMPTY = process.env.SIM_EMPTY === '1';
+// Every event that opens a step for a student or the host. The loop waits
+// once for any of them, then peeks each branch with PEEK ms.
+const STEP_EVENTS = ['announce', 'game-started', 'buzz-start', 'estimate-start', 'match-start', 'sort-start',
+  'checklist-start', 'processing-started', 'vote-start', 'leaderboard', 'show-results', 'preview-content',
+  'reveal-one-start', 'eliminated', 'winner-announced', 'team-choice-start', 'team-split-setup', 'team-split',
+  'rank-start', 'wager-start', 'relay-turn', 'merge-start', 'rate-start', 'one-voice-start', 'solo-quiz-question',
+  'team-roles-start', 'turn-start', 'game-ended'];
+const PEEK = 60;
+
+// A step's opening event reaches every student, and the copies land a few
+// milliseconds apart. The sim used to read the first, drain the rest, and
+// then find a late copy on the next loop: a second "announce" meant a second
+// continue press, which landed on the next step as a Close with nothing in
+// it (every two-student estimate and buzz run, 2026-10-02). Every room emit
+// carries the step's phaseInstanceId, so an opening event is handled once
+// per instance.
+var seenOpenings = {};
+async function nextEvent(sockets, event, timeout) {
+  for (;;) {
+    var data = await waitForAnyPlayerEvent(sockets, event, timeout);
+    var inst = data && data.phaseInstanceId;
+    if (inst === undefined || inst === null) return data;
+    var key = event + ':' + inst;
+    if (seenOpenings[key]) continue; // a late copy of a step already handled
+    seenOpenings[key] = true;
+    return data;
+  }
+}
 
 const reporter = makeReporter();
 var phaseLog = [];
@@ -133,6 +169,7 @@ async function run() {
   var maxPhases = 100; // safety limit
   var phaseCount = 0;
   var lastEventTime = Date.now();
+  var quietPresses = 0;
 
   while (!gameEnded && phaseCount < maxPhases) {
     phaseCount++;
@@ -151,9 +188,14 @@ async function run() {
     }
     if (gameEnded) break;
 
+    // One real wait for whichever step opens next; the branches below then
+    // peek their own event with a tiny timeout (PEEK) instead of each
+    // waiting two seconds for an event that is not coming.
+    await waitForAnyOf(players.concat([host]), STEP_EVENTS, 3000).catch(function () { /* quiet: the stuck logic below decides */ });
+
     // Check for announce (auto-advances with timer)
     try {
-      var announceData = await waitForAnyPlayerEvent(players, 'announce', 2000);
+      var announceData = await nextEvent(players, 'announce', PEEK);
       console.log(`\n--- Phase: ANNOUNCE ---`);
       var msgPreview = (announceData.message || '').substring(0, 80);
       log('SIM', `Message: "${msgPreview}${announceData.message && announceData.message.length > 80 ? '...' : ''}"`);
@@ -163,7 +205,7 @@ async function run() {
       drainEvent([host], 'announce');
 
       // If it has a timer, wait for it; otherwise host advances
-      if (announceData.timer) {
+      if (announceData.timer && !FAST) {
         log('SIM', `Waiting ${announceData.timer}s for timer...`);
         await wait((announceData.timer + 1) * 1000);
       } else {
@@ -179,7 +221,7 @@ async function run() {
 
     // Check for collect (game-started with prompt)
     try {
-      var collectData = await waitForAnyPlayerEvent(players, 'game-started', 2000);
+      var collectData = await nextEvent(players, 'game-started', PEEK);
       drainEvent(players, 'game-started');
 
       if (collectData.isChoice) {
@@ -187,12 +229,16 @@ async function run() {
         console.log(`\n--- Phase: COLLECT-CHOICE ---`);
         log('SIM', `Prompt: "${(collectData.prompt || '').substring(0, 80)}"`);
         check(Array.isArray(collectData.choices), 'Has choices array');
-        check(collectData.choices && collectData.choices.length >= 2, `Has ${(collectData.choices || []).length} choices`);
+        // A bluff ballot drops the reader's own fake, so with three students
+        // (two sitting out) one choice is right; fewer than two choices is
+        // only a fault in a class big enough to have them
+        var minChoices = (EMPTY || players.length < 4) ? 1 : 2;
+        check(collectData.choices && collectData.choices.length >= minChoices, `Has ${(collectData.choices || []).length} choices`);
         log('SIM', `Choices: ${(collectData.choices || []).join(', ')}`);
         phaseLog.push({ type: 'collect-choice', prompt: collectData.prompt, choices: collectData.choices });
 
         // Each player picks a random choice
-        for (var i = 0; i < players.length; i++) {
+        for (var i = 0; i < (EMPTY ? 0 : players.length); i++) {
           var choices = collectData.choices || ['A'];
           var pick = choices[i % choices.length];
           players[i].emit('submit-response', { code, response: pick });
@@ -207,7 +253,7 @@ async function run() {
         log('SIM', `Prompt: "${(collectData.prompt || '').substring(0, 80)}"`);
         phaseLog.push({ type: 'collect', prompt: collectData.prompt });
 
-        for (var di = 0; di < players.length; di++) {
+        for (var di = 0; di < (EMPTY ? 0 : players.length); di++) {
           var strokes = [];
           for (var si = 0; si < 3; si++) {
             var pts = [];
@@ -232,7 +278,7 @@ async function run() {
         phaseLog.push({ type: 'collect', prompt: collectData.prompt });
 
         // Submit responses
-        for (var i = 0; i < players.length; i++) {
+        for (var i = 0; i < (EMPTY ? 0 : players.length); i++) {
           // A multi-box step gets one answer per box (2026-09-29: the sim sent
           // one string, so Two Truths had no statements and no rounds); an
           // emoji-only box gets emoji
@@ -262,7 +308,7 @@ async function run() {
 
     // Check for buzz (buzzer round)
     try {
-      var buzzData = await waitForAnyPlayerEvent(players, 'buzz-start', 2000);
+      var buzzData = await nextEvent(players, 'buzz-start', PEEK);
       console.log(`\n--- Phase: BUZZ ---`);
       log('SIM', `Prompt: "${(buzzData.prompt || '').substring(0, 60)}"`);
       phaseLog.push({ type: 'buzz' });
@@ -291,7 +337,7 @@ async function run() {
 
     // Check for estimate (guess the number)
     try {
-      var estData = await waitForAnyPlayerEvent(players, 'estimate-start', 2000);
+      var estData = await nextEvent(players, 'estimate-start', PEEK);
       console.log(`\n--- Phase: ESTIMATE ---`);
       log('SIM', `Prompt: "${(estData.prompt || '').substring(0, 60)}"`);
       phaseLog.push({ type: 'estimate' });
@@ -320,7 +366,7 @@ async function run() {
 
     // Check for match (pair two lists)
     try {
-      var matchData = await waitForAnyPlayerEvent(players, 'match-start', 2000);
+      var matchData = await nextEvent(players, 'match-start', PEEK);
       console.log(`\n--- Phase: MATCH ---`);
       check(Array.isArray(matchData.rightItems) && matchData.rightItems.length >= 2, `Has ${(matchData.rightItems || []).length} pairs to match`);
       log('SIM', `Prompt: "${(matchData.prompt || '').substring(0, 60)}"`);
@@ -354,7 +400,7 @@ async function run() {
 
     // Check for sort (place items into named buckets)
     try {
-      var sortData = await waitForAnyPlayerEvent(players, 'sort-start', 2000);
+      var sortData = await nextEvent(players, 'sort-start', PEEK);
       console.log(`\n--- Phase: SORT ---`);
       check(Array.isArray(sortData.items) && sortData.items.length >= 2, `Has ${(sortData.items || []).length} items to sort`);
       check(Array.isArray(sortData.buckets) && sortData.buckets.length >= 2, `Has ${(sortData.buckets || []).length} buckets`);
@@ -390,7 +436,7 @@ async function run() {
 
     // Check for checklist (shared group to-do list)
     try {
-      var clData = await waitForAnyPlayerEvent(players, 'checklist-start', 2000);
+      var clData = await nextEvent(players, 'checklist-start', PEEK);
       console.log(`\n--- Phase: CHECKLIST ---`);
       check(Array.isArray(clData.items) && clData.items.length >= 1, `Has ${(clData.items || []).length} to-do items`);
       log('SIM', `Prompt: "${(clData.prompt || '').substring(0, 60)}"`);
@@ -428,7 +474,7 @@ async function run() {
 
     // Check for processing (ai-process)
     try {
-      var procData = await waitForAnyPlayerEvent(players, 'processing-started', 2000);
+      var procData = await nextEvent(players, 'processing-started', PEEK);
       console.log(`\n--- Phase: AI-PROCESS ---`);
       log('SIM', `Task: ${procData.task || 'unknown'}`);
       phaseLog.push({ type: 'ai-process', task: procData.task });
@@ -465,7 +511,7 @@ async function run() {
 
     // Check for vote
     try {
-      var voteData = await waitForAnyPlayerEvent(players, 'vote-start', 2000);
+      var voteData = await nextEvent(players, 'vote-start', PEEK);
       console.log(`\n--- Phase: VOTE ---`);
       log('SIM', `Mode: ${voteData.mode || 'unknown'}`);
       phaseLog.push({ type: 'vote', mode: voteData.mode });
@@ -509,7 +555,7 @@ async function run() {
 
     // Check for leaderboard
     try {
-      var lbData = await waitForAnyPlayerEvent(players, 'leaderboard', 2000);
+      var lbData = await nextEvent(players, 'leaderboard', PEEK);
       console.log(`\n--- Phase: LEADERBOARD ---`);
       check(Array.isArray(lbData.standings), 'Has standings array');
       if (lbData.standings) {
@@ -521,10 +567,10 @@ async function run() {
       drainEvent(players, 'leaderboard');
       drainEvent([host], 'leaderboard');
 
-      if (lbData.timer) {
+      if (lbData.timer && !FAST) {
         await wait((lbData.timer + 1) * 1000);
       } else {
-        await wait(2000);
+        await wait(FAST ? 500 : 2000);
         host.emit('advance-phase', { code });
       }
       lastEventTime = Date.now();
@@ -534,7 +580,7 @@ async function run() {
 
     // Check for reveal
     try {
-      var revealData = await waitForAnyPlayerEvent(players, 'show-results', 2000);
+      var revealData = await nextEvent(players, 'show-results', PEEK);
       console.log(`\n--- Phase: REVEAL ---`);
       var content = revealData.content || revealData.template || '(no content)';
       log('SIM', `Content: "${String(content).substring(0, 100)}"`);
@@ -552,7 +598,7 @@ async function run() {
     // 'preview-content' — this sim listened for 'preview' for months and
     // stalled on every preview game (found by the drawing gallery).
     try {
-      var previewData = await waitForEvent(host, 'preview-content', 2000);
+      var previewData = await nextEvent([host], 'preview-content', PEEK);
       console.log(`\n--- Phase: PREVIEW ---`);
       check(previewData.content !== undefined, 'Preview has content');
       log('HOST', `Preview received (${(previewData.responses || []).length} responses) — auto-approving`);
@@ -568,7 +614,7 @@ async function run() {
 
     // Check for reveal-one (host steps through items)
     try {
-      var roData = await waitForEvent(host, 'reveal-one-start', 2000);
+      var roData = await nextEvent([host], 'reveal-one-start', PEEK);
       console.log(`\n--- Phase: REVEAL-ONE ---`);
       log('SIM', `"${(roData.message || '').substring(0, 50)}" — ${roData.total} item(s)`);
       check(roData.total > 0, `Has ${roData.total} items to reveal`);
@@ -606,7 +652,7 @@ async function run() {
 
     // Check for eliminate
     try {
-      var elimData = await waitForAnyPlayerEvent(players, 'eliminated', 2000);
+      var elimData = await nextEvent(players, 'eliminated', PEEK);
       console.log(`\n--- Phase: ELIMINATE ---`);
       log('SIM', `Eliminated: ${JSON.stringify(elimData)}`);
       phaseLog.push({ type: 'eliminate' });
@@ -620,7 +666,7 @@ async function run() {
 
     // Check for winner
     try {
-      var winData = await waitForAnyPlayerEvent(players, 'winner-announced', 2000);
+      var winData = await nextEvent(players, 'winner-announced', PEEK);
       console.log(`\n--- Phase: WINNER ---`);
       log('SIM', `Winner: ${winData.winnerName || JSON.stringify(winData.winnerNames)}`);
       phaseLog.push({ type: 'winner' });
@@ -637,7 +683,7 @@ async function run() {
 
     // Check for team-split choice mode (students pick their spots)
     try {
-      var tcData = await waitForAnyPlayerEvent(players, 'team-choice-start', 2000);
+      var tcData = await nextEvent(players, 'team-choice-start', PEEK);
       console.log(`\n--- Phase: TEAM-SPLIT (choice) ---`);
       check(Array.isArray(tcData.rosters) && tcData.rosters.length >= 1, `Has ${(tcData.rosters || []).length} teams to pick from`);
       drainEvent(players, 'team-choice-start');
@@ -667,7 +713,7 @@ async function run() {
 
     // Check for team-split teacher mode (host arranges the roster)
     try {
-      var setupData = await waitForAnyPlayerEvent([host], 'team-split-setup', 2000);
+      var setupData = await nextEvent([host], 'team-split-setup', PEEK);
       console.log(`\n--- Phase: TEAM-SPLIT (teacher) ---`);
       check(Array.isArray(setupData.unassigned) && setupData.unassigned.length > 0, `Roster has ${(setupData.unassigned || []).length} players to place`);
       drainEvent([host], 'team-split-setup');
@@ -699,7 +745,7 @@ async function run() {
 
     // Check for team-split
     try {
-      var tsData = await waitForAnyPlayerEvent(players, 'team-split', 2000);
+      var tsData = await nextEvent(players, 'team-split', PEEK);
       console.log(`\n--- Phase: TEAM-SPLIT ---`);
       check(tsData.myTeam, `Player assigned to team: ${tsData.myTeam}`);
       if (tsData.teams) {
@@ -722,7 +768,7 @@ async function run() {
 
     // Check for rank-start
     try {
-      var rkData = await waitForAnyPlayerEvent(players, 'rank-start', 2000);
+      var rkData = await nextEvent(players, 'rank-start', PEEK);
       console.log(`\n--- Phase: RANK ---`);
       check(Array.isArray(rkData.candidates), `Has ${(rkData.candidates || []).length} candidates to rank`);
       log('SIM', `Prompt: "${(rkData.prompt || '').substring(0, 60)}"`);
@@ -748,7 +794,7 @@ async function run() {
 
     // Check for wager-start
     try {
-      var wgData = await waitForAnyPlayerEvent(players, 'wager-start', 2000);
+      var wgData = await nextEvent(players, 'wager-start', PEEK);
       console.log(`\n--- Phase: WAGER ---`);
       check(Array.isArray(wgData.options), `Has ${(wgData.options || []).length} options to wager on`);
       log('SIM', `Prompt: "${(wgData.prompt || '').substring(0, 60)}"`);
@@ -781,7 +827,7 @@ async function run() {
 
     // Check for relay-turn
     try {
-      var rlData = await waitForAnyPlayerEvent(players, 'relay-turn', 2000);
+      var rlData = await nextEvent(players, 'relay-turn', PEEK);
       console.log(`\n--- Phase: RELAY ---`);
       log('SIM', `Prompt: "${(rlData.prompt || '').substring(0, 60)}"`);
       phaseLog.push({ type: 'relay' });
@@ -831,15 +877,201 @@ async function run() {
       continue;
     } catch (e) { /* no relay */ }
 
-    // Nothing happened — check if stuck
+    // --- The seven step types the sim learned on 2026-10-02 (the small-class
+    // sweep runs every activity; before, merge, rate, one-voice, reveal-one,
+    // solo-quiz, team-roles, and turn all read as "stuck"). Each is driven
+    // the minimum a class would, then the host presses continue, which
+    // the server routes to the step's own close.
+
+    // merge (think-pair-share): every member writes a draft and agrees
+    try {
+      var mergeData = await nextEvent(players, 'merge-start', PEEK);
+      console.log(`\n--- Phase: MERGE ---`);
+      log('SIM', `Instruction: "${(mergeData.instruction || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'merge' });
+      drainEvent(players, 'merge-start');
+      for (var mi = 0; mi < players.length; mi++) {
+        players[mi].emit('merge-draft', { code, text: 'Our shared answer from ' + names[mi] });
+        await wait(150);
+        players[mi].emit('merge-agree', { code });
+      }
+      await wait(1500);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no merge */ }
+
+    // rate: a value on every scale
+    try {
+      var rateData = await nextEvent(players, 'rate-start', PEEK);
+      console.log(`\n--- Phase: RATE ---`);
+      var rateScales = Array.isArray(rateData.scales) ? rateData.scales : [];
+      check(rateScales.length > 0, `Has ${rateScales.length} scales`);
+      phaseLog.push({ type: 'rate' });
+      drainEvent(players, 'rate-start');
+      for (var ri = 0; ri < (EMPTY ? 0 : players.length); ri++) {
+        var ratings = {};
+        rateScales.forEach(function (s, si) {
+          var lo = Number.isFinite(s.min) ? s.min : 1, hi = Number.isFinite(s.max) ? s.max : 5;
+          ratings[s.id] = lo + ((ri + si) % (hi - lo + 1));
+        });
+        players[ri].emit('rate-submit', { code, ratings: ratings });
+      }
+      await wait(800);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no rate */ }
+
+    // one-voice: taps spaced wider than the collision window, up to the target
+    try {
+      var ovData = await nextEvent(players, 'one-voice-start', PEEK);
+      console.log(`\n--- Phase: ONE-VOICE ---`);
+      var ovTarget = Math.min(Number(ovData.target) || 5, 12);
+      var ovGap = (Number(ovData.collisionWindowMs) || 400) + 250;
+      phaseLog.push({ type: 'one-voice' });
+      drainEvent(players, 'one-voice-start');
+      for (var ti = 0; ti < ovTarget && players.length > 0; ti++) {
+        players[ti % players.length].emit('one-voice-tap', { code });
+        await wait(ovGap);
+      }
+      await wait(800);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no one-voice */ }
+
+    // reveal-one: the host reveals every item, then moves on
+    try {
+      var roData = await waitForAnyPlayerEvent(players.concat([host]), 'reveal-one-start', 1500);
+      console.log(`\n--- Phase: REVEAL-ONE ---`);
+      log('SIM', `Message: "${(roData.message || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'reveal-one' });
+      drainEvent(players, 'reveal-one-start');
+      drainEvent([host], 'reveal-one-start');
+      for (var rn = 0; rn < 40; rn++) {
+        if (host._buffer['reveal-one-complete'] && host._buffer['reveal-one-complete'].length) break;
+        host.emit('reveal-next', { code });
+        await wait(300);
+      }
+      drainEvent([host], 'reveal-one-complete');
+      drainEvent(players, 'reveal-one-item');
+      drainEvent([host], 'reveal-one-item');
+      await wait(500);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no reveal-one */ }
+
+    // solo-quiz: every student answers every question, then the host closes
+    try {
+      var sqFirst = await nextEvent(players, 'solo-quiz-question', PEEK);
+      console.log(`\n--- Phase: SOLO-QUIZ ---`);
+      log('SIM', `Title: "${sqFirst.title || ''}", ${sqFirst.total || '?'} questions`);
+      phaseLog.push({ type: 'solo-quiz' });
+      for (var qi = 0; qi < (EMPTY ? 0 : players.length); qi++) {
+        // Each student has their own question (and choice order); the
+        // feedback after an answer carries the next one as `next`
+        var qs = players[qi]._buffer['solo-quiz-question'] || [];
+        var q = qs.length ? qs[qs.length - 1] : sqFirst;
+        for (var step = 0; step < 40 && q && !q.done && Array.isArray(q.choices) && q.choices.length; step++) {
+          players[qi].emit('solo-quiz-answer', { code, index: q.index, choice: q.choices[(qi + step) % q.choices.length] });
+          try {
+            var fb = await waitForEvent(players[qi], 'solo-quiz-feedback', 3000);
+            q = fb.next || fb;
+            if (fb.done) break;
+          } catch (e2) { break; }
+        }
+      }
+      drainEvent(players, 'solo-quiz-question');
+      drainEvent(players, 'solo-quiz-feedback');
+      drainEvent(players, 'solo-quiz-done');
+      await wait(500);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no solo-quiz */ }
+
+    // team-roles (choice mode): everyone picks a job, the close fills the rest
+    try {
+      var trData = await nextEvent(players, 'team-roles-start', PEEK);
+      console.log(`\n--- Phase: TEAM-ROLES ---`);
+      var roleList = (trData.roles || []).map(function (r) { return typeof r === 'string' ? r : (r && r.name); }).filter(Boolean);
+      check(roleList.length > 0, `Has ${roleList.length} jobs`);
+      phaseLog.push({ type: 'team-roles' });
+      drainEvent(players, 'team-roles-start');
+      for (var pi2 = 0; pi2 < players.length && roleList.length; pi2++) {
+        players[pi2].emit('role-pick', { code, role: roleList[pi2 % roleList.length] });
+        await wait(100);
+      }
+      await wait(800);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no team-roles */ }
+
+    // turn (charades): the describer captures a couple of items, then the host moves on
+    try {
+      var turnData = await nextEvent(players, 'turn-start', PEEK);
+      console.log(`\n--- Phase: TURN ---`);
+      log('SIM', `Describer: ${turnData.describerName || '?'}`);
+      phaseLog.push({ type: 'turn' });
+      drainEvent(players, 'turn-start');
+      // The describer captures the whole bowl so the turn ends on its own
+      // (only the describer's got-it counts; the server clock is 60 s and
+      // a sweep cannot wait that out per turn). A turn that ends with
+      // phrases left hands the bowl to the next describer's turn-start.
+      var turnOver = false;
+      for (var tr = 0; tr < 60 && !turnOver; tr++) {
+        for (var tp = 0; tp < players.length; tp++) players[tp].emit('turn-got-it', { code });
+        await wait(250);
+        turnOver = players.some(function (p) {
+          return (p._buffer['turn-end'] || []).length || (p._buffer['turn-complete'] || []).length;
+        });
+      }
+      var bowlEmpty = players.some(function (p) { return (p._buffer['turn-complete'] || []).length; });
+      drainEvent(players, 'turn-item');
+      drainEvent(players, 'turn-end');
+      drainEvent(players, 'turn-complete');
+      await wait(800);
+      if (bowlEmpty) host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no turn */ }
+
+    // Nothing happened — a teacher looking at a quiet projector presses
+    // continue (a step nobody can answer, say one student sitting out their
+    // own round, 2026-10-02). Up to three presses; after that it is stuck.
     if (!handled) {
       var stuckTime = Date.now() - lastEventTime;
       if (stuckTime > 60000) {
         warn(`No events for ${Math.round(stuckTime / 1000)}s — game may be stuck`);
         break;
       }
+      if (stuckTime > 8000 && quietPresses < 3) {
+        quietPresses++;
+        log('HOST', `Nothing for ${Math.round(stuckTime / 1000)}s, pressing continue (${quietPresses} of 3)`);
+        host.emit('advance-phase', { code });
+        lastEventTime = Date.now() - 4000;
+      }
       // Short wait before retrying
       await wait(1000);
+    } else {
+      quietPresses = 0;
     }
   }
 

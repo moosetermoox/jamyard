@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "vitest",
+    "sweep": "node scripts/simulate-small-classes.js",
     "typecheck": "tsc --noEmit -p jsconfig.json"
   },
   "keywords": [],
