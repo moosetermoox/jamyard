@@ -65,13 +65,13 @@
     },
     "bonus-round-intro": {
       "type": "announce",
-      "message": "BONUS ROUND: RAPID FIRE ABSURDITY\n\nYou have 20 seconds to write the WEIRDEST sentence you can imagine.\n\nNo holding back. Maximum chaos only.",
+      "message": "BONUS ROUND: RAPID FIRE ABSURDITY\n\nThe clock is short. Write the WEIRDEST sentence you can imagine.\n\nNo holding back. Maximum chaos only.",
       "timer": 6,
       "next": "bonus-collect"
     },
     "bonus-collect": {
       "type": "collect",
-      "prompt": "Write the WEIRDEST, most ABSURD sentence possible. Go wild. No rules. 20 seconds GO!",
+      "prompt": "Write the WEIRDEST, most ABSURD sentence possible. Go wild. No rules. GO!",
       "timer": 20,
       "from": "all",
       "next": "bonus-processing"

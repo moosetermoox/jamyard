@@ -31,7 +31,7 @@
     },
     "write": {
       "type": "collect",
-      "prompt": "Your four facts, from 'lots of us' to 'only me'. Example: I enjoy podcasts. I have 9 siblings. I played college soccer. I have been to Space Camp twice.",
+      "prompt": "Your facts, from 'lots of us' to 'only me'. Example: I enjoy podcasts. I have 9 siblings. I played college soccer. I have been to Space Camp twice.",
       "fields": [
         {
           "label": "Fact 1: common, many people here might say this too",

@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Welcome to Convince Me!\n\nYou'll each get a random debate topic and two minutes to WRITE your most persuasive argument. Then each argument goes up on the screen, read it aloud to the class if you're up for it! Then everyone rates how well it lands.\n\nBe creative, confident, and persuasive!",
+      "message": "Welcome to Convince Me!\n\nYou'll each get a random debate topic and a few minutes to WRITE your most persuasive argument. Then each argument goes up on the screen, read it aloud to the class if you're up for it! Then everyone rates how well it lands.\n\nBe creative, confident, and persuasive!",
       "timer": 20,
       "next": "get-topics"
     },
@@ -21,7 +21,7 @@
     },
     "assign-topics": {
       "type": "announce",
-      "message": "Topics are going out now. Yours shows on your device on the next screen.\n\nYou'll have two minutes to write your most persuasive argument.\n\nReady? Let's go!",
+      "message": "Topics are going out now. Yours shows on your device on the next screen.\n\nThe clock on the screen is your writing time. Make your most persuasive argument.\n\nReady? Let's go!",
       "timer": 8,
       "next": "prep"
     },
