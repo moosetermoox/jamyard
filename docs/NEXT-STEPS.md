@@ -35,7 +35,7 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-03, evening: #167 to #173 MERGED and live; branch `phase-clock` = cause 4's sixth pass, PR open; CI runs the small-class sweep before every deploy, about 10 minutes; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-03, night: #167 to #174 MERGED and live; branch `live-recheck-oct3` = the owner's live re-checks, PR #175 open, merge on the owner's word once CI is green; CI runs the small-class sweep before every deploy, about 10 minutes; restart :3000 before using it locally)
 
 **Where things stand.**
 - **`live-recheck-oct3` (the owner's live re-checks):** the refreshed guesser gets the guess back (`myGuess` on the estimate reconnect) and "1 guess" is singular; twenty-one lobby, counter, end, and guessing-step labels went into the language tables and through `UiLang`; a recipe name's English opening is stripped after the language pass (`engine/idea-name.js`); game-time AI and the sample-answer writer answer in the room's language (`languageRule`); and a poll the idea asks for that the matched steps lack is added to `missing` by the server (`engine/idea-poll.js`, reproduced on Discussion Starter). `tests/screens/live-recheck-oct3.test.js`. Still open from the owner's list: the pretend students' answers in a Spanish room were English because the SAVED copy's sample set was written before this fix; a teacher's copy made before the deploy keeps its English set until the question changes.
