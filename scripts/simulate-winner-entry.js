@@ -3,13 +3,13 @@
  * crown) against a running server and asserts the winner-announced payload
  * carries WHAT the winner won for: winnerEntry/winnerEntries traced from the
  * vote's candidates back to the collect responses, on host AND player, with
- * the payoff-length pause.
+ * no timer: the crown waits for the teacher (owner 2026-10-02).
  *
  * Usage: node scripts/simulate-winner-entry.js  (server must be running)
  */
 import { io } from 'socket.io-client';
 
-const SERVER = 'http://localhost:3000';
+const SERVER = process.env.SIM_SERVER || 'http://localhost:3000';
 const IDEAS = ['Robot pets for every classroom', 'A homework-eating machine', 'Solar-powered skateboards'];
 
 function connect() {
@@ -58,14 +58,14 @@ const winner = await winnerPromise;
 const playerView = await playerWinnerPromise;
 console.log('HOST winner-announced:', JSON.stringify({
   winnerName: winner.winnerName, winnerScore: winner.winnerScore,
-  winnerEntry: winner.winnerEntry, winnerEntries: winner.winnerEntries, pause: winner.pause
+  winnerEntry: winner.winnerEntry, winnerEntries: winner.winnerEntries, pause: winner.pause || null
 }, null, 1));
 console.log('PLAYER got same entry:', playerView.winnerEntry === winner.winnerEntry);
 
 const ok = winner.winnerEntry === 'Robot pets for every classroom'
   && winner.winnerEntries.length === 1
   && winner.winnerEntries[0].text === 'Robot pets for every classroom'
-  && winner.pause === 10
+  && winner.pause === undefined
   && playerView.winnerEntry === winner.winnerEntry;
 console.log(ok ? 'PROBE PASS' : 'PROBE FAIL');
 process.exit(ok ? 0 : 1);

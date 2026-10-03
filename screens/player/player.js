@@ -1689,14 +1689,12 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       // 2026-10-02).
       var sent = true;
       if (collectMode === 'choice') {
-        // The picked choice if there is one, else a random one
+        // The picked choice goes (several picks send an array). Nothing
+        // picked sends nothing, so it counts as no answer (owner
+        // 2026-10-02; it used to send a random choice) and the box stays.
         var pickedChoice = choiceBallot && choiceBallot.picked();
-        var randomChoice = choices[Math.floor(Math.random() * choices.length)];
-        // Several picks send what is picked (an array); nothing picked
-        // sends one at random, as before
-        var text = pickedChoice ? pickedChoice.value
-          : (typeof randomChoice === 'string' ? randomChoice : (randomChoice.text || randomChoice.name || String(randomChoice)));
-        socket.emit('submit-response', { code: currentRoomCode, response: text });
+        if (pickedChoice) socket.emit('submit-response', { code: currentRoomCode, response: pickedChoice.value });
+        sent = !!pickedChoice;
       } else if (collectMode === 'fields') {
         // Time's up: send what is there (the server keeps an answer with
         // some boxes empty, 2026-09-29); nothing typed sends nothing
@@ -4041,16 +4039,11 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, question, playerTe
     showPickOneVote(candidates);
     if (timer) {
       startTimer(timer, voteTimerDisplay, () => {
-        // Time is up: the picked option goes in if there is one, else a
-        // random candidate (string candidates ARE the choice)
+        // Time is up: the picked option goes in if there is one. Nothing
+        // picked is no vote (owner 2026-10-02; it used to cast a random
+        // one), but the voter still counts as done so the room moves on.
         const picked = pickOneBallot && pickOneBallot.picked();
-        if (picked) {
-          socket.emit('submit-vote', { code: currentRoomCode, choice: picked.value });
-        } else if (currentCandidates.length > 0) {
-          const randomIdx = Math.floor(Math.random() * currentCandidates.length);
-          const c = currentCandidates[randomIdx];
-          socket.emit('submit-vote', { code: currentRoomCode, choice: typeof c === 'string' ? c : c.playerId });
-        }
+        socket.emit('submit-vote', { code: currentRoomCode, choice: picked ? picked.value : null });
         showSection(voteSubmittedSection);
       });
     }
@@ -4075,15 +4068,11 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, question, playerTe
     showNextMatchup();
     if (timer) {
       startTimer(timer, voteTimerDisplay, () => {
-        // Auto-vote: the side picked on the open matchup, then random
-        // picks for the ones left
+        // Time is up: the side picked on the open matchup goes in; the
+        // matchups not reached get no vote (owner 2026-10-02; they used to
+        // get random picks). The tally counts by choice, never by position.
         const openPick = matchupBallot && matchupBallot.picked();
-        for (let i = currentMatchupIndex; i < currentMatchups.length; i++) {
-          const matchup = currentMatchups[i];
-          const pick = (i === currentMatchupIndex && openPick) ? openPick.value
-            : (Math.random() < 0.5 ? matchup.optionA.playerId : matchup.optionB.playerId);
-          matchupVotes.push(pick);
-        }
+        if (openPick) matchupVotes.push(openPick.value);
         socket.emit('submit-vote', {
           code: currentRoomCode,
           votes: matchupVotes.map(function(choice) { return { choice: choice }; })

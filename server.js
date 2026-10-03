@@ -5766,7 +5766,9 @@ io.on('connection', (socket) => {
         console.log(`[submit-vote] ${socket.id} tried to vote for their own answer, refused`);
         return;
       }
-      vs.votes.push({ voterId: socket.id, choice });
+      // No choice = the timer ran out before a pick: no vote, but the
+      // voter is done (owner 2026-10-02)
+      if (choice !== null && choice !== undefined) vs.votes.push({ voterId: socket.id, choice });
     } else if (vs.mode === 'approve' && Array.isArray(votesList)) {
       // Yes or no on every entry (2026-09-25): only ballot entries count,
       // never the voter's own answer, never a candidate off the ballot,

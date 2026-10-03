@@ -620,15 +620,18 @@ async function run() {
 
     // Check for winner
     try {
-      var winData = await waitForAnyPlayerEvent(players, 'winner', 2000);
+      var winData = await waitForAnyPlayerEvent(players, 'winner-announced', 2000);
       console.log(`\n--- Phase: WINNER ---`);
-      log('SIM', `Winner: ${winData.name || winData.winner || JSON.stringify(winData)}`);
+      log('SIM', `Winner: ${winData.winnerName || JSON.stringify(winData.winnerNames)}`);
       phaseLog.push({ type: 'winner' });
-      drainEvent(players, 'winner');
-      drainEvent([host], 'winner');
+      drainEvent(players, 'winner-announced');
+      drainEvent([host], 'winner-announced');
+      // The crown is host-paced: the teacher presses continue
+      await wait(1000);
+      host.emit('advance-phase', { code });
       lastEventTime = Date.now();
       handled = true;
-      await wait(3000);
+      await wait(1000);
       continue;
     } catch (e) { /* no winner */ }
 
