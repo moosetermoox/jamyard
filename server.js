@@ -248,6 +248,8 @@ import { chainsFor, spotlightItemFor, spotlightAllowed } from './engine/spotligh
 import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
+import { guardSocket } from './engine/socket-guard.js';
+import { stampingSocket } from './engine/phase-handlers/phase-context.js';
 import { pickAnonymousName } from './engine/anonymous-names.js';
 import { scoreResponses } from './engine/speed-scoring.js';
 import { whenLineFor } from './engine/when-lines.js';
@@ -2659,7 +2661,9 @@ function sendCurrentState(socket, code, room) {
   const handler = getHandler(phase.type);
   if (handler && handler.onReconnect) {
     const ctx = createPhaseContext(code, room, phaseServices);
-    return handler.onReconnect(ctx, socket);
+    // Every payload a reconnecting screen gets carries the phase id, whether
+    // or not the handler remembered it (engine/phase-handlers/phase-context.js).
+    return handler.onReconnect(ctx, stampingSocket(socket, room));
   }
 
   // lobby: nothing extra — they'll see the waiting screen
@@ -4711,19 +4715,12 @@ app.delete('/api/games/:gameId', async (req, res) => {
 io.on('connection', (socket) => {
   console.log(`[connect] Socket ${socket.id} connected`);
 
-  // Safety net: a throwing event handler must never kill the process — that
-  // would end EVERY classroom on this server, not just the broken room.
-  // (This class of crash happened: a late "Close Voting" click used to take
-  // the whole server down.) Handlers stay responsible for their own
-  // user-facing error replies; this only prevents the crash and logs loudly.
-  const rawOn = socket.on.bind(socket);
-  socket.on = (event, handler) => rawOn(event, async (...args) => {
-    try {
-      await handler(...args);
-    } catch (err) {
-      console.error(`[socket:${String(event)}] Unhandled handler error (room kept alive):`, err);
-    }
-  });
+  // The one gate every event passes (engine/socket-guard.js): the payload
+  // is checked against its schema, a stale phase event is dropped, and a
+  // throwing handler never kills the process (that would end EVERY
+  // classroom on this server; a late "Close Voting" click once did).
+  // Handlers stay responsible for their own user-facing error replies.
+  guardSocket(socket, { findRoom: (code) => roomManager.find(code), isStale: isStalePhaseEvent });
 
   // The host's picker, scoped like GET /api/games (2026-09-28: it sent
   // every teacher's saved activity to any socket that asked). A visitor
