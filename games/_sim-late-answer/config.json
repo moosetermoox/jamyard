@@ -1,0 +1,56 @@
+{
+  "name": "Late answer fixture",
+  "description": "A test fixture (2026-10-03): every step that used to freeze who may answer when it opened, in a row, so a student who joins mid-step can be checked for a seat on each one (scripts/simulate-late-answer.js). Never listed.",
+  "minPlayers": 2,
+  "earlyJoke": false,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "pick" },
+    "pick": {
+      "type": "vote",
+      "mode": "pick-one",
+      "question": "Which trip?",
+      "candidates": ["The zoo", "The museum", "The park"],
+      "next": "order"
+    },
+    "order": {
+      "type": "rank",
+      "prompt": "Coldest first.",
+      "candidates": ["Ice", "Water", "Steam"],
+      "next": "rate-it"
+    },
+    "rate-it": {
+      "type": "rate",
+      "prompt": "Rate the idea.",
+      "scales": [{ "id": "fresh", "label": "Freshness", "min": 1, "max": 5, "labels": { "min": "Stale", "max": "Fresh" } }],
+      "next": "bet"
+    },
+    "bet": {
+      "type": "wager",
+      "prompt": "Which janitor tool would win in a fight?",
+      "options": ["Mop", "Broom", "Wet floor sign"],
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect",
+      "prompt": "What is the most important idea from this unit?",
+      "next": "combine"
+    },
+    "combine": {
+      "type": "merge",
+      "seedFrom": "ask.responses",
+      "instruction": "Combine your answers into one stronger answer.",
+      "groupSize": 2,
+      "agreeMode": "both",
+      "next": "story"
+    },
+    "story": {
+      "type": "relay",
+      "prompt": "Add one line to the story.",
+      "order": "join-order",
+      "turns": 1,
+      "timer": 60,
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}

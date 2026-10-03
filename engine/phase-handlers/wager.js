@@ -6,6 +6,11 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
+import { admitLateSolo } from '../phases/late-seating.js';
+
+// If scoresFrom isn't set, every player starts with a default pool so the
+// simplest case (a one-off bet with no prior score chain) just works.
+const DEFAULT_STARTING_POINTS = 100;
 
 registerHandler('wager', {
   async onEnter(ctx) {
@@ -19,9 +24,6 @@ registerHandler('wager', {
     if (!Array.isArray(wgOptions)) wgOptions = [];
     wgOptions = wgOptions.map(o => typeof o === 'string' ? o : (o.text || o.name || JSON.stringify(o)));
 
-    // If scoresFrom isn't set, every player starts with a default pool so the
-    // simplest case (a one-off bet with no prior score chain) just works.
-    const DEFAULT_STARTING_POINTS = 100;
     const wgScores = phase.scoresFrom
       ? (engine.resolve(phase.scoresFrom) || {})
       : Object.fromEntries(wgEligible.map(p => [p.id, DEFAULT_STARTING_POINTS]));
@@ -67,6 +69,17 @@ registerHandler('wager', {
     if (phase.timer) {
       armPhaseTimer(room, phase.timer, () => ctx.services.closeWager(room.code || code, room));
     }
+  },
+
+  // A student who joins while the bets are open bets too (cause 4 sweep,
+  // 2026-10-03). With no score chain they get the same starting pool as
+  // everyone; with one, whatever it holds for them (nothing = no bet).
+  onLateJoin(ctx, playerId) {
+    const state = ctx.room.phaseState;
+    if (!admitLateSolo(state, 'wager', playerId, ctx.phase && ctx.phase.from)) return null;
+    if (!ctx.phase.scoresFrom && state.scores[playerId] == null) state.scores[playerId] = DEFAULT_STARTING_POINTS;
+    ctx.emitToHost(EVENTS.WAGER_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+    return null;
   },
 
   onReconnect(ctx, socket) {

@@ -5,6 +5,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { seatInRelayOrder } from '../phases/late-seating.js';
 
 registerHandler('relay', {
   async onEnter(ctx) {
@@ -33,6 +34,16 @@ registerHandler('relay', {
     console.log(`[handlePhase] Relay: ${turnOrder.length} players, order=${phase.order || 'random'}`);
 
     ctx.services.emitRelayTurn(code, room);
+  },
+
+  // A student who joins mid-relay gets the last turn (cause 4 sweep,
+  // 2026-10-03: the turn order was frozen at enter, so the story skipped
+  // them). sendCurrentState sends them the waiting screen; the projector's
+  // "2 / 5" and every waiting count follow at the next turn, since
+  // re-sending the turn now would restart the active student's clock.
+  onLateJoin(ctx, playerId) {
+    seatInRelayOrder(ctx.room.phaseState, playerId, ctx.phase && ctx.phase.from);
+    return null;
   },
 
   onReconnect(ctx, socket) {

@@ -1,6 +1,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
+import { admitLateSolo } from '../phases/late-seating.js';
 
 /**
  * Rate phase — class rates a target (a presentation, an idea, a pitch
@@ -84,6 +85,16 @@ registerHandler('rate', {
     if (phase.timer) {
       armPhaseTimer(room, phase.timer, () => ctx.services.closeRating(ctx.code, room));
     }
+  },
+
+  // A student who joins while the scales are open rates too (cause 4
+  // sweep, 2026-10-03). The projector's count grows; sendCurrentState then
+  // sends them the scales.
+  onLateJoin(ctx, playerId) {
+    const state = ctx.room.phaseState;
+    if (!admitLateSolo(state, 'rate', playerId, ctx.phase && ctx.phase.from)) return null;
+    ctx.emitToHost(EVENTS.RATE_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+    return null;
   },
 
   onReconnect(ctx, socket) {

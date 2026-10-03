@@ -176,3 +176,56 @@ export function admitLateSolo(state, kind, playerId, from) {
   state.eligibleIds.add(playerId);
   return true;
 }
+
+/**
+ * A vote that opened before a student arrived: they vote too (cause 4
+ * sweep, 2026-10-03: the voter list was frozen at enter, so a newcomer
+ * saw "Waiting for votes..." until the tally). Only while the vote is for
+ * everyone, still open, and has something on the ballot. A newcomer wrote
+ * none of the entries, so excludeAuthors never empties their ballot.
+ * Mutates state. Returns true when seated.
+ */
+export function admitLateVoter(state, playerId, voters) {
+  if (!state || state.kind !== 'vote' || state.tallied) return false;
+  if (voters && voters !== 'all') return false;
+  if (!Array.isArray(state.eligibleVoterIds)) return false;
+  if (state.eligibleVoterIds.includes(playerId)) return false;
+  if (!Array.isArray(state.candidateIds) || state.candidateIds.length === 0) return false;
+  state.eligibleVoterIds.push(playerId);
+  return true;
+}
+
+/**
+ * A merge (think-pair-share) that opened before a student arrived: they
+ * join the smallest group that has not handed in yet, so a pair becomes a
+ * trio rather than the newcomer watching "Groups are merging their
+ * answers" for the whole step. Mutates state. Returns the group, or null
+ * when every group has already handed in (nothing left to join).
+ */
+export function seatInMergeGroup(state, playerId) {
+  if (!state || state.kind !== 'merge' || !Array.isArray(state.groups)) return null;
+  if (state.byPlayer && state.byPlayer[playerId]) return state.byPlayer[playerId];
+  const open = state.groups.filter(g => g && !g.submitted && Array.isArray(g.members));
+  if (open.length === 0) return null;
+  let best = open[0];
+  for (const g of open) if (g.members.length < best.members.length) best = g;
+  best.members.push(playerId);
+  if (!state.byPlayer) state.byPlayer = {};
+  state.byPlayer[playerId] = best;
+  return best;
+}
+
+/**
+ * A relay (pass-around story) that opened before a student arrived: they
+ * get the last turn, so the story reaches them instead of skipping them.
+ * Only while turns remain and the relay is for everyone. Mutates state.
+ * Returns true when seated.
+ */
+export function seatInRelayOrder(state, playerId, from) {
+  if (!state || state.kind !== 'relay' || !Array.isArray(state.turnOrder)) return false;
+  if (from && from !== 'all') return false;
+  if (!(state.currentTurnIndex < state.turnOrder.length)) return false;
+  if (state.turnOrder.includes(playerId)) return false;
+  state.turnOrder.push(playerId);
+  return true;
+}

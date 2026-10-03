@@ -2659,13 +2659,14 @@ async function handlePhase(code, room) {
   console.warn(`[handlePhase] No handler registered for phase type: ${phase.type}`);
 }
 
-// --- Late seating: a FRESH join that lands in a team step already open ---
-// The handler's onLateJoin (team-split, team-roles, checklist; engine/
-// phases/late-seating.js) gives the newcomer a seat wherever the class is
+// --- Late seating: a FRESH join that lands in a step already open ---
+// The handler's onLateJoin (engine/phases/late-seating.js; every handler
+// that freezes who may answer at enter has one, tests/engine/
+// late-seat-sweep.test.js) gives the newcomer a seat wherever the class is
 // and refreshes the projector; the consoles get one line saying where
-// they landed. Runs before sendCurrentState so the newcomer's first
-// screen is their seat, not the waiting screen. Reconnects never come
-// here (they follow their old seat).
+// they landed when the seat has a name (a team, a role). Runs before
+// sendCurrentState so the newcomer's first screen is their seat, not the
+// waiting screen. Reconnects never come here (they follow their old seat).
 function seatLateJoiner(socket, code, room) {
   if (!room.engine) return null;
   const phase = room.engine.getCurrentPhase();
