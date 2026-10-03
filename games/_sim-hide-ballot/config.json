@@ -1,0 +1,22 @@
+{
+  "name": "Hide reaches the ballot fixture",
+  "description": "A test fixture (2026-10-03): answers, then a vote over them, so a Hide from the console during the vote can be checked to leave the ballot (scripts/simulate-hide-ballot.js). Never listed.",
+  "minPlayers": 2,
+  "earlyJoke": false,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "ask" },
+    "ask": {
+      "type": "collect",
+      "prompt": "Name a book the class should read.",
+      "next": "pick"
+    },
+    "pick": {
+      "type": "vote",
+      "mode": "pick-one",
+      "question": "Which one?",
+      "candidates": "ask.responses",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}

@@ -4,6 +4,7 @@ import { armPhaseTimer } from '../phase-timer.js';
 import { buildGroups, groupsFromSource } from '../phases/pairing.js';
 import { fitPartnerWords, soloMergeWords } from '../phases/partner-words.js';
 import { translate } from '../i18n/index.js';
+import { seatInMergeGroup } from '../phases/late-seating.js';
 
 // The instruction as a group of this size reads it: a trio's group words,
 // or a student alone told so (never sent to a partner who is not there)
@@ -262,6 +263,23 @@ registerHandler('merge', {
     if (phase.timer) {
       armPhaseTimer(room, phase.timer, () => ctx.services.closeMerge(room.code || code, room));
     }
+  },
+
+  // A student who joins mid-merge joins the smallest group still writing
+  // (cause 4 sweep, 2026-10-03: they watched "Groups are merging their
+  // answers" for the whole step). The group's other members learn the
+  // agree count they need grew; sendCurrentState sends the newcomer the
+  // shared draft. No seat line for the console (the groups have no names).
+  onLateJoin(ctx, playerId) {
+    const state = ctx.room.phaseState;
+    const group = seatInMergeGroup(state, playerId);
+    if (!group) return null;
+    const needed = state.agreeMode === 'timer' ? null : agreesNeeded(state.agreeMode, group.members.length);
+    for (const id of group.members) {
+      if (id === playerId) continue;
+      ctx.emitToPlayer(id, EVENTS.MERGE_STATUS, { agreedCount: group.agreed.size, agreesNeeded: needed, youAgreed: group.agreed.has(id) });
+    }
+    return null;
   },
 
   onReconnect(ctx, socket) {

@@ -88,16 +88,25 @@ export function buildSubmissionList(players, { unattributed = false } = {}) {
     }));
 }
 
+// The steps a Hide after the close reaches (tests/engine/hide-reaches.test.js
+// sweeps every handler that copies another step's rows at enter against
+// this list): the closed collect's rows, a preview's list, a one-by-one
+// reveal's queue, an open vote's ballot, an open multiple-choice step's
+// shared ballot, and the rounds a For Each has not reached yet.
+export const HIDE_REACHES = Object.freeze(['collect', 'preview', 'reveal-one', 'vote', 'collect-choice', 'foreach']);
+
 /**
  * A Hide (or Unhide) after the step closed: the rows are already stored,
  * so the flag on the player is not enough. Moves the player's row out of
  * (or back into) the last closed collect's responses, an open preview's
- * list, and a one-by-one reveal's unrevealed queue. Rows that leave are
- * kept under hiddenResponses so an Unhide can bring them back.
- * @returns {{ collect: boolean, preview: boolean, revealOne: boolean }} what changed
+ * list, a one-by-one reveal's unrevealed queue, an open vote's ballot,
+ * an open multiple-choice step's shared ballot, and the rounds a For Each
+ * has not reached. Rows that leave are kept under hidden* so an Unhide
+ * can bring them back.
+ * @returns {{ collect: boolean, preview: boolean, revealOne: boolean, vote: boolean, ballot: boolean, foreach: boolean }} what changed
  */
 export function hideStoredResponse(room, playerId, hidden) {
-  const out = { collect: false, preview: false, revealOne: false };
+  const out = { collect: false, preview: false, revealOne: false, vote: false, ballot: false, foreach: false };
   const engine = room && room.engine;
   if (!engine || !playerId) return out;
   // A collect stores its answers twice: `responses` (the list every
@@ -155,7 +164,98 @@ export function hideStoredResponse(room, playerId, hidden) {
       out.revealOne = true;
     }
   }
+  // An open vote over the class's answers (pick-one or yes-or-no): the
+  // hidden entry leaves the ballot and its votes go with it; the caller
+  // re-sends the ballot to whoever has not voted (a head-to-head's
+  // matchups are fixed pairs, so that mode keeps its list)
+  if (rs && rs.kind === 'vote' && !rs.tallied && rs.mode !== 'head-to-head' && Array.isArray(rs.candidates)) {
+    out.vote = moveCandidate(rs, playerId, hidden);
+  }
+  // An open multiple-choice step whose ballot is built from the answers
+  // (a bluff round): the hidden answer's words leave the shared ballot
+  if (cur && cur.type === 'collect-choice' && rs && Array.isArray(rs.ballot)) {
+    out.ballot = moveBallotEntry(rs, hiddenTextsOf(room, playerId), hidden);
+  }
+  // Rounds a For Each has not reached yet: the hidden student's item
+  // gets no round (the one up now cannot be unsaid)
+  for (const state of Object.values(engine.foreachState || {})) {
+    if (moveForeachItem(state, playerId, hidden)) out.foreach = true;
+  }
   return out;
+}
+
+// The ballot entry (or entries) the hidden student wrote, by author
+function moveCandidate(rs, playerId, hidden) {
+  rs.hiddenCandidates = Array.isArray(rs.hiddenCandidates) ? rs.hiddenCandidates : [];
+  const idOf = c => (c && typeof c === 'object' && c.playerId ? c.playerId : c);
+  if (hidden) {
+    const gone = rs.candidates.filter(c => c && typeof c === 'object' && c.playerId === playerId);
+    if (gone.length === 0) return false;
+    const goneIds = new Set(gone.map(idOf));
+    rs.hiddenCandidates.push(...gone);
+    rs.candidates = rs.candidates.filter(c => !goneIds.has(idOf(c)));
+    rs.candidateIds = rs.candidates.map(idOf);
+    if (Array.isArray(rs.votes)) rs.votes = rs.votes.filter(v => !goneIds.has(v.choice));
+    return true;
+  }
+  const back = rs.hiddenCandidates.filter(c => c && c.playerId === playerId);
+  if (back.length === 0) return false;
+  rs.hiddenCandidates = rs.hiddenCandidates.filter(c => !(c && c.playerId === playerId));
+  rs.candidates = rs.candidates.concat(back);
+  rs.candidateIds = rs.candidates.map(idOf);
+  return true;
+}
+
+// The words a student wrote in the last closed collect, hidden or not
+// (the row has just moved, so both lists are read)
+function hiddenTextsOf(room, playerId) {
+  const engine = room.engine;
+  const data = room.lastClosedCollectId && engine.phaseData[room.lastClosedCollectId];
+  if (!data) return [];
+  const rows = [...(data.responses || []), ...(data.hiddenResponses || [])];
+  return rows.filter(r => r && r.playerId === playerId && typeof r.text === 'string')
+    .map(r => r.text.trim().toLowerCase()).filter(Boolean);
+}
+
+// A shared ballot is plain words: an entry leaves when it reads as one of
+// the hidden student's answers, and comes back on an Unhide
+function moveBallotEntry(rs, texts, hidden) {
+  rs.hiddenBallot = Array.isArray(rs.hiddenBallot) ? rs.hiddenBallot : [];
+  if (texts.length === 0) return false;
+  const match = new Set(texts);
+  if (hidden) {
+    const gone = rs.ballot.filter(c => typeof c === 'string' && match.has(c.trim().toLowerCase()));
+    if (gone.length === 0) return false;
+    rs.hiddenBallot.push(...gone);
+    rs.ballot = rs.ballot.filter(c => !gone.includes(c));
+    return true;
+  }
+  const back = rs.hiddenBallot.filter(c => match.has(c.trim().toLowerCase()));
+  if (back.length === 0) return false;
+  rs.hiddenBallot = rs.hiddenBallot.filter(c => !back.includes(c));
+  rs.ballot = rs.ballot.concat(back);
+  return true;
+}
+
+// A For Each's items after the one up now: the hidden student's own item
+// (or, in a human-vs-ai pairing, the pair built on it) leaves the rounds
+function moveForeachItem(state, playerId, hidden) {
+  if (!state || !Array.isArray(state.items)) return false;
+  state.hiddenItems = Array.isArray(state.hiddenItems) ? state.hiddenItems : [];
+  const owns = it => !!it && ((it.playerId === playerId) || (it.human && it.human.playerId === playerId));
+  const reached = Number.isInteger(state.currentIndex) ? state.currentIndex : 0;
+  if (hidden) {
+    const keep = state.items.filter((it, i) => i <= reached || !owns(it));
+    if (keep.length === state.items.length) return false;
+    state.hiddenItems.push(...state.items.filter((it, i) => i > reached && owns(it)));
+    state.items = keep;
+    return true;
+  }
+  const back = state.hiddenItems.filter(owns);
+  if (back.length === 0) return false;
+  state.hiddenItems = state.hiddenItems.filter(it => !owns(it));
+  state.items = state.items.concat(back);
+  return true;
 }
 
 // The projector's "N of M submitted" counter, read fresh off the eligible

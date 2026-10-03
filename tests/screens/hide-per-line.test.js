@@ -37,7 +37,7 @@ describe('hideStoredResponse', () => {
   it('moves the line out of the closed step and the open preview, and back on unhide', () => {
     const room = roomWith('preview');
     const out = hideStoredResponse(room, 'p2', true);
-    expect(out).toEqual({ collect: true, preview: true, revealOne: false });
+    expect(out).toEqual({ collect: true, preview: true, revealOne: false, vote: false, ballot: false, foreach: false });
     expect(room.engine.phaseData.write.responses.map(r => r.playerId)).toEqual(['p1']);
     expect(room.engine.phaseData.review.responses.map(r => r.playerId)).toEqual(['p1']);
     hideStoredResponse(room, 'p2', false);
@@ -74,7 +74,7 @@ describe('hideStoredResponse', () => {
     expect(buildChainViews([notes, write]).get('p1').steps).toEqual(['mean']);
   });
   it('is a no-op on a room with nothing stored', () => {
-    expect(hideStoredResponse({ engine: { phaseData: {}, getCurrentPhase: () => null } }, 'p1', true)).toEqual({ collect: false, preview: false, revealOne: false });
+    expect(hideStoredResponse({ engine: { phaseData: {}, getCurrentPhase: () => null } }, 'p1', true)).toEqual({ collect: false, preview: false, revealOne: false, vote: false, ballot: false, foreach: false });
   });
 });
 

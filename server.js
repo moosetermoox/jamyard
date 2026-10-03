@@ -2438,6 +2438,10 @@ const phaseServices = {
   // A collect or collect-choice nobody can answer closes itself on enter
   // (engine/phases/nobody-can-answer.js)
   closeCollect: (code, room) => closeCollect(code, room),
+  // ...and so does a vote nobody can cast and a relay with nobody to write
+  // (the sweep, 2026-10-03)
+  tallyVote: (code, room) => tallyAndAdvance(code, room),
+  finishRelay: (code, room) => finishRelay(code, room),
   emitRelayTurn: (code, room) => emitRelayTurn(code, room),
   shuffleArray,
   setupForeachIteration,
@@ -2659,13 +2663,14 @@ async function handlePhase(code, room) {
   console.warn(`[handlePhase] No handler registered for phase type: ${phase.type}`);
 }
 
-// --- Late seating: a FRESH join that lands in a team step already open ---
-// The handler's onLateJoin (team-split, team-roles, checklist; engine/
-// phases/late-seating.js) gives the newcomer a seat wherever the class is
+// --- Late seating: a FRESH join that lands in a step already open ---
+// The handler's onLateJoin (engine/phases/late-seating.js; every handler
+// that freezes who may answer at enter has one, tests/engine/
+// late-seat-sweep.test.js) gives the newcomer a seat wherever the class is
 // and refreshes the projector; the consoles get one line saying where
-// they landed. Runs before sendCurrentState so the newcomer's first
-// screen is their seat, not the waiting screen. Reconnects never come
-// here (they follow their old seat).
+// they landed when the seat has a name (a team, a role). Runs before
+// sendCurrentState so the newcomer's first screen is their seat, not the
+// waiting screen. Reconnects never come here (they follow their old seat).
 function seatLateJoiner(socket, code, room) {
   if (!room.engine) return null;
   const phase = room.engine.getCurrentPhase();
@@ -5568,6 +5573,18 @@ io.on('connection', (socket) => {
       // host, 2026-09-26): it drops the line the same way
       const hostId = roomToHost.get(code);
       if (hostId) io.to(hostId).emit(EVENTS.PREVIEW_CONTENT, again);
+    }
+    if (touched.vote || touched.ballot) {
+      // The hidden entry left an open ballot: every student still to answer
+      // gets the ballot again without it, through the same path a refresh
+      // takes (engine/moderation.js, the sweep 2026-10-03)
+      const rs = room.phaseState;
+      for (const p of room.engine.players.list()) {
+        const done = touched.vote ? (rs.votersCompleted && rs.votersCompleted.has(p.id)) : !!p.response;
+        if (done) continue;
+        const s = io.sockets.sockets.get(p.id);
+        if (s) sendCurrentState(s, code, room);
+      }
     }
     emitSubmissionsUpdate(code, room);
     emitLiveTally(code, room);
