@@ -167,7 +167,10 @@ describe('the matcher is shown the steps and says what is missing', () => {
 
   it('the route hands missing to the page, and the page shows it before anything is built', () => {
     const server = readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
-    expect(server.split('missing: Array.isArray(match.missing) ? match.missing : []').length).toBe(3);
+    // both cards: the recipe match and the existing activity (the server
+    // adds a poll the idea asked for that the steps lack, engine/idea-poll.js)
+    expect(server).toContain('missing: withPollMissing(description, config, match.missing),');
+    expect(server).toContain('missing: withPollMissing(description, existingConfig, match.missing),');
     const designer = readFileSync(new URL('../../screens/designer/designer.js', import.meta.url), 'utf8');
     expect(designer).toContain('This version does not have: ');
     expect(designer.split('appendMissingLine(modal, data.missing)').length).toBe(3);

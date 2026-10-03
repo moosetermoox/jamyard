@@ -97,6 +97,10 @@ registerHandler('ai-process', {
       const aiResult = await ctx.aiService.process({
         instruction: stricter, responses,
         rosterNames: engine.players.list().map(p => p.name),
+        // The room's language, so the summary a Spanish class reads is
+        // Spanish even when the answers were not (pretend students, a
+        // bilingual class; the owner's re-check 2026-10-03)
+        language: engine.language,
         // A prose step over answers counts what it left out; a JSON step
         // cannot carry the trailing line
         countSkipped: !expectJson && responses.length > 0,

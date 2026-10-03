@@ -94,6 +94,10 @@ registerHandler('estimate', {
       min: range.min,
       max: range.max,
       timer: secondsLeft(ctx.room), // the time left, never a restarted clock
+      // The guess this student already sent, so a refreshed screen says
+      // "you guessed 500" instead of an empty box (the owner's re-check,
+      // 2026-10-03); the server keeps counting it either way
+      myGuess: Object.prototype.hasOwnProperty.call(state.guesses, socket.id) ? state.guesses[socket.id] : null,
       count: Object.keys(state.guesses).length,
       total: ctx.engine.players.list().length,
       phaseInstanceId: ctx.phaseInstanceId

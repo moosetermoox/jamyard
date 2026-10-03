@@ -24,6 +24,8 @@ import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submit
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { audienceFor } from './engine/audience.js';
 import { applyIdeaSettings, parseAnonymity } from './engine/idea-settings.js';
+import { withPollMissing } from './engine/idea-poll.js';
+import { withoutEnglishPrefix } from './engine/idea-name.js';
 import { readsAsFindYourMatch } from './engine/find-match-idea.js';
 import { refitRecipeIdFor } from './engine/match-refit.js';
 import { looksUnclear, UNCLEAR_LINE } from './engine/unclear-idea.js';
@@ -4545,7 +4547,9 @@ app.post('/api/games/from-description', async (req, res) => {
           // The idea names content of its own (a topic, a word list): the
           // card offers to carry it in rather than "this already exists"
           carriesContent: match.carriesContent === true,
-          missing: Array.isArray(match.missing) ? match.missing : [],
+          // A poll the idea asked for that the steps lack is read by the
+          // server too (engine/idea-poll.js); the matcher answered []
+          missing: withPollMissing(description, existingConfig, match.missing),
           alternates: resolveAlternates(match.alternates, null),
           // Report only: the teacher copies this one from the yard, so a
           // trimmed config has nowhere to go here.
@@ -4673,6 +4677,9 @@ app.post('/api/games/from-description', async (req, res) => {
         console.warn(`[api/games/from-description] could not put the words into ${ideaLanguage}: ${err.message}`);
       }
       config.language = ideaLanguage;
+      // The template's English opening ("Discussion: ") can survive the
+      // pass as if it were a label (engine/idea-name.js)
+      config.name = withoutEnglishPrefix(config.name, recipe.template && recipe.template.name);
     }
 
     // The settings the idea named in plain words ("anonymous"), read by
@@ -4710,7 +4717,10 @@ app.post('/api/games/from-description', async (req, res) => {
       // up" list (the params list never shows them)
       settings,
       explanation: match.explanation || '',
-          missing: Array.isArray(match.missing) ? match.missing : [],
+      // A poll the idea asked for that the recipe's steps lack is read by
+      // the server too (engine/idea-poll.js): the matcher answered [] for
+      // "a poll and then a reason" on Discussion Starter (2026-10-03)
+      missing: withPollMissing(description, config, match.missing),
       alternates,
       map: buildActivityMap(config),
       timing,

@@ -4,7 +4,17 @@ import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schema
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
 import { stripPlayerIdRefs } from '../engine/ai-name-fill.js';
-import { LANGUAGES as LANGUAGE_NAMES, detectLanguage } from '../engine/i18n/index.js';
+import { LANGUAGES as LANGUAGE_NAMES, detectLanguage, resolveLanguage } from '../engine/i18n/index.js';
+
+/**
+ * The line that keeps a game-time reply in the room's language (a Spanish
+ * class's summary came out in English when the answers were, the owner's
+ * re-check 2026-10-03). Empty for English or an unknown code.
+ */
+export function languageRule(language) {
+  const name = language && language !== 'en' ? LANGUAGE_NAMES[language] : null;
+  return name ? `\n\nWrite your whole reply in ${name}, whatever language the answers are in.` : '';
+}
 import { cleanQuizQuestions, shuffleQuizChoices, shuffleQuizParams, QUIZ_LIMITS } from '../engine/quiz-questions.js';
 import { completeSteps, partialName } from '../engine/storyboard-partial.js';
 import { collectTexts, applyTexts, pathKey } from '../engine/activity-text.js';
@@ -1048,12 +1058,12 @@ export class AIService {
   // beside `total`, so the console can say "summed up 2 of 3 answers" (a
   // reviewer's trick answer vanished without a word, 2026-09-26). The
   // projector never sees the line.
-  async process({ instruction, responses, systemPrompt, rosterNames, countSkipped, expectJson } = {}) {
+  async process({ instruction, responses, systemPrompt, rosterNames, countSkipped, expectJson, language } = {}) {
     const total = Array.isArray(responses) ? responses.length : 0;
     const count = !!countSkipped && total > 0;
     const out = this.mode === 'mock'
       ? this._processMock(instruction, responses, count, expectJson)
-      : await this._processReal(instruction, responses, systemPrompt, rosterNames, count);
+      : await this._processReal(instruction, responses, systemPrompt, rosterNames, count, language);
     const parsed = count ? parseLeftOut(out.text) : { text: out.text, leftOut: 0 };
     // The [playerId: ...] labels in the prompt never come back in prose
     // (a reviewer's projector read "(from playerId 43I2B8I0bv...)")
@@ -1113,7 +1123,7 @@ export class AIService {
     };
   }
 
-  async _processReal(instruction, responses, systemPrompt, rosterNames, count) {
+  async _processReal(instruction, responses, systemPrompt, rosterNames, count, language) {
     try {
       // PII scrub at the outbound boundary: student-typed text can carry
       // names/emails/phones. Scrub COPIES — the classroom's own data is
@@ -1131,7 +1141,7 @@ export class AIService {
       const message = await this._callClaude({
         model: MODEL,
         max_tokens: 1024,
-        system: (systemPrompt || SYSTEM_PROMPT) + SAFETY_RULES,
+        system: (systemPrompt || SYSTEM_PROMPT) + SAFETY_RULES + languageRule(language),
         messages: [
           { role: 'user', content: userMessage }
         ]
@@ -1933,6 +1943,7 @@ Write exactly ${n} answers for EVERY step, one per pretend student. Rules:
 - A step where each student was handed an item: spread the answers over the items named, and let the answer show which item the student held.
 - ${FRESH_FACTS_RULE}
 - Never a student name. No emojis, no numbering.
+- Every answer is in ${LANGUAGE_NAMES[resolveLanguage(config)] || 'English'}, the language the activity is written in.
 
 Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a string (or an array of strings for a step with fields) per answer.`
       }]

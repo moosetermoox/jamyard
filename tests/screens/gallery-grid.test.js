@@ -37,7 +37,7 @@ describe('closing on nothing', () => {
   it('the projector asks first when nobody has answered', () => {
     const host = read('screens/host/host.js');
     expect(host).toContain("if (submittedSoFar === 0 && window.Dialog && Dialog.confirm)");
-    expect(host).toContain("confirmLabel: 'Close anyway', cancelLabel: 'Wait'");
+    expect(host).toContain("confirmLabel: UiLang.t('Close anyway'), cancelLabel: UiLang.t('Wait')");
     expect(read('screens/host/index.html')).toContain('<script src="/shared/dialog.js"></script>');
   });
   it('a pair with no answers is told so, in every language', () => {
