@@ -88,4 +88,34 @@ describe('the wiring', () => {
     expect(db).toContain('export async function setUserGameOwnerKey');
     expect(db).toContain('export async function claimUserGames');
   });
+
+  // Routes under /api/games/:gameId that read and compute but never save.
+  const READ_ONLY = {
+    'POST /api/games/:gameId/make': 'applies make-page edits to a copy in memory and returns the print; the client saves through POST /api/games'
+  };
+
+  it('every route that can change a saved activity goes through the owner gate (2026-10-03: featured and assets were open)', () => {
+    const server = read('server.js');
+    const starts = [...server.matchAll(/^app\.(post|put|delete|patch)\('(\/api\/games\/:gameId[^']*)'/gm)];
+    expect(starts.length).toBeGreaterThanOrEqual(6);
+    const open = [];
+    starts.forEach((m, i) => {
+      const route = `${m[1].toUpperCase()} ${m[2]}`;
+      if (READ_ONLY[route]) return;
+      const end = i + 1 < starts.length ? starts[i + 1].index : server.indexOf('\napp.', m.index + 1);
+      const body = server.slice(m.index, end);
+      const gated = /mayWriteUserGame\(/.test(body) || /isOwnerRequest\(req\)/.test(body) || /ownerKeys\.stamp\(/.test(body);
+      if (!gated) open.push(route);
+    });
+    expect(open).toEqual([]);
+  });
+
+  it('the featured toggle and the asset upload are gated, not just listed', () => {
+    const server = read('server.js');
+    const featured = server.slice(server.indexOf("app.post('/api/games/:gameId/featured'"), server.indexOf("app.put('/api/games/:gameId'"));
+    expect(featured).toMatch(/if \(!isOwnerRequest\(req\)\)[\s\S]{0,200}status\(401\)/);
+    const assets = server.slice(server.indexOf("app.post('/api/games/:gameId/assets'"), server.indexOf("app.get('/api/games/:gameId'"));
+    expect(assets).toContain("if (source === 'user' && !await mayWriteUserGame(req, res, gameId)) return;");
+    expect(assets).toMatch(/source !== 'user' && !isOwnerRequest\(req\)/);
+  });
 });

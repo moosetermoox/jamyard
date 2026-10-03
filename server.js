@@ -2842,6 +2842,13 @@ app.post('/api/games/:gameId/assets', assetUpload.single('file'), async (req, re
         return res.status(404).json({ error: `Game "${gameId}" not found.` });
       }
     }
+    // An asset lands in the activity's own folder: the browser that saved
+    // the activity, or the owner for a built-in (2026-10-03).
+    if (source === 'user' && !await mayWriteUserGame(req, res, gameId)) return;
+    if (source !== 'user' && !isOwnerRequest(req)) {
+      res.set('WWW-Authenticate', 'Basic realm="Jamyard Owner Area"');
+      return res.status(401).json({ error: 'Adding a file to a built-in activity requires the owner password.' });
+    }
     const assetsDir = join(gameDir, 'assets');
     await mkdir(assetsDir, { recursive: true });
     const filename = sanitizeAssetFilename(req.file.originalname);
@@ -3618,6 +3625,12 @@ app.get('/api/activity-runs', async (req, res) => {
 app.post('/api/games/:gameId/featured', async (req, res) => {
   try {
     const { gameId } = req.params;
+    // Featured rows show in every visitor's yard: the owner's curation only
+    // (2026-10-03, a route sweep found it open to any browser).
+    if (!isOwnerRequest(req)) {
+      res.set('WWW-Authenticate', 'Basic realm="Jamyard Owner Area"');
+      return res.status(401).json({ error: 'Featuring an activity requires the owner password.' });
+    }
     if (!req.body || typeof req.body.featured !== 'boolean') {
       return res.status(400).json({ error: 'Body must be { "featured": true|false }.' });
     }

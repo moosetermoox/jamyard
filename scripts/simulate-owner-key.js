@@ -30,6 +30,16 @@ async function call(method, path, { key, body, owner } = {}) {
   try { json = await res.json(); } catch {}
   return { status: res.status, json };
 }
+// A one-pixel PNG through the asset route (multipart, field "file").
+async function upload(path, { key, owner } = {}) {
+  const headers = {};
+  if (key) headers['x-owner-key'] = key;
+  if (owner) headers.authorization = 'Basic ' + Buffer.from('owner:' + PASSWORD).toString('base64');
+  const form = new FormData();
+  form.append('file', new Blob([Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64')], { type: 'image/png' }), 'proof.png');
+  const res = await fetch(BASE + path, { method: 'POST', headers, body: form });
+  return { status: res.status };
+}
 
 async function main() {
   const src = (await call('GET', '/api/games/live-poll')).json;
@@ -43,6 +53,17 @@ async function main() {
   check('overwrite with key B refused', 403, (await call('PUT', '/api/games/' + id, { key: B, body: changed })).status);
   check('overwrite with no key refused', 403, (await call('PUT', '/api/games/' + id, { body: changed })).status);
   check('overwrite with key A', 200, (await call('PUT', '/api/games/' + id, { key: A, body: changed })).status);
+
+  // Featured rows show in every yard: the owner's curation, never a key's (2026-10-03)
+  check('featured with key A refused (owner only)', 401, (await call('POST', '/api/games/' + id + '/featured', { key: A, body: { featured: true } })).status);
+  check('featured with no key refused', 401, (await call('POST', '/api/games/' + id + '/featured', { body: { featured: true } })).status);
+  check('featured with the owner password', 200, (await call('POST', '/api/games/' + id + '/featured', { owner: true, body: { featured: false } })).status);
+
+  // An asset lands in the activity's folder: the saving browser or the owner (2026-10-03)
+  check('asset upload with key B refused', 403, (await upload('/api/games/' + id + '/assets', { key: B })).status);
+  check('asset upload with no key refused', 403, (await upload('/api/games/' + id + '/assets')).status);
+  check('asset upload with key A', 200, (await upload('/api/games/' + id + '/assets', { key: A })).status);
+  check('asset upload to a built-in without the password refused', 401, (await upload('/api/games/live-poll/assets', { key: A })).status);
   const denied = await call('DELETE', '/api/games/' + id, { key: B });
   check('delete with key B refused', 403, denied.status);
   check("the refusal carries the teacher's line", true, /another browser/.test(denied.json && denied.json.error));
