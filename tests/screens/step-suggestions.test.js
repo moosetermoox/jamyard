@@ -6,6 +6,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+// the transition list first, so the order walk follows a preview's approve door
+import '../../engine/transitions.js';
 import '../../screens/shared/step-suggestions.js';
 import { validate } from '../../engine/game-loader.js';
 
@@ -42,6 +45,62 @@ describe('ordering + ids', () => {
     expect(S.orderedPhaseIds(phases)).toEqual(['lobby', 'ask', 'end', 'stray']);
   });
 
+  it('follows a preview gate through its approve door, so the Builder keeps the order past it (2026-10-03)', () => {
+    const phases = {
+      lobby: { type: 'lobby', next: 'ask' },
+      ask: { type: 'collect', prompt: 'A question?', next: 'check' },
+      // key order on purpose: the step after the gate is declared before it
+      show: { type: 'reveal-one', from: 'ask.responses', next: 'end' },
+      check: { type: 'preview', content: '{{ask.responses}}', approveNext: 'show', rejectNext: 'ask' },
+      end: { type: 'end', message: 'Done!' }
+    };
+    expect(S.orderedPhaseIds(phases)).toEqual(['lobby', 'ask', 'check', 'show', 'end']);
+  });
+
+  it('every page that loads step-suggestions loads the transition list first', () => {
+    for (const page of ['screens/designer/index.html', 'screens/designer/editor.html']) {
+      const html = readFileSync(page, 'utf8');
+      const t = html.indexOf('/shared/transitions.js');
+      const s = html.indexOf('/shared/step-suggestions.js');
+      expect(t, `${page} loads transitions.js`).toBeGreaterThan(-1);
+      expect(s, `${page} loads step-suggestions.js`).toBeGreaterThan(-1);
+      expect(t, `${page} loads transitions.js before step-suggestions.js`).toBeLessThan(s);
+    }
+  });
+});
+
+describe('a vote by name folds into the hot seat that picks by vote', () => {
+  it('one vote, not two, and the vote keeps the plan\'s question (2026-10-02, a Spanish hot-seat plan voted twice)', () => {
+    const out = S.compileStoryboard({
+      name: 'Hot seat',
+      steps: [
+        { brick: 'vote', over: 'students', text: 'Who goes first?' },
+        { brick: 'hotseat', pick: 'vote', text: 'Ask them anything about the unit.' },
+        { brick: 'end' }
+      ]
+    });
+    expect(out.problems).toEqual([]);
+    const votes = Object.values(out.config.phases).filter(p => p.type === 'vote');
+    expect(votes.length).toBe(1);
+    expect(votes[0].candidates).toBe('players');
+    expect(votes[0].question).toBe('Who goes first?');
+  });
+
+  it('a vote by name before a hot seat drawn at random stays', () => {
+    const out = S.compileStoryboard({
+      name: 'Hot seat',
+      steps: [
+        { brick: 'vote', over: 'students', text: 'Who is the class optimist?' },
+        { brick: 'hotseat', text: 'Ask them anything about the unit.' },
+        { brick: 'end' }
+      ]
+    });
+    expect(Object.values(out.config.phases).filter(p => p.type === 'vote').length).toBe(1);
+    expect(Object.values(out.config.phases).some(p => p.type === 'reveal-one' && p.to === '{{players.random}}')).toBe(true);
+  });
+});
+
+describe('ids', () => {
   it('freshId avoids collisions', () => {
     const phases = { reveal: {}, 'reveal-2': {} };
     expect(S.freshId(phases, 'reveal')).toBe('reveal-3');

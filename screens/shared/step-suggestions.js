@@ -24,7 +24,17 @@
   var SHOW_DECIDE_TYPES = ['reveal', 'reveal-one', 'vote', 'leaderboard',
     'rank', 'rate', 'match', 'sort'];
 
-  // ---- Ordering: follow the next-chain from lobby ----
+  // ---- Ordering: follow the primary path from lobby ----
+
+  // The step after this one on the main path: a preview's approve door, a
+  // vote's first branch (screens/shared/transitions.js, the one list of
+  // transition fields, 2026-10-03). Without the module loaded, `next`.
+  function nextOnPath(phase) {
+    var T = (typeof Transitions !== 'undefined') ? Transitions
+      : (typeof globalThis !== 'undefined' ? globalThis.Transitions : null);
+    if (T && typeof T.primaryNext === 'function') return T.primaryNext(phase);
+    return phase ? phase.next : null;
+  }
 
   function orderedPhaseIds(phases) {
     var ids = Object.keys(phases || {});
@@ -36,7 +46,7 @@
     while (cur && phases[cur] && !seen[cur]) {
       order.push(cur);
       seen[cur] = true;
-      cur = phases[cur].next;
+      cur = nextOnPath(phases[cur]);
     }
     // Anything unreachable from the chain still shows (at the end) so the
     // Builder never hides a step the Advanced canvas would show.
@@ -2181,6 +2191,21 @@
       var brick = step && step.brick;
       var built = null;
       var id = null;
+
+      // A vote by name right before a hot seat that picks by vote is the
+      // same vote twice (a Spanish hot-seat plan, 2026-10-02: the class
+      // voted, then voted again): the hot seat builds its own pick, so
+      // this one folds into it and lends its question
+      if (brick === 'vote' && step.over === 'students') {
+        var seatAfter = steps[i + 1];
+        var seatPicks = seatAfter && seatAfter.brick === 'hotseat' &&
+          (seatAfter.pick === 'vote' || (typeof seatAfter.character === 'string' && seatAfter.character.trim()));
+        if (seatPicks) {
+          var hasVoteText = typeof seatAfter.voteText === 'string' && seatAfter.voteText.trim();
+          if (!hasVoteText && typeof step.text === 'string' && step.text.trim()) seatAfter.voteText = step.text.trim();
+          return;
+        }
+      }
 
       // Eleven bricks over blocks the engine already had (2026-09-30)
       if (GRADED_BRICKS[brick] || brick === 'rate' || brick === 'merge' || brick === 'relay' ||
