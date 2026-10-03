@@ -5570,6 +5570,18 @@ io.on('connection', (socket) => {
       const hostId = roomToHost.get(code);
       if (hostId) io.to(hostId).emit(EVENTS.PREVIEW_CONTENT, again);
     }
+    if (touched.vote || touched.ballot) {
+      // The hidden entry left an open ballot: every student still to answer
+      // gets the ballot again without it, through the same path a refresh
+      // takes (engine/moderation.js, the sweep 2026-10-03)
+      const rs = room.phaseState;
+      for (const p of room.engine.players.list()) {
+        const done = touched.vote ? (rs.votersCompleted && rs.votersCompleted.has(p.id)) : !!p.response;
+        if (done) continue;
+        const s = io.sockets.sockets.get(p.id);
+        if (s) sendCurrentState(s, code, room);
+      }
+    }
     emitSubmissionsUpdate(code, room);
     emitLiveTally(code, room);
   });
