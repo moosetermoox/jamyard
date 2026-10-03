@@ -14,6 +14,7 @@ import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
 import { pickRotationShift } from '../phases/rotation-shift.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
+import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 import { tailOfWords } from '../phases/append-only.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
@@ -624,6 +625,13 @@ registerHandler('collect', {
       if (!eligibleIds.has(player.id)) {
         ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for other players...' });
       }
+    }
+
+    // Everyone in the room sits this one out: close it now, the way the
+    // teacher's press would (engine/phases/nobody-can-answer.js)
+    if (nobodyCanAnswer(engine, countEligible.length) && ctx.services.closeCollect) {
+      console.log(`[handlePhase] '${phase.id}': nobody can answer, closing it`);
+      await ctx.services.closeCollect(ctx.code, ctx.room);
     }
   },
 

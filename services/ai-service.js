@@ -1048,11 +1048,11 @@ export class AIService {
   // beside `total`, so the console can say "summed up 2 of 3 answers" (a
   // reviewer's trick answer vanished without a word, 2026-09-26). The
   // projector never sees the line.
-  async process({ instruction, responses, systemPrompt, rosterNames, countSkipped } = {}) {
+  async process({ instruction, responses, systemPrompt, rosterNames, countSkipped, expectJson } = {}) {
     const total = Array.isArray(responses) ? responses.length : 0;
     const count = !!countSkipped && total > 0;
     const out = this.mode === 'mock'
-      ? this._processMock(instruction, responses, count)
+      ? this._processMock(instruction, responses, count, expectJson)
       : await this._processReal(instruction, responses, systemPrompt, rosterNames, count);
     const parsed = count ? parseLeftOut(out.text) : { text: out.text, leftOut: 0 };
     // The [playerId: ...] labels in the prompt never come back in prose
@@ -1061,7 +1061,7 @@ export class AIService {
     return { text: stripPlayerIdRefs(parsed.text, ids), leftOut: Math.min(parsed.leftOut, total), total };
   }
 
-  _processMock(instruction, responses, count) {
+  _processMock(instruction, responses, count, expectJson) {
     // The mock counts what the rule would catch: an answer that tries to
     // give instructions is left out, so the proof scripts see the note
     const skipped = count ? responses.filter(r => INJECTION_RE.test(String((r && r.text) || ''))).length : 0;
@@ -1082,6 +1082,27 @@ export class AIService {
       const items = [];
       for (let i = 0; i < n; i++) items.push(`Mock item ${i + 1} of ${n}`);
       return { text: JSON.stringify(items) };
+    }
+    // A format: json step (Mad Lib Mashup's list, Punchline Showdown's
+    // prompts) needs an object or array, never prose: the handler throws on
+    // prose and the room pauses. One mock line per answer in, three when
+    // nothing came in (the small-class sweep, 2026-10-02).
+    if (expectJson) {
+      // An instruction that asks for an OBJECT and names its fields
+      // ("- truth: a one-sentence definition", or a {"key": ...} example)
+      // gets an object with those keys, so {{step.result.truth}} resolves
+      const wantsObject = /JSON object/i.test(instruction || '');
+      const keys = [];
+      for (const m of (instruction || '').matchAll(/^\s*[-*]\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/gm)) keys.push(m[1]);
+      if (!keys.length) for (const m of (instruction || '').matchAll(/"([A-Za-z_][A-Za-z0-9_]*)"\s*:/g)) if (!keys.includes(m[1])) keys.push(m[1]);
+      if (wantsObject && keys.length) {
+        const obj = {};
+        keys.forEach((k, i) => { obj[k] = `Mock ${k} ${i + 1}`; });
+        return { text: JSON.stringify(obj) };
+      }
+      const lines = (responses || []).map((r, i) => `Mock item ${i + 1}: ${String((r && r.text) || '').slice(0, 40)}`);
+      while (lines.length < 3) lines.push(`Mock item ${lines.length + 1}`);
+      return { text: JSON.stringify(lines) };
     }
     const truncatedInstruction = instruction.length > 50
       ? instruction.substring(0, 50) + '...'

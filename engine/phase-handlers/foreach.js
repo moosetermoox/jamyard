@@ -87,6 +87,14 @@ registerHandler('foreach', {
         };
       });
       finalItems = phase.shuffle !== false ? shuffleArray(finalItems) : finalItems;
+      // AI ideas but no human ones (the answer step closed empty): no pairs,
+      // so no rounds. Running on crashed at the first score with
+      // "reading 'aiPosition'" (the small-class sweep, 2026-10-02).
+      if (finalItems.length === 0) {
+        console.log(`[foreach] '${phase.id}' pairMode=human-vs-ai but no human items, skipping`);
+        if (phase.next) await ctx.advanceTo(phase.next);
+        return;
+      }
     } else {
       finalItems = items;
     }

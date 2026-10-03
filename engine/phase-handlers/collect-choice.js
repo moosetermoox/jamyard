@@ -16,6 +16,7 @@ import { audienceLine } from '../phases/audience-line.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 import { withoutPlaceholderLines } from '../phases/host-prompt.js';
+import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 
 /**
  * Resolve the base choice array for a collect-choice phase.
@@ -253,6 +254,13 @@ registerHandler('collect-choice', {
       if (!eligibleIds.has(player.id)) {
         ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for other players...' });
       }
+    }
+
+    // Everyone in the room sits this one out: close it now, the way the
+    // teacher's press would (engine/phases/nobody-can-answer.js)
+    if (nobodyCanAnswer(engine, countTotal) && ctx.services.closeCollect) {
+      console.log(`[handlePhase] '${phase.id}': nobody can answer, closing it`);
+      await ctx.services.closeCollect(ctx.code, ctx.room);
     }
   },
 
