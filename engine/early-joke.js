@@ -124,8 +124,13 @@ export function earlyJokeFirst(config) {
   return ej && typeof ej === 'object' && Number.isInteger(ej.first) ? ej.first : EARLY_JOKE_DEFAULT_FIRST;
 }
 
-export function createEarlyJokeState(config) {
+// The jokes are an English list (dad-jokes.json): a room whose activity
+// runs in another language deals none (a reviewer, 2026-10-02: a Spanish
+// room came out half English). `language` is the engine's resolved code;
+// absent reads as English.
+export function createEarlyJokeState(config, language) {
   if (!isEarlyJokeOn(config)) return null;
+  if (typeof language === 'string' && language && language !== 'en') return null;
   return { first: earlyJokeFirst(config), dealt: {} };
 }
 
@@ -145,10 +150,28 @@ export function jokeFor(state, playerId, jokes = DAD_JOKES) {
  * late, not early: their first screen is a step's instruction, and a
  * joke above it pushed the instruction down (an outside reviewer's third
  * Convention run, 2026-09-26).
- * @param {{ phaseType?: string|null, rolling?: boolean }} at
+ * A rolling room is running from the moment it opens, so "You got here
+ * fast" holds only for the first minutes (2026-10-02, an outside reviewer
+ * saw it on a join into a running activity): `msSinceOpen` past
+ * ROLLING_EARLY_MS is late there too. Left out, the old rule stands.
+ * @param {{ phaseType?: string|null, rolling?: boolean, msSinceOpen?: number }} at
  */
-export function isEarlyBirdJoin({ phaseType, rolling } = {}) {
-  return !!rolling || !phaseType || phaseType === 'lobby';
+export const ROLLING_EARLY_MS = 5 * 60 * 1000;
+
+export function isEarlyBirdJoin({ phaseType, rolling, msSinceOpen } = {}) {
+  if (rolling) return !(typeof msSinceOpen === 'number' && msSinceOpen > ROLLING_EARLY_MS);
+  return !phaseType || phaseType === 'lobby';
+}
+
+/**
+ * A reconnect gets its joke back only where a fresh join would draw one,
+ * and never on the end step: a refresh at the end of the activity put the
+ * unread joke over the final screen (a reviewer, 2026-10-02), because the
+ * step a reconnect lands on arrives without the id that folds the card.
+ */
+export function isJokeReconnect({ phaseType, rolling } = {}) {
+  if (phaseType === 'end') return false;
+  return isEarlyBirdJoin({ phaseType, rolling });
 }
 
 /**

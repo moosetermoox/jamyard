@@ -217,8 +217,16 @@ function coerceValue(spec, value) {
   switch (spec.type) {
     case 'integer': {
       if (typeof value === 'number') return value;
-      if (typeof value === 'string' && /^-?\d+$/.test(value.trim())) {
-        return parseInt(value, 10);
+      if (typeof value === 'string') {
+        // "7,000", "7 000", "1_247": a teacher's thousands separators
+        // (a reviewer's "7,000" came back as a raw type error, 2026-10-02)
+        const digits = value.trim().replace(/(\d)[,\s_](?=\d{3}\b)/g, '$1');
+        if (/^[-−]?\d+$/.test(digits)) {
+          const n = parseInt(digits.replace('−', '-'), 10);
+          // A number past what JavaScript holds exactly stays unsafe for
+          // the validator to name ("too big a number"), never rounded
+          return n;
+        }
       }
       return value; // validator rejects
     }

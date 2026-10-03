@@ -129,7 +129,7 @@ describe('a plan the class can run', () => {
 describe('the joke, the terms, the rounds box', () => {
   it('the joke list has no religion, romance, crime, body, or disability jokes, and the source and the JSON agree', () => {
     const built = JSON.parse(read('engine/dad-jokes.json'));
-    expect(built.length).toBe(451);
+    expect(built.length).toBe(424);
     const bad = /left side was cut off|criminal going down|found in the bathroom|atheis|prophet|catholic|\bnun\b|buddh|monastery|friar|sunday school|girlfriend|my date|kleptoman|kidnapping|pee soup|vowel movement|urine|bladder|\bdung\b|cross-eyed|hearing aid|bullies|corkscrew|steal a mixer|stealing from his job/i;
     expect(built.filter(j => bad.test(j))).toEqual([]);
     expect(read('docs/500-all-ages-dad-jokes.md')).not.toMatch(/non-prophet/);
@@ -142,8 +142,10 @@ describe('the joke, the terms, the rounds box', () => {
     expect(player).toContain('earlyJokeSettle = !!joke.settle;');
     const server = read('server.js');
     expect(server).toContain('if (joke && opts && opts.rolling) joke.settle = true;');
-    // the two join-success emits, plus the isEarlyBirdJoin call that already read it that way
-    expect((server.match(/rolling: !!\(room\.engine && isRolling\(room\.engine\.config\)\)/g) || []).length).toBe(3);
+    // the fresh join's emit and its isEarlyBirdJoin call; the reconnect
+    // reads it once into rjRolling (2026-10-02, isJokeReconnect)
+    expect((server.match(/rolling: !!\(room\.engine && isRolling\(room\.engine\.config\)\)/g) || []).length).toBe(2);
+    expect(server).toContain('joke: jokePayload(rjJoke, { rolling: rjRolling })');
   });
 
   it('the Vocab Match projector lists the terms while the class matches', () => {

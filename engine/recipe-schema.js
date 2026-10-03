@@ -534,7 +534,7 @@ export function validateParams(recipe, params) {
           code: RECIPE_DIAGNOSTIC_CODES.PARAM_MISSING_REQUIRED,
           path: path('params', paramName),
           field: paramName,
-          message: `Required parameter "${spec.label || paramName}" is missing.`,
+          message: `${quoteLabel(spec, paramName)} needs to be filled in.`,
           source: 'validator'
         }));
       }
@@ -550,98 +550,82 @@ export function validateParams(recipe, params) {
 /**
  * Validate one (param, value) pair against its spec. Recursively
  * descends into array.item.
+ *
+ * Messages are in a teacher's words (a reviewer met 'Parameter
+ * "questions[0].answer" must be a integer (got string)' on Estimation
+ * Station, 2026-10-02): the field's label, where it sits ("in item 2 of
+ * ..."), and what to type. `label` is that display name; `paramName`
+ * stays the machine path for the diagnostic's `field`.
  */
-function validateValue(paramName, spec, value) {
+function validateValue(paramName, spec, value, label = quoteLabel(spec, paramName)) {
   const diags = [];
   const where = path('params', paramName);
+  const err = (code, message) => mkDiagnostic({ severity: 'error', code, path: where, field: paramName, message, source: 'validator' });
 
   switch (spec.type) {
     case 'string':
     case 'templateString':
     case 'promptDeck': {
       if (typeof value !== 'string') {
-        diags.push(typeMismatch(paramName, where, spec.type, value));
+        diags.push(typeMismatch(paramName, where, spec.type, value, label));
         return diags;
       }
       if (spec.minLength != null && value.length < spec.minLength) {
-        diags.push(mkDiagnostic({
-          severity: 'error',
-          code: RECIPE_DIAGNOSTIC_CODES.PARAM_STRING_TOO_SHORT,
-          path: where,
-          field: paramName,
-          message: `Parameter "${spec.label || paramName}" must be at least ${spec.minLength} characters.`,
-          source: 'validator'
-        }));
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_STRING_TOO_SHORT,
+          `${label} needs at least ${spec.minLength} characters.`));
       }
       if (spec.maxLength != null && value.length > spec.maxLength) {
-        diags.push(mkDiagnostic({
-          severity: 'error',
-          code: RECIPE_DIAGNOSTIC_CODES.PARAM_STRING_TOO_LONG,
-          path: where,
-          field: paramName,
-          message: `Parameter "${spec.label || paramName}" must be at most ${spec.maxLength} characters.`,
-          source: 'validator'
-        }));
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_STRING_TOO_LONG,
+          `${label} can be at most ${spec.maxLength} characters.`));
       }
       break;
     }
 
     case 'integer': {
       if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value)) {
-        diags.push(typeMismatch(paramName, where, spec.type, value));
+        diags.push(typeMismatch(paramName, where, spec.type, value, label));
+        return diags;
+      }
+      if (!Number.isSafeInteger(value)) {
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_INTEGER_RANGE,
+          `${label} is too big a number. Use 15 digits or fewer.`));
         return diags;
       }
       if (spec.min != null && value < spec.min) {
-        diags.push(mkDiagnostic({
-          severity: 'error',
-          code: RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_INTEGER_RANGE,
-          path: where,
-          field: paramName,
-          message: `Parameter "${spec.label || paramName}" must be at least ${spec.min}.`,
-          source: 'validator'
-        }));
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_INTEGER_RANGE,
+          `${label} must be at least ${spec.min}.`));
       }
       if (spec.max != null && value > spec.max) {
-        diags.push(mkDiagnostic({
-          severity: 'error',
-          code: RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_INTEGER_RANGE,
-          path: where,
-          field: paramName,
-          message: `Parameter "${spec.label || paramName}" must be at most ${spec.max}.`,
-          source: 'validator'
-        }));
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_INTEGER_RANGE,
+          `${label} must be at most ${spec.max}.`));
       }
       break;
     }
 
     case 'boolean': {
       if (typeof value !== 'boolean') {
-        diags.push(typeMismatch(paramName, where, spec.type, value));
+        diags.push(typeMismatch(paramName, where, spec.type, value, label));
       }
       break;
     }
 
     case 'enum': {
       if (!Array.isArray(spec.values) || !spec.values.includes(value)) {
-        diags.push(mkDiagnostic({
-          severity: 'error',
-          code: RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_ENUM_VALUE,
-          path: where,
-          field: paramName,
-          message: `Parameter "${spec.label || paramName}" must be one of: ${(spec.values || []).join(', ')}.`,
-          source: 'validator'
-        }));
+        const labels = (spec.values || []).map(v => (spec.valueLabels && typeof spec.valueLabels[v] === 'string') ? spec.valueLabels[v] : String(v));
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_ENUM_VALUE,
+          `${label} must be one of: ${labels.join(', ')}.`));
       }
       break;
     }
 
     case 'object': {
       if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-        diags.push(typeMismatch(paramName, where, spec.type, value));
+        diags.push(typeMismatch(paramName, where, spec.type, value, label));
         return diags;
       }
       for (const [fieldName, fieldSpec] of Object.entries(spec.fields || {})) {
         const fieldValue = value[fieldName];
+        const fieldLabel = `${quoteLabel(fieldSpec, fieldName)} in ${label}`;
         if (fieldValue == null) {
           if (fieldSpec.required) {
             diags.push(mkDiagnostic({
@@ -649,47 +633,36 @@ function validateValue(paramName, spec, value) {
               code: RECIPE_DIAGNOSTIC_CODES.PARAM_MISSING_REQUIRED,
               path: path(where, fieldName),
               field: paramName,
-              message: `"${spec.label || paramName}" is missing its "${fieldSpec.label || fieldName}".`,
+              message: `${capFirst(label)} is missing its ${quoteLabel(fieldSpec, fieldName)}.`,
               source: 'validator'
             }));
           }
           continue;
         }
-        diags.push(...validateValue(`${paramName}.${fieldName}`, fieldSpec, fieldValue));
+        diags.push(...validateValue(`${paramName}.${fieldName}`, fieldSpec, fieldValue, fieldLabel));
       }
       break;
     }
 
     case 'array': {
       if (!Array.isArray(value)) {
-        diags.push(typeMismatch(paramName, where, spec.type, value));
+        diags.push(typeMismatch(paramName, where, spec.type, value, label));
         return diags;
       }
       if (spec.minItems != null && value.length < spec.minItems) {
-        diags.push(mkDiagnostic({
-          severity: 'error',
-          code: RECIPE_DIAGNOSTIC_CODES.PARAM_ARRAY_TOO_SHORT,
-          path: where,
-          field: paramName,
-          message: `Parameter "${spec.label || paramName}" needs at least ${spec.minItems} items (got ${value.length}).`,
-          source: 'validator'
-        }));
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_ARRAY_TOO_SHORT,
+          `${label} needs at least ${spec.minItems} (there ${value.length === 1 ? 'is' : 'are'} ${value.length}).`));
       }
       if (spec.maxItems != null && value.length > spec.maxItems) {
-        diags.push(mkDiagnostic({
-          severity: 'error',
-          code: RECIPE_DIAGNOSTIC_CODES.PARAM_ARRAY_TOO_LONG,
-          path: where,
-          field: paramName,
-          message: `Parameter "${spec.label || paramName}" can have at most ${spec.maxItems} items (got ${value.length}).`,
-          source: 'validator'
-        }));
+        diags.push(err(RECIPE_DIAGNOSTIC_CODES.PARAM_ARRAY_TOO_LONG,
+          `${label} can have at most ${spec.maxItems} (there are ${value.length}).`));
       }
       // Per-item type check (only one level deep — arrays of arrays would
       // need recursion; YAGNI for the recipe layer)
       if (spec.item != null) {
         for (let i = 0; i < value.length; i++) {
-          const itemDiags = validateValue(`${paramName}[${i}]`, spec.item, value[i]);
+          const itemLabel = `item ${i + 1} of ${label}`;
+          const itemDiags = validateValue(`${paramName}[${i}]`, spec.item, value[i], itemLabel);
           diags.push(...itemDiags);
         }
       }
@@ -697,16 +670,39 @@ function validateValue(paramName, spec, value) {
     }
   }
 
+  // A message never opens on a lowercase "item 2 of ..."
+  for (const d of diags) d.message = capFirst(d.message);
   return diags;
 }
 
-function typeMismatch(paramName, where, expected, value) {
+function capFirst(text) {
+  return typeof text === 'string' && text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+// The name a teacher sees on the form, in quotes; the machine name only
+// when the recipe gave no label.
+function quoteLabel(spec, name) {
+  return `"${(spec && spec.label) || name}"`;
+}
+
+const PLAIN_TYPES = {
+  integer: 'a whole number, like 12',
+  boolean: 'a yes or a no',
+  string: 'some words',
+  templateString: 'some words',
+  promptDeck: 'some words',
+  enum: 'one of the choices',
+  array: 'a list',
+  object: 'each of its boxes filled in'
+};
+
+function typeMismatch(paramName, where, expected, value, label = `"${paramName}"`) {
   return mkDiagnostic({
     severity: 'error',
     code: RECIPE_DIAGNOSTIC_CODES.PARAM_INVALID_TYPE,
     path: where,
     field: paramName,
-    message: `Parameter "${paramName}" must be a ${expected} (got ${actualTypeName(value)}).`,
+    message: `${label} needs ${PLAIN_TYPES[expected] || expected}.`,
     source: 'validator'
   });
 }

@@ -158,7 +158,8 @@
     var t = phase.prompt || phase.message || phase.template || phase.instruction || '';
     // Tokens read as what they show ("[bar chart from 'Question 1...']")
     // instead of a mystery "…" — humanizeRef is the editor's own labeler.
-    t = String(t).replace(/\{\{([^}]*)\}\}/g, function (whole, ref) {
+    // Markdown habits ("## Here's...", **bold**) read as stray marks on a card
+    t = String(t).replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '').replace(/\{\{([^}]*)\}\}/g, function (whole, ref) {
       if (typeof humanizeRef !== 'function') return '…';
       var friendly = humanizeRef(ref.trim());
       return friendly === ref.trim() ? '…' : '[' + friendly + ']';

@@ -436,12 +436,15 @@
               choices: '_candidates',
               timer: 20
             },
+            // Host-paced (no timer), and it says who had it (the
+            // guess step's rightLine, 2026-10-02)
             'reveal': {
               type: 'announce',
               message: 'How the class guessed:\n{{guess.barChart}}\n\n' +
                 (hasPair
                   ? 'It was ' + secretRef + ', from {{_current.playerName}}!'
-                  : 'It was {{_current.playerName}}!')
+                  : 'It was {{_current.playerName}}!') +
+                '\n\n{{guess.rightLine}}'
             }
           }
         }
@@ -544,7 +547,7 @@
   // every question's scores. Structure is deterministic; the AI supplies
   // only the questions and words. Wires phases in place, returns the new
   // lastId, or null when nothing usable compiled.
-  var MAX_QUIZ_QUESTIONS = 15;
+  var MAX_QUIZ_QUESTIONS = 20; // the quiz-show recipe's cap too (engine/question-count.js)
 
   // Mirrors engine/phases/confidence.js (a test keeps them equal)
   var CONFIDENCE_PROMPT = 'How sure are you of your answer?';
@@ -607,9 +610,12 @@
       }
       var aId = freshId(phases, 'answer');
       phases[beforeAnswer].next = aId;
+      // The answer card reads the question's own right answer, never a
+      // copy of its words: a teacher who changed it to Venus got "THE
+      // ANSWER WAS: MARS!" beside Venus ticked (a reviewer, 2026-10-02)
       phases[aId] = {
         type: 'announce',
-        message: 'The answer was: ' + correct + '!\n\nClass picks:\n{{' + qId + '.barChart}}' + confidenceLines
+        message: 'The answer was: {{' + qId + '.correctAnswer}}!\n\nClass picks:\n{{' + qId + '.barChart}}' + confidenceLines
       };
       lastId = aId;
       scoreRefs.push(qId + '.scores');
@@ -923,6 +929,10 @@
     }
     var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
       ? Math.round(step.timer) : null;
+    // An argument is a paragraph, not a text message: the 280-letter
+    // default stopped a five-minute opening (a reviewer's Silent Debate,
+    // 2026-10-02); a long clock gets more room still
+    var pairMax = timer && timer >= 180 ? 1200 : 800;
 
     var openId = freshId(phases, 'pair-write');
 
@@ -933,6 +943,10 @@
         .replace(/\{\{\s*(otherSide|partnerSide)\s*\}\}/g, '{{' + openId + '.partnerSide}}');
       if (prevId) out = out.replace(/\{\{\s*partner\s*\}\}/g, '{{' + prevId + '.partner}}');
       else out = out.replace(/\{\{\s*partner\s*\}\}/g, '');
+      // {{mine}}: what this student wrote first, at the opening step
+      out = prevId
+        ? out.replace(/\{\{\s*mine\s*\}\}/g, '{{' + openId + '.mine}}')
+        : out.replace(/\{\{\s*mine\s*\}\}/g, '');
       return out.replace(/[ \t]{2,}/g, ' ').trim();
     }
     // A sides line under the instruction when the text does not place it.
@@ -949,7 +963,7 @@
         ? 'Your partner\'s words are on your own device.'
         : 'Everyone is writing to their partner on their own device.';
     }
-    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple', hostTemplate: projectorLine(false) };
+    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple', hostTemplate: projectorLine(false), maxLength: pairMax };
     if (sides) open.sides = sides;
     if (timer) open.timer = timer;
     // Partners by an earlier pick (2026-09-27, "pair each yes with a no",
@@ -968,13 +982,19 @@
     phases[openId] = open;
     lastId = openId;
 
-    rounds.forEach(function (round) {
+    rounds.forEach(function (round, r) {
       var roundId = freshId(phases, 'pair-round');
       var prompt = bindTokens(round, lastId);
       if (prompt.indexOf('{{' + lastId + '.partner}}') === -1) {
         prompt = prompt + '\n\n{{' + lastId + '.partner}}';
       }
-      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId, hostTemplate: projectorLine(true) };
+      // From the second round on the student's own opening sits under the
+      // partner's piece: "defend your original argument" with only the
+      // rebuttal in view (a reviewer's Silent Debate, 2026-10-02)
+      if (r >= 1 && prompt.indexOf('{{' + openId + '.mine}}') === -1) {
+        prompt = prompt + '\n\nWhat you wrote first:\n\n“{{' + openId + '.mine}}”';
+      }
+      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId, hostTemplate: projectorLine(true), maxLength: pairMax };
       if (timer) roundPhase.timer = timer;
       phases[lastId].next = roundId;
       phases[roundId] = roundPhase;
@@ -1352,26 +1372,44 @@
       return null;
     }
     var heading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim() : 'Your classmates ask:';
+    // character: a student plays someone in the seat (a historical figure,
+    // a book's narrator). A reviewer's Hot Seat History, 2026-10-02: no
+    // step picked the guest or named the figure, and everyone wrote
+    // questions. With a character the class picks the guest FIRST, the
+    // projector names the guest and the figure, the guest stays in the seat
+    // throughout, and the guest's own entry never comes back to them.
+    var character = (typeof step.character === 'string' && step.character.trim()) ? step.character.trim().slice(0, 120) : '';
     var to = '{{players.random}}';
-    if (step.pick === 'vote') {
+    if (step.pick === 'vote' || character) {
       var pickId = freshId(phases, 'pick');
-      var voteText = (typeof step.voteText === 'string' && step.voteText.trim()) ? step.voteText.trim() : 'Who goes in the hot seat?';
+      var voteText = (typeof step.voteText === 'string' && step.voteText.trim()) ? step.voteText.trim()
+        : character ? 'Who plays ' + character + '?' : 'Who goes in the hot seat?';
       phases[lastId].next = pickId;
       phases[pickId] = { type: 'vote', mode: 'pick-one', candidates: 'players', excludeAuthors: true, question: voteText, timer: 45 };
       var namedId = freshId(phases, 'picked');
       phases[pickId].next = namedId;
-      phases[namedId] = { type: 'reveal', template: 'First in the hot seat:\n\n**{{' + pickId + '.winnerText}}**' };
+      phases[namedId] = {
+        type: 'reveal',
+        template: character
+          ? 'In the hot seat:\n\n**{{' + pickId + '.winnerText}}**\n\nPlaying:\n\n**' + character + '**'
+          : 'First in the hot seat:\n\n**{{' + pickId + '.winnerText}}**'
+      };
       lastId = namedId;
       to = '{{' + pickId + '.winnerText}}';
     }
     // The seat moves every few questions (owner 2026-10-01: one student
-    // with everyone's questions was a lot)
+    // with everyone's questions was a lot); a character keeps one guest
     var perSeat = (typeof step.perSeat === 'number' && step.perSeat >= 1) ? Math.min(20, Math.round(step.perSeat)) : HOT_SEAT_PER_SEAT;
     var askId = freshId(phases, 'ask');
     var gateId = freshId(phases, 'check');
     var seatId = freshId(phases, 'hot-seat');
     phases[lastId].next = askId;
-    phases[askId] = { type: 'collect', prompt: text, maxLength: 300 };
+    var askText = text;
+    if (character) {
+      if (askText.indexOf(character) === -1) askText = 'Ask **' + character + '**:\n\n' + askText;
+      askText += '\n\nIn the hot seat yourself? Get into character while the class writes. Type a line your character might open with; it never comes back to you as a question.';
+    }
+    phases[askId] = { type: 'collect', prompt: askText, maxLength: 300 };
     phases[askId].next = gateId;
     phases[gateId] = {
       type: 'preview',
@@ -1379,8 +1417,10 @@
       approveNext: seatId,
       rejectNext: askId
     };
-    phases[seatId] = { type: 'reveal-one', message: heading, from: askId + '.responses', to: to, rotateEvery: perSeat };
-    if (pickId) phases[seatId].seatOrderFrom = pickId;
+    phases[seatId] = character
+      ? { type: 'reveal-one', message: heading, from: askId + '.responses', to: to }
+      : { type: 'reveal-one', message: heading, from: askId + '.responses', to: to, rotateEvery: perSeat };
+    if (pickId && !character) phases[seatId].seatOrderFrom = pickId;
     return seatId;
   }
 
@@ -1872,7 +1912,39 @@
     var id = freshId(phases, 'standings');
     phases[lastId].next = id;
     phases[id] = { type: 'leaderboard', from: refs.length === 1 ? refs[0] : refs.slice(), style: 'full' };
+    withTeamTotals(phases, id);
     return id;
+  }
+
+  // Choices that read as a scale: every one carries a number ("0", "3",
+  // "5 (I could teach it)"), at least three of them, and the numbers
+  // climb or fall in list order.
+  function isScaleChoices(choices) {
+    if (!Array.isArray(choices) || choices.length < 3) return false;
+    var nums = [];
+    for (var i = 0; i < choices.length; i++) {
+      var m = String(choices[i] == null ? '' : choices[i]).match(/\d+/);
+      if (!m) return false;
+      nums.push(parseInt(m[0], 10));
+    }
+    var up = true, down = true;
+    for (var j = 1; j < nums.length; j++) {
+      if (nums[j] <= nums[j - 1]) up = false;
+      if (nums[j] >= nums[j - 1]) down = false;
+    }
+    return up || down;
+  }
+
+  // A teams step earlier in the plan makes a scoreboard a team
+  // competition: the students' points roll up into team totals (a
+  // reviewer's Buzzer Quiz, 2026-10-02, split the class into four teams
+  // and then ranked only students). The latest split wins.
+  function withTeamTotals(phases, boardId) {
+    var splitId = null;
+    for (var pid in phases) {
+      if (phases[pid] && phases[pid].type === 'team-split') splitId = pid;
+    }
+    if (splitId) phases[boardId].teamsFrom = splitId;
   }
 
   // Rolling start: students begin the moment they join and finish on
@@ -1925,6 +1997,7 @@
     ['}} of {{', { es: '}} de {{', fr: '}} sur {{', de: '}} von {{', pt: '}} de {{', it: '}} di {{' }],
     ['The answer was: ', { es: 'La respuesta era: ', fr: 'La réponse était : ', de: 'Die Antwort war: ', pt: 'A resposta era: ', it: 'La risposta era: ' }],
     ['Class picks:', { es: 'Lo que eligió la clase:', fr: 'Les choix de la classe :', de: 'Was die Klasse gewählt hat:', pt: 'O que a turma escolheu:', it: 'Le scelte della classe:' }],
+    ['What you wrote first:', { es: 'Lo que escribiste primero:', fr: 'Ce que tu as écrit en premier :', de: 'Was du zuerst geschrieben hast:', pt: 'O que você escreveu primeiro:', it: 'Cosa hai scritto per primo:' }],
     ['You wrote:', { es: 'Escribiste:', fr: 'Tu as écrit :', de: 'Du hast geschrieben:', pt: 'Você escreveu:', it: 'Hai scritto:' }],
     ['What your classmates said:', { es: 'Lo que dijeron tus compañeros:', fr: 'Ce que tes camarades ont dit :', de: 'Was deine Mitschüler gesagt haben:', pt: 'O que seus colegas disseram:', it: 'Cosa hanno detto i tuoi compagni:' }],
     ['What a classmate said:', { es: 'Lo que dijo un compañero:', fr: 'Ce qu\'un camarade a dit :', de: 'Was jemand aus der Klasse gesagt hat:', pt: 'O que um colega disse:', it: 'Cosa ha detto un compagno:' }],
@@ -1942,6 +2015,11 @@
     ['Who held what:', { es: 'Quién tenía qué:', fr: 'Qui avait quoi :', de: 'Wer was hatte:', pt: 'Quem tinha o quê:', it: 'Chi aveva cosa:' }],
     ['Your classmates ask:', { es: 'Tus compañeros preguntan:', fr: 'Tes camarades demandent :', de: 'Deine Mitschüler fragen:', pt: 'Seus colegas perguntam:', it: 'I tuoi compagni chiedono:' }],
     ['Who goes in the hot seat?', { es: '¿Quién se sienta en la silla caliente?', fr: 'Qui passe sur la sellette ?', de: 'Wer kommt auf den heißen Stuhl?', pt: 'Quem vai para a cadeira quente?', it: 'Chi va sulla sedia che scotta?' }],
+    ['In the hot seat:', { es: 'En la silla caliente:', fr: 'Sur la sellette :', de: 'Auf dem heißen Stuhl:', pt: 'Na cadeira quente:', it: 'Sulla sedia che scotta:' }],
+    ['Playing:', { es: 'Hace de:', fr: 'Dans le rôle de :', de: 'In der Rolle von:', pt: 'No papel de:', it: 'Nel ruolo di:' }],
+    ['Who plays ', { es: '¿Quién hace de ', fr: 'Qui joue ', de: 'Wer spielt ', pt: 'Quem faz o papel de ', it: 'Chi interpreta ' }],
+    ['Ask **', { es: 'Pregúntale a **', fr: 'Pose ta question à **', de: 'Frag **', pt: 'Pergunte a **', it: 'Chiedi a **' }],
+    ['In the hot seat yourself? Get into character while the class writes. Type a line your character might open with; it never comes back to you as a question.', { es: '¿Estás en la silla caliente? Métete en el personaje mientras la clase escribe. Escribe una frase con la que tu personaje empezaría; nunca te llegará como pregunta.', fr: 'C\'est toi sur la sellette ? Entre dans ton personnage pendant que la classe écrit. Écris une phrase par laquelle ton personnage pourrait commencer ; elle ne te reviendra jamais comme question.', de: 'Du sitzt auf dem heißen Stuhl? Schlüpf in deine Rolle, während die Klasse schreibt. Schreib einen Satz, mit dem deine Figur anfangen könnte; er kommt nie als Frage zu dir zurück.', pt: 'Você está na cadeira quente? Entre no personagem enquanto a turma escreve. Escreva uma frase com que seu personagem começaria; ela nunca volta para você como pergunta.', it: 'Sei tu sulla sedia che scotta? Entra nel personaggio mentre la classe scrive. Scrivi una frase con cui il tuo personaggio potrebbe iniziare; non ti tornerà mai come domanda.' }],
     ['First in the hot seat:', { es: 'Primero en la silla caliente:', fr: 'Premier sur la sellette :', de: 'Zuerst auf dem heißen Stuhl:', pt: 'Primeiro na cadeira quente:', it: 'Primo sulla sedia che scotta:' }],
     ['Which one wins this matchup?', { es: '¿Cuál gana este enfrentamiento?', fr: 'Lequel remporte ce duel ?', de: 'Wer gewinnt dieses Duell?', pt: 'Qual vence este confronto?', it: 'Chi vince questo scontro?' }],
     ['The winner of the bracket:', { es: 'El ganador del torneo:', fr: 'Le gagnant du tournoi :', de: 'Der Sieger des Turniers:', pt: 'O vencedor do torneio:', it: 'Il vincitore del torneo:' }],
@@ -2028,12 +2106,69 @@
     Object.keys(phases).forEach(function (pid) { walk(phases[pid]); });
   }
 
+  // A jigsaw's expert groups each get their own section (2026-10-02, an
+  // outside reviewer: "Read your assigned section", and no section was ever
+  // assigned). When a plan regroups with teams + jigsaw and no step between
+  // the first split and the regroup hands out per-group lines, the first
+  // announce or collect there that talks about a section (or, failing that,
+  // the first collect) gets numbered stations, one per expert group, so
+  // each group reads which section is theirs. The plan's own stations win.
+  var SECTION_WORDS = { en: 'Section', es: 'Sección', fr: 'Section', de: 'Abschnitt', pt: 'Seção', it: 'Sezione' };
+  var SECTION_NOUN_RE = /\b(section|chapter|part|passage|article|reading|source|topic|text)s?\b/i;
+  function jigsawSections(steps, language) {
+    var out = steps.slice();
+    for (var j = 0; j < out.length; j++) {
+      var regroup = out[j];
+      if (!regroup || regroup.brick !== 'teams' || regroup.jigsaw !== true) continue;
+      var first = -1;
+      for (var k = j - 1; k >= 0; k--) {
+        if (out[k] && out[k].brick === 'teams' && out[k].jigsaw !== true) { first = k; break; }
+      }
+      if (first < 0) continue;
+      var between = [];
+      var hasStations = false;
+      for (var m = first + 1; m < j; m++) {
+        var s = out[m];
+        if (!s) continue;
+        if (Array.isArray(s.stations) && s.stations.length >= 2) hasStations = true;
+        if (s.brick === 'announce' || s.brick === 'collect') between.push(m);
+      }
+      if (hasStations || between.length === 0) continue;
+      var target = -1;
+      for (var b = 0; b < between.length; b++) {
+        if (SECTION_NOUN_RE.test(String(out[between[b]].text || ''))) { target = between[b]; break; }
+      }
+      if (target < 0) {
+        for (var c = 0; c < between.length; c++) {
+          if (out[between[c]].brick === 'collect') { target = between[c]; break; }
+        }
+      }
+      if (target < 0) continue;
+      var count = Number(out[first].teamCount);
+      count = (count >= 2 && count <= 12) ? Math.round(count) : 4;
+      var lang = (typeof language === 'string' && SECTION_WORDS[language]) ? language : 'en';
+      var noun = SECTION_WORDS[lang];
+      if (lang === 'en') {
+        var found = String(out[target].text || '').match(SECTION_NOUN_RE);
+        if (found && !/^(reading|text|source)$/i.test(found[1])) noun = found[1].charAt(0).toUpperCase() + found[1].slice(1).toLowerCase();
+      }
+      var lines = [];
+      for (var n = 1; n <= count; n++) lines.push(noun + ' ' + n);
+      var copy = {};
+      Object.keys(out[target]).forEach(function (key) { copy[key] = out[target][key]; });
+      copy.stations = lines;
+      out[target] = copy;
+    }
+    return out;
+  }
+
   function compileStoryboard(storyboard) {
     var problems = [];
     var steps = (storyboard && Array.isArray(storyboard.steps)) ? storyboard.steps : [];
     if (steps.length === 0) {
       return { config: null, problems: ['The storyboard has no steps.'] };
     }
+    steps = jigsawSections(steps, storyboard.language);
 
     var phases = { lobby: { type: 'lobby' } };
     var lastId = 'lobby';
@@ -2433,6 +2568,12 @@
       // Poll's shape); a warm-up poll used to close into nothing (a
       // reviewer, 2026-09-27). The graded quiz keeps its own reveal.
       if (brick === 'collect-choice' && !built.correctAnswer) built.liveResults = true;
+      // A scale (fist to five, 1 to 10) charts in its own order with the
+      // values nobody picked still on it (a reviewer, 2026-10-02: 2, 0, 3
+      // by count, the 1, 4, and 5 gone)
+      if (brick === 'collect-choice' && !built.correctAnswer && isScaleChoices(built.choices)) {
+        built.chartOrder = 'choices';
+      }
 
       phases[lastId].next = id;
       phases[id] = built;
@@ -2493,6 +2634,7 @@
         var standingsId = freshId(phases, 'standings');
         phases[lastId].next = standingsId;
         phases[standingsId] = { type: 'leaderboard', from: id + '.scores', style: 'full' };
+        withTeamTotals(phases, standingsId);
         lastId = standingsId;
       }
 

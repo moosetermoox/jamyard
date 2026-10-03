@@ -15,6 +15,7 @@
  */
 import { formatCloud, formatCards, pickRandom, listOf } from './phases/word-cloud.js';
 import { StateMachine } from './state-machine.js';
+import { foreachRoundOf } from './phases/foreach-rounds.js';
 import { PlayerRegistry } from './player-registry.js';
 import { runEliminate } from './phases/eliminate-handler.js';
 import { generateMatchups, getEligibleVoters } from './phases/vote-handler.js';
@@ -23,6 +24,8 @@ import { determineWinner, traceEntryRef, findWinnerEntries } from './phases/winn
 import { parseRef } from './resolver-grammar.js';
 import { resolveLanguage } from './i18n/index.js';
 import { localizeConfidence } from './phases/confidence.js';
+import { guessesAuthors } from './names-needed.js';
+import { markPromisedUnattributed } from './anonymity-promise.js';
 
 export class GameEngine {
   constructor(config) {
@@ -33,6 +36,16 @@ export class GameEngine {
     // room's own copy (engine/phases/confidence.js); the loaded config is
     // shared and never changed.
     this.config = localizeConfidence(config, this.language);
+    // Guessing who wrote what needs the real names (engine/names-needed.js):
+    // such a room runs with names shown, on its own shallow copy
+    if (this.config.anonymous === true && guessesAuthors(this.config)) {
+      this.config = { ...this.config, anonymous: false };
+    }
+    // A step whose words promised students the teacher will not know who
+    // said what keeps its answers unnamed on the console and the report too
+    // (engine/anonymity-promise.js, 2026-10-02: a Create-page question box
+    // said "Nobody will know who asked what" and the console listed names)
+    if (!guessesAuthors(this.config)) this.config = markPromisedUnattributed(this.config);
     this.players = new PlayerRegistry();
     this.phaseData = {};
     this.hooks = {};
@@ -62,6 +75,14 @@ export class GameEngine {
     if (loopInfo) {
       this.phaseData[phaseId + '~' + loopInfo.iteration] = data;
     }
+
+    // A For Each round's step (`_fe:<foreach>:<sub>`) runs once per item
+    // under the same id, so each round also keeps its own copy
+    // (`_fe:<foreach>:<sub>@<round>`) for the activity report, which
+    // showed only the last round (a reviewer, 2026-10-02). Live room
+    // state only, like the rest of phaseData.
+    const round = foreachRoundOf(phaseId, this.foreachState);
+    if (round) this.phaseData[phaseId + '@' + round] = data;
   }
 
   _getActiveLoopFor(phaseId) {

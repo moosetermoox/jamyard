@@ -471,7 +471,7 @@ function buildGameCard(game) {
   favBtn.className = 'game-card-fav' + (isFav ? ' is-fav' : '');
   favBtn.textContent = isFav ? '♥' : '♡';
   favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-  favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
+  favBtn.setAttribute('aria-label', 'Favorite "' + game.name + '"');
   favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
   favBtn.addEventListener('click', function () {
     Favorites.toggle(game.id);
@@ -916,6 +916,8 @@ function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
     var spec = recipe.parameters[name];
     form.appendChild(buildField(name, spec));
   }
+  form.addEventListener('change', function () { applyShowWhen(form, recipe); });
+  applyShowWhen(form, recipe);
 
   modal.appendChild(form);
 
@@ -980,10 +982,44 @@ function buildField(name, spec) {
     wrap.appendChild(helper);
   }
 
+  // The field's limits, said before they are broken (a reviewer met "at
+  // least 2 rounds" and "10 to 60 percent" only as errors, 2026-10-02)
+  var limit = RecipeFormHelp.limitHint(spec);
+  if (limit) {
+    var limitEl = document.createElement('div');
+    limitEl.className = 'recipe-field-limit';
+    limitEl.textContent = limit;
+    wrap.appendChild(limitEl);
+  }
+
   var input = buildInputForType(name, spec);
   wrap.appendChild(input);
 
   return wrap;
+}
+
+// A field that only matters for one choice hides behind it (Choice
+// Draft's "Students per group" vs "Number of groups", 2026-10-02): the
+// recipe's showWhen, the rule the make page's knobs already follow. A
+// hidden field is not sent, so the recipe's default fills it.
+function applyShowWhen(form, recipe) {
+  var values = {};
+  var fields = form.querySelectorAll('.recipe-field');
+  for (var i = 0; i < fields.length; i++) {
+    var name = fields[i].getAttribute('data-param-name');
+    var type = fields[i].getAttribute('data-param-type');
+    if (type === 'enum') {
+      var sel = fields[i].querySelector('select');
+      if (sel) values[name] = sel.value;
+    } else if (type === 'boolean') {
+      var box = fields[i].querySelector('.recipe-field-checkbox');
+      if (box) values[name] = box.checked ? 'true' : 'false';
+    }
+  }
+  for (var j = 0; j < fields.length; j++) {
+    var spec = (recipe.parameters || {})[fields[j].getAttribute('data-param-name')];
+    fields[j].hidden = !RecipeFormHelp.fieldVisible(spec, values);
+  }
 }
 
 function buildInputForType(name, spec) {
@@ -1019,7 +1055,7 @@ function buildStringInput(name, spec, multiline) {
   input.setAttribute('data-param-name', name);
   if (!multiline) input.type = 'text';
   if (multiline) input.rows = 2;
-  if (spec.placeholder) input.placeholder = spec.placeholder;
+  if (spec.placeholder) input.placeholder = RecipeFormHelp.hintPlaceholder(spec.placeholder);
   if (spec.default != null) input.value = spec.default;
   return input;
 }
@@ -1217,7 +1253,7 @@ function buildIntegerInput(name, spec) {
   input.setAttribute('data-param-name', name);
   if (spec.min != null) input.min = spec.min;
   if (spec.max != null) input.max = spec.max;
-  if (spec.placeholder) input.placeholder = spec.placeholder;
+  if (spec.placeholder) input.placeholder = RecipeFormHelp.hintPlaceholder(spec.placeholder);
   if (spec.default != null) input.value = spec.default;
   return input;
 }
@@ -1248,11 +1284,27 @@ function buildEnumInput(name, spec) {
   for (var i = 0; i < spec.values.length; i++) {
     var opt = document.createElement('option');
     opt.value = spec.values[i];
-    opt.textContent = spec.values[i];
+    // the recipe's words for the choice, never the value the compiler
+    // reads ("size / count / none" on Choice Draft, 2026-10-02)
+    opt.textContent = RecipeFormHelp.enumLabel(spec, spec.values[i]);
     if (spec.values[i] === spec.default) opt.selected = true;
     sel.appendChild(opt);
   }
-  return sel;
+  if (!spec.valueHelp) return sel;
+  // what the picked choice does, under the box, following the pick
+  var wrap = document.createElement('div');
+  wrap.className = 'recipe-field-enum-wrap';
+  wrap.appendChild(sel);
+  var help = document.createElement('div');
+  help.className = 'recipe-field-helper recipe-field-value-help';
+  function sync() {
+    help.textContent = RecipeFormHelp.enumHelp(spec, sel.value);
+    help.hidden = !help.textContent;
+  }
+  sel.addEventListener('change', sync);
+  sync();
+  wrap.appendChild(help);
+  return wrap;
 }
 
 function buildArrayInput(name, spec) {
@@ -1313,17 +1365,35 @@ function buildArrayItemRow(spec, value) {
       var lab = document.createElement('label');
       lab.className = 'recipe-object-field-label';
       lab.textContent = fspec.label || key;
+      // the field's limit beside its name ("Zero or more."), said up front
+      var subLimit = RecipeFormHelp.limitHint(fspec);
+      if (subLimit) {
+        var subLimitEl = document.createElement('span');
+        subLimitEl.className = 'recipe-field-limit';
+        subLimitEl.textContent = ' ' + subLimit;
+        lab.appendChild(subLimitEl);
+      }
       card.appendChild(lab);
 
       var input = document.createElement('input');
       input.type = 'text';
       input.className = 'recipe-field-input recipe-object-field-input';
       input.setAttribute('data-field-key', key);
+      input.setAttribute('aria-label', fspec.label || key);
       if (fspec.type === 'array') {
         input.setAttribute('data-field-type', 'array');
-        input.placeholder = fspec.placeholder || 'Comma-separated, e.g. Red, Green, Blue';
+        input.placeholder = fspec.placeholder ? RecipeFormHelp.hintPlaceholder(fspec.placeholder) : 'Comma-separated, e.g. Red, Green, Blue';
       } else if (fspec.placeholder) {
-        input.placeholder = fspec.placeholder;
+        input.placeholder = RecipeFormHelp.hintPlaceholder(fspec.placeholder);
+      }
+      // A whole number stays a text box ("7,000" is fine to type) that the
+      // form reads as a number (a reviewer's answer came back as a raw
+      // "must be a integer (got string)", 2026-10-02)
+      if (fspec.type === 'integer') {
+        input.setAttribute('data-field-type', 'integer');
+        input.setAttribute('data-field-label', fspec.label || key);
+        input.inputMode = 'numeric';
+        if (typeof fspec.min === 'number') input.setAttribute('data-min', String(fspec.min));
       }
       var v = (value && typeof value === 'object') ? value[key] : undefined;
       if (v != null) input.value = Array.isArray(v) ? v.join(', ') : v;
@@ -1337,7 +1407,7 @@ function buildArrayItemRow(spec, value) {
     strInput.className = 'recipe-field-input';
     strInput.value = (typeof value === 'string' ? value : '') || '';
     if (spec.item && spec.item.placeholder) {
-      strInput.placeholder = spec.item.placeholder;
+      strInput.placeholder = RecipeFormHelp.hintPlaceholder(spec.item.placeholder);
     }
     row.appendChild(strInput);
   }
@@ -1377,14 +1447,19 @@ function updateArrayAddDisabled(list, addBtn, spec) {
 // Form submission — gather → compile → save → redirect
 // =======================================================================
 
-function gatherFormParams(form) {
+// `problems` (optional array) collects what the teacher must fix before
+// anything is sent, in their words ("The real number" in item 2 ...).
+function gatherFormParams(form, problems) {
   var params = {};
   var fields = form.querySelectorAll('.recipe-field');
+  problems = problems || [];
 
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
     var name = field.getAttribute('data-param-name');
     var type = field.getAttribute('data-param-type');
+    // a field hidden behind another choice is left to the recipe's default
+    if (field.hidden) continue;
 
     if (type === 'array') {
       var objRows = field.querySelectorAll('.recipe-field-array-row-object');
@@ -1403,6 +1478,16 @@ function gatherFormParams(form) {
             any = true;
             if (fieldInputs[k].getAttribute('data-field-type') === 'array') {
               obj[fkey] = raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+            } else if (fieldInputs[k].getAttribute('data-field-type') === 'integer') {
+              var whole = RecipeFormHelp.readWholeNumber(raw);
+              var fieldName = '"' + fieldInputs[k].getAttribute('data-field-label') + '" in item ' + (r + 1);
+              var floor = fieldInputs[k].getAttribute('data-min');
+              if (whole.problem) {
+                problems.push(fieldName + ' ' + whole.problem + '.');
+              } else if (floor !== null && whole.value < parseInt(floor, 10)) {
+                problems.push(fieldName + ' must be at least ' + floor + '.');
+              }
+              obj[fkey] = whole.problem ? raw : whole.value;
             } else {
               obj[fkey] = raw;
             }
@@ -1452,7 +1537,14 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   createBtn.disabled = true;
   createBtn.textContent = 'Creating…';
 
-  var params = gatherFormParams(form);
+  var problems = [];
+  var params = gatherFormParams(form, problems);
+  if (problems.length) {
+    showFormDiagnostics(status, { diagnostics: problems.map(function (p) { return { severity: 'error', message: p }; }) });
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Activity';
+    return;
+  }
 
   // Compile via the API
   var compileResp;
@@ -1526,8 +1618,13 @@ function showFormDiagnostics(status, data) {
   status.className = 'recipe-form-status recipe-form-status-error';
   status.innerHTML = '';
 
+  // The teacher's heading, never the route's internal one ("Recipe
+  // parameters did not validate.", a reviewer, 2026-10-02); the lines
+  // under it are already in plain words (engine/recipe-schema.js)
   var heading = document.createElement('strong');
-  heading.textContent = data.error || 'Please fix these issues:';
+  heading.textContent = (data.diagnostics && data.diagnostics.length)
+    ? 'A few things to fix first:'
+    : (data.error || 'Something went wrong. Try again.');
   status.appendChild(heading);
 
   if (data.diagnostics && data.diagnostics.length > 0) {
@@ -1680,8 +1777,17 @@ async function submitAIDescription(modal, description, status, generateBtn, over
     // never the idea itself
     if (window.Analytics) {
       Analytics.track('create_result', {
-        result: data.noMatch ? 'none' : data.existingGame ? 'existing' : data.config ? 'match' : 'error'
+        result: (data.noMatch || data.unclear) ? 'none' : data.existingGame ? 'existing' : data.config ? 'match' : 'error'
       });
+    }
+
+    // Keyboard mash or words that say nothing (a reviewer, 2026-10-02): the
+    // idea box stays open with a plain line, never "a trick we don't have"
+    if (data.unclear) {
+      showFormError(status, data.reason || 'We couldn\'t tell what you want to make. Try describing the activity in a sentence.');
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Generate';
+      return;
     }
 
     if (data.noMatch) {
@@ -1764,6 +1870,7 @@ function renderMatchPreview(modal, data, overlay, description) {
     };
     renderMatchPreview(modal, next, overlay, description);
   });
+  appendQuestionNote(modal, data.questionNote);
 
   // A setting as a teacher reads it (a reviewer saw {"question":...} and
 // SPEED BONUS true on the "Here's what I'd set up" card, 2026-09-27):
@@ -2124,6 +2231,20 @@ function appendTimingNote(modal, data, onTrim) {
   modal.appendChild(wrap);
 }
 
+// The server's count of quiz questions against the number the idea named
+// (engine/question-count.js): a reviewer asked for 25 and quietly got 8,
+// 2026-10-02. Shown on the match card and the plan, never the AI's word.
+function appendQuestionNote(modal, note) {
+  if (!note) return;
+  var wrap = document.createElement('div');
+  wrap.className = 'ai-match-timing is-over ai-match-question-note';
+  var p = document.createElement('p');
+  p.className = 'ai-match-timing-note';
+  p.textContent = note;
+  wrap.appendChild(p);
+  modal.appendChild(wrap);
+}
+
 function humanizeParamName(name) {
   var words = String(name)
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -2294,6 +2415,21 @@ function renderNoMatchView(modal, description, data, overlay) {
   // and none when the first screen already knows the plan would say no
   if (!harm && !offScreen) btnRow.appendChild(storyboardBtn);
 
+  // The close match is a door, not only a sentence (2026-10-02, a reviewer
+  // read the suggestion and found no way to build it): it goes into the
+  // idea box and runs. Never after a refusal on purpose.
+  if (data.suggestion && !harm) {
+    var buildSuggestionBtn = document.createElement('button');
+    buildSuggestionBtn.type = 'button';
+    buildSuggestionBtn.className = 'recipe-create-btn';
+    buildSuggestionBtn.textContent = 'Build the close match';
+    buildSuggestionBtn.title = 'Puts the close match in the idea box and builds from it';
+    buildSuggestionBtn.addEventListener('click', function () {
+      renderAIDescriptionStep(modal, overlay, data.suggestion);
+    });
+    btnRow.appendChild(buildSuggestionBtn);
+  }
+
   var pickBtn = document.createElement('button');
   pickBtn.type = 'button';
   pickBtn.textContent = 'Pick from Recipes';
@@ -2303,7 +2439,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   });
   // Off screen: the close matches are the main choice, so the recipe
   // door is the red one and comes first
-  if (offScreen) {
+  if (offScreen && !data.suggestion) {
     pickBtn.className = 'recipe-create-btn';
     btnRow.appendChild(pickBtn);
   } else {
@@ -2318,7 +2454,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   cancelBtn.addEventListener('click', function () { closeOverlay(overlay); });
   btnRow.appendChild(cancelBtn);
 
-  if (!offScreen) btnRow.appendChild(pickBtn);
+  if (!offScreen || data.suggestion) btnRow.appendChild(pickBtn);
 
   // Deliberately NO whole-config generator here (removed 2026-08-07):
   // if it can't be assembled from the storyboard bricks, it shouldn't be
@@ -2456,7 +2592,22 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       arriving.remove();
       resp = got.body;
       // Built or honestly refused; never the idea itself
-      if (window.Analytics) Analytics.track('create_result', { result: resp && resp.cantBuild ? 'none' : 'storyboard' });
+      if (window.Analytics) Analytics.track('create_result', { result: resp && (resp.cantBuild || resp.unclear) ? 'none' : 'storyboard' });
+      // Unclear words are not a missing feature (a reviewer, 2026-10-02)
+      if (resp && resp.unclear) {
+        title.textContent = 'We couldn\'t tell what you want to make';
+        status.textContent = resp.reason || 'Try describing the activity in a sentence.';
+        var ucRow = sbEl('div', null, 'recipe-form-buttons');
+        var ucBack = sbEl('button', 'Describe it again', 'recipe-create-btn');
+        ucBack.type = 'button';
+        ucBack.addEventListener('click', function () {
+          closeOverlay(overlay);
+          showAIGenerateModal();
+        });
+        ucRow.appendChild(ucBack);
+        modal.appendChild(ucRow);
+        return;
+      }
       if (resp && resp.cantBuild) {
         // Honest refusal: the idea's heart needs a mechanic the bricks
         // can't deliver. Better a straight answer here than a built
@@ -2541,6 +2692,7 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
   if (rolling) {
     modal.appendChild(sbEl('p', 'Starts as students arrive: each one begins the moment they join and finishes on their own, no timers.', 'sb-hint sb-rolling-setting'));
   }
+  appendQuestionNote(modal, resp && resp.questionNote);
 
   var list = sbEl('div');
   modal.appendChild(list);
@@ -2653,14 +2805,18 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: who held what, and how many named their match'));
       }
       if (step.brick === 'hotseat') {
-        if (step.pick === 'vote') {
+        var seatCharacter = (typeof step.character === 'string' && step.character.trim()) ? step.character.trim() : '';
+        if (seatCharacter) {
+          list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who plays ' + seatCharacter + ', and the projector names them'));
+        } else if (step.pick === 'vote') {
           list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who goes in the hot seat, and the first name goes up'));
         }
         var perSeatRow = (typeof step.perSeat === 'number' && step.perSeat >= 1) ? Math.round(step.perSeat) : 3;
         list.appendChild(addedRow(SB_BRICK_LABELS.preview || 'Teacher preview', 'added: you read the questions first and hide any that should not go'));
-        list.appendChild(addedRow(SB_BRICK_LABELS['reveal-one'] || 'Reveal one at a time',
-          'added: the questions go up one at a time on the projector with who answers each; a new student takes the seat every ' + perSeatRow +
-          (step.pick === 'vote' ? ', in vote order' : ', drawn at random')));
+        list.appendChild(addedRow(SB_BRICK_LABELS['reveal-one'] || 'Reveal one at a time', seatCharacter
+          ? 'added: the questions go up one at a time on the projector, every one for the same guest, never their own'
+          : 'added: the questions go up one at a time on the projector with who answers each; a new student takes the seat every ' + perSeatRow +
+            (step.pick === 'vote' ? ', in vote order' : ', drawn at random')));
       }
       if (step.brick === 'rank' && step.runoff === true && step.correct !== true) {
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the class\'s pick by instant runoff, and every round of the count'));
@@ -2868,7 +3024,7 @@ function showConciergeDialog() {
         goBtn.disabled = false;
         goBtn.textContent = 'Get more ideas';
         if (!result.ok || result.data.error) throw new Error(result.data.error || 'no ideas came back');
-        renderConciergeResults(result.data, resultsEl, status, overlay);
+        renderConciergeResults(result.data, resultsEl, status, overlay, topic);
       })
       .catch(function (err) {
         goBtn.disabled = false;
@@ -2878,7 +3034,7 @@ function showConciergeDialog() {
   });
 }
 
-function renderConciergeResults(data, resultsEl, status, overlay) {
+function renderConciergeResults(data, resultsEl, status, overlay, topic) {
   resultsEl.textContent = '';
   var suggestions = data.suggestions || [];
   if (suggestions.length === 0) {
@@ -2899,7 +3055,9 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
     var kindLabel = s.kind === 'host' ? 'Ready to run'
       : s.kind === 'recipe' ? 'Fill in a recipe' : 'A new plan, step by step';
     var tag = document.createElement('div');
-    tag.textContent = kindLabel;
+    // The running time the server computed from the timers, never the AI's
+    // word (engine/duration-estimate.js); the ideas arrive in order of fit
+    tag.textContent = kindLabel + (typeof s.minutes === 'number' ? ' · about ' + s.minutes + ' min' : '');
     tag.style.cssText = 'font-size:0.7rem; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; color:#888; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
     card.appendChild(tag);
 
@@ -2929,7 +3087,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       var hostBtn = document.createElement('button');
       hostBtn.type = 'button';
       hostBtn.className = 'recipe-create-btn';
-      hostBtn.textContent = '▶ Host this' + (s.playTime ? ' (' + s.playTime + ')' : '');
+      hostBtn.textContent = '▶ Host this';
       hostBtn.title = 'Start a live room your class can join right now';
       hostBtn.addEventListener('click', function () {
         if (window.HostLaunch) HostLaunch.launch(s.id);
@@ -2952,8 +3110,12 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       customizeBtn.className = 'recipe-cancel-btn';
       customizeBtn.textContent = 'Make it yours';
       customizeBtn.title = 'Make your own editable copy of this activity';
+      // The topic the teacher typed rides along (a reviewer asked for
+      // photosynthesis and the make page opened on similes, 2026-10-02):
+      // a pairs list gets written for it on arrival (make.js `idea`)
       customizeBtn.addEventListener('click', function () {
-        window.location.href = '/make?game=' + encodeURIComponent(s.id) + '&from=designer';
+        window.location.href = '/make?game=' + encodeURIComponent(s.id) + '&from=designer' +
+          (topic ? '&idea=' + encodeURIComponent(String(topic).slice(0, 200)) : '');
       });
       row.appendChild(customizeBtn);
 

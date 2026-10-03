@@ -37,10 +37,75 @@ export function getEligibleVoters(players, votersField) {
  */
 export function ballotFor(candidates, voterId, excludeAuthors, shuffleSeed) {
   const own = excludeAuthors
-    ? candidates.filter(c => !(c && typeof c === 'object' && c.playerId === voterId))
+    ? candidates.filter(c => !authorsOf(c).includes(voterId))
     : candidates;
   if (!shuffleSeed) return own;
   return shuffledChoices(own, voterId + '|' + shuffleSeed);
+}
+
+/**
+ * The same answer twice is one entry on the ballot (2026-10-02, a
+ * reviewer: "Hatchet" and "hatchet" met in a bracket, and two identical
+ * captions sat side by side on a ballot where nobody could tell them
+ * apart). Matching ignores case and spacing; the first spelling stays.
+ * An answer merged into an earlier one adds its author to that entry's
+ * `coAuthors`, so the votes credit both (`creditCoAuthors`) and neither
+ * author can vote for it. Drawings never merge (two pictures are never
+ * the same words), and neither do students by name (`keepIds`: two
+ * students can share a name). The source entries are never changed.
+ * @param {any[]} candidates - strings or {playerId, text, ...}
+ * @param {Set<string>} [keepIds] candidate ids never merged
+ * @returns {any[]}
+ */
+export function mergeSameAnswers(candidates, keepIds) {
+  const norm = (s) => String(s).toLowerCase().replace(/\s+/g, ' ').trim();
+  const first = new Map();
+  const out = [];
+  for (const c of candidates || []) {
+    let key = null;
+    if (typeof c === 'string') key = norm(c);
+    else if (c && typeof c === 'object' && c.playerId && typeof c.text === 'string' &&
+      !Array.isArray(c.drawing) && !(keepIds && keepIds.has(c.playerId))) key = norm(c.text);
+    if (!key) { out.push(c); continue; }
+    if (!first.has(key)) {
+      first.set(key, out.length);
+      out.push(c);
+      continue;
+    }
+    const at = first.get(key);
+    const kept = out[at];
+    if (kept && typeof kept === 'object' && c && typeof c === 'object' && c.playerId && c.playerId !== kept.playerId) {
+      out[at] = { ...kept, coAuthors: [...(kept.coAuthors || []), c.playerId] };
+    }
+  }
+  return out;
+}
+
+/**
+ * Everyone who wrote a ballot entry: its own id plus any co-authors.
+ * @param {any} candidate
+ * @returns {string[]}
+ */
+export function authorsOf(candidate) {
+  if (!candidate || typeof candidate !== 'object' || !candidate.playerId) return [];
+  return [candidate.playerId, ...(Array.isArray(candidate.coAuthors) ? candidate.coAuthors : [])];
+}
+
+/**
+ * A merged entry's votes count for each of its authors: every co-author
+ * gets the entry's score in the vote's score map, so a crown or a
+ * leaderboard reading `<vote>.scores` names them all.
+ * @param {Record<string, number>} scores
+ * @param {any[]} candidates
+ * @returns {Record<string, number>} a new map
+ */
+export function creditCoAuthors(scores, candidates) {
+  const out = { ...(scores || {}) };
+  for (const c of candidates || []) {
+    if (!c || typeof c !== 'object' || !Array.isArray(c.coAuthors)) continue;
+    for (const id of c.coAuthors) out[id] = out[c.playerId] || 0;
+  }
+  return out;
 }
 
 /**
@@ -52,7 +117,7 @@ export function ballotFor(candidates, voterId, excludeAuthors, shuffleSeed) {
  * @returns {boolean}
  */
 export function isOwnCandidate(candidates, voterId, choice) {
-  return candidates.some(c => c && typeof c === 'object' && c.playerId === voterId && c.playerId === choice);
+  return candidates.some(c => c && typeof c === 'object' && c.playerId === choice && authorsOf(c).includes(voterId));
 }
 
 /**
@@ -349,7 +414,12 @@ export function tallyBracket(votes, candidates, matchups, byes, lang = 'en') {
     const y = scores[b] || 0;
     const ta = candidateText(byId[a]);
     const tb = candidateText(byId[b]);
-    if (x === y) {
+    if (x === 0 && y === 0) {
+      // Nobody voted on this matchup: say so, never a "tie" (a reviewer,
+      // 2026-10-02, read a silent pick as a decided one)
+      winners.push(byId[a]);
+      lines.push(say('No votes for {a} or {b}, so {a} goes on as the first listed.').split('{a}').join(ta).replace('{b}', tb));
+    } else if (x === y) {
       winners.push(byId[a]);
       lines.push(say('{a} and {b} tied, {a} moves on.').split('{a}').join(ta).replace('{b}', tb));
     } else {

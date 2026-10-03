@@ -32,9 +32,17 @@ export function formatRevealItem(item, itemTemplate) {
     });
   }
   if (typeof item === 'string') return item;
+  // A finished chain (a return-to-author reveal's row): one hop per line,
+  // never one arrow-joined paragraph (Idea Chain, a reviewer 2026-10-02)
+  if (isChainRow(item)) return item.hops.map((h, i) => (i === 0 ? h : '→ ' + h)).join('\n');
   if (item && item.text) return item.text;
   if (item && item.name && item.response) return item.name + ': ' + item.response;
   return JSON.stringify(item);
+}
+
+/** A steps chain's stored row (engine/phases/chain-reveal.js) with more than one hop. */
+export function isChainRow(item) {
+  return !!(item && typeof item === 'object' && Array.isArray(item.hops) && item.hops.length > 1);
 }
 
 /**
@@ -114,6 +122,10 @@ registerHandler('reveal-one', {
       items = plan.items;
     }
 
+    // Whole chains are long: the projector shows one at a time, each
+    // replacing the last, so a chain's hops fit the screen
+    const oneAtATime = !phase.itemTemplate && items.some(isChainRow);
+
     // Render each item to its display string. Items carrying a drawing
     // (collect responses with inputType:"drawing") keep their strokes so
     // the clients can paint them — everything else flattens to text.
@@ -139,7 +151,7 @@ registerHandler('reveal-one', {
       return;
     }
 
-    room.phaseState = { kind: 'reveal-one', phaseId: phase.id, items, revealed: 0, message: roMessage };
+    room.phaseState = { kind: 'reveal-one', phaseId: phase.id, items, revealed: 0, message: roMessage, ...(oneAtATime ? { oneAtATime: true } : {}) };
     const first = plan && plan.seats[0] ? plan.seats[0] : null;
     if (plan) {
       room.phaseState.seatPlan = plan.seats.map(s => ({ id: s.id, name: s.name }));
@@ -158,6 +170,7 @@ registerHandler('reveal-one', {
       message: roMessage, total: items.length, revealed: 0,
       timer: phase.timer || null,
       hotSeat: first ? first.name : null,
+      oneAtATime,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
@@ -184,6 +197,7 @@ registerHandler('reveal-one', {
         timer: null,
         hotSeat: now ? now.name : null,
         inHotSeat: !!(now && now.id === socket.id),
+        oneAtATime: !!roState.oneAtATime,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
       if (plan) {

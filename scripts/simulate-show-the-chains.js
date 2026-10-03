@@ -133,6 +133,16 @@ async function main() {
     const g = await gallery;
     r.check(g.total === 4, '4. the gallery opens with one item per chain (got ' + g.total + ')');
     r.check(/Some of the sentences/.test(String(g.message || '')), '4. the gallery carries the recipe\'s line');
+    // Every card in the gallery carries its sentence (a reviewer saw "4 of
+    // 4 revealed" over three sentences and a blank, 2026-10-02)
+    const cards = [];
+    for (let i = 0; i < g.total; i++) {
+      const next = waitForEvent(host, 'reveal-one-item', 5000);
+      host.emit('reveal-next', { code, phaseInstanceId: g.phaseInstanceId });
+      cards.push(await next);
+    }
+    for (const c of cards) log('CARD', c.index + ': ' + JSON.stringify(c.item));
+    r.check(cards.length === 4 && cards.every((c) => /^The \S+ \S+ \S+ \S+ the \S+ \S+\.$/.test(String(c.item || ''))), '4. every gallery card carries a filled sentence');
 
     // The report keeps the chains whole
     const rep = await fetch(`${url}/api/rooms/${code}/report?pin=${room.teacherPin}`);

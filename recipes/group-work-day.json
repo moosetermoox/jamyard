@@ -69,7 +69,7 @@
         "random": "Random"
       },
       "valueHelp": {
-        "choice": "Students claim a job inside their group, one each; a job a group-mate took is greyed out, and anyone who has not picked when you close the step gets what is left.",
+        "choice": "Students claim a job inside their group; a job a group-mate took is greyed out until every job has someone, and anyone who has not picked when you close the step gets what is left.",
         "random": "The room hands out the jobs when the step opens, no picking."
       },
       "setup": { "showWhen": "withRoles=true" }

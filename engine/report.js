@@ -68,6 +68,7 @@ function liveDataFor(engine, id, phase, stored) {
 import { hasSubmitted, isPassResponse, isDrawingResponseValue } from './moderation.js';
 import { playableQuestions, scoreSoloQuiz } from './phases/solo-quiz-scoring.js';
 import { averageConfidence as averageSure } from './phases/confidence.js';
+import { foreachRounds, foreachSubId } from './phases/foreach-rounds.js';
 
 export function buildActivityReport(engine, meta = {}) {
   const config = engine.config || {};
@@ -94,6 +95,14 @@ export function buildActivityReport(engine, meta = {}) {
   const sections = [];
   for (const [id, phase] of Object.entries(phases)) {
     if (phase && phase.confidenceFor) continue;
+    // A For Each round's injected steps (`_fe:...`) hold only the last
+    // round and sit after every real step; the rounds are read from their
+    // per-round copies at the foreach's own place instead (2026-10-02)
+    if (id.startsWith('_fe:')) continue;
+    if (phase && phase.type === 'foreach') {
+      sections.push(...foreachSections(engine, id, phase, phases, nameOf, sureFor));
+      continue;
+    }
     // A return-to-author reveal stores every finished chain (the only
     // thing worth keeping from a chain activity, a reviewer said); it is
     // the one reveal that gets a section.
@@ -108,7 +117,7 @@ export function buildActivityReport(engine, meta = {}) {
 
     if (roundKeys.length > 0) {
       for (const key of roundKeys) {
-        const section = buildSection(id, phase, phaseData[key], nameOf, sureFor[id]);
+        const section = buildSection(id, phase, addedOnly(phase, phaseData[key], phaseData), nameOf, sureFor[id]);
         if (section) {
           section.round = Number(key.slice(id.length + 1));
           sections.push(section);
@@ -117,7 +126,7 @@ export function buildActivityReport(engine, meta = {}) {
     } else {
       const data = liveDataFor(engine, id, phase, phaseData[id]);
       if (data !== undefined) {
-        const section = buildSection(id, phase, data, nameOf, sureFor[id]);
+        const section = buildSection(id, phase, addedOnly(phase, data, phaseData), nameOf, sureFor[id]);
         if (section) {
           if (data.live) {
             section.live = true;
@@ -158,6 +167,77 @@ export function buildActivityReport(engine, meta = {}) {
   };
 }
 
+// A For Each step in the report: one line for the rounds, then every
+// round's steps in order (the item the round was about on top), all before
+// whatever comes after the foreach (the leaderboard). The foreach's own
+// points table is left out when a later leaderboard shows those points.
+function foreachSections(engine, id, phase, phases, nameOf, sureFor) {
+  const phaseData = engine.phaseData || {};
+  const out = [];
+  const data = phaseData[id];
+  const shownLater = Object.values(phases).some(p => p && p.type === 'leaderboard' &&
+    [].concat(p.from || []).some(ref => typeof ref === 'string' && ref.replace(/[{}\s]/g, '').startsWith(id + '.')));
+  if (data && typeof data === 'object') {
+    const blocks = SECTION_BUILDERS.foreach(phase, shownLater ? { ...data, scores: null } : data, nameOf);
+    if (blocks.length) out.push({ id, type: 'foreach', kindLabel: 'Rounds', blocks });
+  }
+  const subs = phase.subPhases && typeof phase.subPhases === 'object' ? phase.subPhases : {};
+  const subNames = Object.keys(subs);
+  const state = engine.foreachState && engine.foreachState[id];
+  for (const { round, item, steps } of foreachRounds(phaseData, id, subNames, state)) {
+    let first = true;
+    for (const sub of subNames) {
+      const subPhase = subs[sub];
+      if (!subPhase || SKIP_TYPES.has(subPhase.type) || subPhase.confidenceFor) continue;
+      const section = buildSection(foreachSubId(id, sub), subPhase, steps[sub], nameOf, sureFor[sub]);
+      if (!section) continue;
+      section.round = round;
+      if (first) {
+        const shown = roundItemBlock(item, nameOf);
+        if (shown) section.blocks.unshift(shown);
+        first = false;
+      }
+      out.push(section);
+    }
+  }
+  return out;
+}
+
+// What a round was about: the drawing (with what it was drawn from) or the
+// answer the round went over, with its author for the names toggle
+function roundItemBlock(item, nameOf) {
+  if (!item || typeof item !== 'object') return null;
+  const name = item.name || (item.playerId ? nameOf(item.playerId) : null) || null;
+  if (Array.isArray(item.drawing)) {
+    const entry = { name, text: '[drawing]', drawing: item.drawing };
+    if (typeof item.assigned === 'string' && item.assigned.trim()) entry.assigned = item.assigned.trim();
+    return { kind: 'entries', items: [entry] };
+  }
+  const text = item.fields && typeof item.fields === 'object' && !Array.isArray(item.fields)
+    ? Object.values(item.fields).map(cellText).join(' | ')
+    : (item.text != null ? cellText(item.text) : '');
+  return text.trim() ? { kind: 'entries', items: [{ name, text }] } : null;
+}
+
+// An add-a-line step (appendOnly, One More Thing) stores each student's
+// whole inherited list plus their line, so the report put every line
+// under whoever added to it last (a reviewer, 2026-10-02). Each entry
+// keeps only what that student added: the text they were handed (the
+// source step's `assigned`) comes off the front.
+export function addedOnly(phase, data, phaseData) {
+  if (!phase || phase.type !== 'collect' || !phase.appendOnly || !phase.rotateFrom) return data;
+  if (!data || !Array.isArray(data.responses)) return data;
+  const handed = ((phaseData || {})[phase.rotateFrom] || {}).assigned || {};
+  const responses = data.responses.map(r => {
+    if (!r || typeof r.text !== 'string') return r;
+    const base = typeof handed[r.playerId] === 'string' ? handed[r.playerId].trim() : '';
+    const full = r.text.trim();
+    if (!base || !full.startsWith(base)) return r;
+    return { ...r, text: full.slice(base.length).trim() };
+  }).filter(r => !r || typeof r.text !== 'string' || r.text !== '');
+  return { ...data, responses };
+}
+
 function buildSection(id, phase, data, nameOf, sure) {
   if (!data || typeof data !== 'object') return null;
   const builder = SECTION_BUILDERS[phase.type] || genericSection;
@@ -183,7 +263,11 @@ function headingFor(phase) {
   if (phase.type === 'ai-process') return undefined;
   if (phase.type === 'reveal' && phase.scope === 'own') return 'What each one became, start to finish';
   const candidates = [phase.prompt, phase.question, phase.instruction];
-  for (const c of candidates) {
+  for (const raw of candidates) {
+    // A hand-off names what each student was given ("Draw this:
+    // {{phrases.assigned}}"): that reads as words, so Doodle Bluff's
+    // drawings keep their question (a reviewer, 2026-10-02)
+    const c = typeof raw === 'string' ? raw.replace(/\{\{\s*[\w-]+\.assigned\s*\}\}/g, 'what each student was handed') : raw;
     if (typeof c === 'string' && c.trim() && !c.includes('{{')) return c.trim();
   }
   return undefined;
@@ -242,15 +326,17 @@ function fieldsText(fields, fieldDefs) {
   return lines.join('\n');
 }
 
-function responseEntries(responses, fieldDefs) {
+function responseEntries(responses, fieldDefs, { unattributed = false } = {}) {
   const items = (responses || [])
     .filter(r => r && (r.text != null || r.drawing || (r.fields && typeof r.fields === 'object')))
     .map(r => {
       const text = r.fields && typeof r.fields === 'object' && !Array.isArray(r.fields)
         ? fieldsText(r.fields, fieldDefs)
         : cellText(r.text);
-      const item = { name: r.name || null, text };
+      const item = { name: unattributed ? null : (r.name || null), text };
       if (r.drawing) item.drawing = r.drawing;
+      // A drawing made from a handed line shows that line under it
+      if (r.drawing && typeof r.assigned === 'string' && r.assigned.trim()) item.assigned = r.assigned.trim();
       return item;
     });
   return items.length > 0 ? { kind: 'entries', items } : null;
@@ -270,7 +356,8 @@ const SECTION_BUILDERS = {
   },
   collect(phase, data) {
     const blocks = [];
-    const entries = responseEntries(data.responses, phase.fields);
+    // A step that promised "a summary, not who said what" prints unnamed
+    const entries = responseEntries(data.responses, phase.fields, { unattributed: phase.unattributed === true });
     if (entries) blocks.push(entries);
     if (Array.isArray(data.passedIds) && data.passedIds.length > 0) {
       blocks.push(fact('Passes', data.passedIds.length + ' passed'));
@@ -443,7 +530,7 @@ const SECTION_BUILDERS = {
   foreach(phase, data, nameOf) {
     const blocks = [];
     if (typeof data.itemCount === 'number') {
-      blocks.push(fact('Rounds', data.itemCount + (data.itemCount === 1 ? ' round' : ' rounds')));
+      blocks.push(fact('Played', data.itemCount + (data.itemCount === 1 ? ' round' : ' rounds')));
     }
     const table = scoresTable(data.scores, nameOf);
     if (table) blocks.push(table);

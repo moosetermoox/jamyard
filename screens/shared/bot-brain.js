@@ -11,8 +11,23 @@
 (function () {
   'use strict';
 
+  // A seat deal while botAnswerFor runs with one: every pretend student on
+  // the same step gets a different line of the bank (two "A ghost doing
+  // laundry" fakes collapsed into one ballot option, a reviewer
+  // 2026-10-02), and the salt (the step's instance id, the same on every
+  // screen) moves the deal from step to step.
+  var deal = null;
+
   function pick(arr) {
+    if (deal) return arr[(deal.base + deal.seat) % arr.length];
     return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function saltBase(salt) {
+    var text = String(salt == null ? '' : salt);
+    var h = 0;
+    for (var i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 100003;
+    return h;
   }
 
   var BANKS = {
@@ -180,7 +195,17 @@
    * Generate a plausible bot answer for a prompt. Ordered rules, first
    * match wins; falls back to the generic playful bank.
    */
-  function botAnswerFor(prompt) {
+  function botAnswerFor(prompt, opts) {
+    var seat = opts && typeof opts.seat === 'number' && opts.seat >= 0 ? Math.floor(opts.seat) : null;
+    deal = seat === null ? null : { seat: seat, base: saltBase(opts.salt) };
+    try {
+      return answerFor(prompt);
+    } finally {
+      deal = null;
+    }
+  }
+
+  function answerFor(prompt) {
     var p = String(prompt || '').toLowerCase();
 
     if (p.indexOf('one word') !== -1) return pick(ONE_WORD);

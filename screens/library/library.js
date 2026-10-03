@@ -404,7 +404,7 @@ function buildCard(game) {
   favBtn.className = 'game-card-fav' + (isFav ? ' is-fav' : '');
   favBtn.textContent = isFav ? '♥' : '♡';
   favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-  favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
+  favBtn.setAttribute('aria-label', 'Favorite "' + game.name + '"');
   favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
   favBtn.addEventListener('click', function () {
     Favorites.toggle(game.id);

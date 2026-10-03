@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  roleCapacity, dealRoles, claimRole, autoFillRoles, buildRoleOutput
+  roleCapacity, dealRoles, claimRole, autoFillRoles, buildRoleOutput, roleOpenFor
 } from '../../engine/phases/role-deal.js';
 
 const ROLES = ['Facilitator', 'Recorder', 'Timekeeper'];
@@ -104,8 +104,43 @@ describe('claimRole (choice mode)', () => {
   it('a big group opens repeat slots (capacity 2 for 5 members, 3 roles)', () => {
     const state = mkState({ Big: { label: 'Big', memberIds: ['1', '2', '3', '4', '5'] } }, ROLES);
     expect(claimRole(state, '1', 'Recorder').ok).toBe(true);
+    expect(claimRole(state, '2', 'Facilitator').ok).toBe(true);
+    expect(claimRole(state, '3', 'Timekeeper').ok).toBe(true);
+    expect(claimRole(state, '4', 'Recorder').ok).toBe(true);
+    expect(claimRole(state, '5', 'Recorder').ok).toBe(false);
+  });
+
+  it('no job repeats while another job in the group is still empty (review 2026-10-02)', () => {
+    const state = mkState({ Four: { label: 'Four', memberIds: ['1', '2', '3', '4'] } }, ROLES);
+    expect(claimRole(state, '1', 'Facilitator').ok).toBe(true);
+    const res = claimRole(state, '2', 'Facilitator');
+    expect(res.ok).toBe(false);
+    expect(res.reason).toBe('full');
     expect(claimRole(state, '2', 'Recorder').ok).toBe(true);
-    expect(claimRole(state, '3', 'Recorder').ok).toBe(false);
+    expect(claimRole(state, '3', 'Timekeeper').ok).toBe(true);
+    // Every job has someone: the fourth may double any of them
+    expect(roleOpenFor(state, 'Four', 'Facilitator', '4')).toBe(true);
+    expect(claimRole(state, '4', 'Facilitator').ok).toBe(true);
+  });
+
+  it('the last student in a group always has a job open', () => {
+    for (let n = 1; n <= 8; n++) {
+      const ids = Array.from({ length: n }, (_, i) => 'p' + i);
+      const state = mkState({ G: { label: 'G', memberIds: ids } }, ROLES);
+      for (const id of ids) {
+        const open = ROLES.filter(r => roleOpenFor(state, 'G', r, id));
+        expect(open.length).toBeGreaterThan(0);
+        expect(claimRole(state, id, open[0]).ok).toBe(true);
+      }
+    }
+  });
+
+  it('a switch is judged without the student\'s own pick', () => {
+    const state = mkState({ Four: { label: 'Four', memberIds: ['1', '2', '3', '4'] } }, ROLES);
+    claimRole(state, '1', 'Facilitator');
+    // 1 may move to an empty job, and back
+    expect(claimRole(state, '1', 'Recorder').ok).toBe(true);
+    expect(claimRole(state, '1', 'Facilitator').ok).toBe(true);
   });
 
   it('rejects after close', () => {

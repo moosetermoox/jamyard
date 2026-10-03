@@ -51,7 +51,11 @@
       },
       "word-1": {
         "type": "collect",
-        "prompt": "Word 1 of 6. Write one ADJECTIVE, a describing word (sleepy, ancient, sparkling, suspicious).\n\nTheme: ${theme}",
+        "prompt": {
+          "$if": "theme!=anything at all",
+          "$value": "Word 1 of 6. Write one ADJECTIVE, a describing word (sleepy, ancient, sparkling, suspicious).\n\nTheme: ${theme}",
+          "$else": "Word 1 of 6. Write one ADJECTIVE, a describing word (sleepy, ancient, sparkling, suspicious)."
+        },
         "timer": "${wordTimer}",
         "maxLength": 30,
         "next": "word-2"
@@ -59,7 +63,11 @@
       "word-2": {
         "type": "collect",
         "rotateFrom": "word-1",
-        "prompt": "The paper folds and passes. You can't see what's on it.\n\nWord 2 of 6. Write one NOUN, a person, animal, or thing (walrus, librarian, volcano).\n\nTheme: ${theme}",
+        "prompt": {
+          "$if": "theme!=anything at all",
+          "$value": "The paper folds and passes. You can't see what's on it.\n\nWord 2 of 6. Write one NOUN, a person, animal, or thing (walrus, librarian, volcano).\n\nTheme: ${theme}",
+          "$else": "The paper folds and passes. You can't see what's on it.\n\nWord 2 of 6. Write one NOUN, a person, animal, or thing (walrus, librarian, volcano)."
+        },
         "timer": "${wordTimer}",
         "maxLength": 30,
         "next": "word-3"
@@ -67,7 +75,11 @@
       "word-3": {
         "type": "collect",
         "rotateFrom": "word-2",
-        "prompt": "Fold, pass. Still a secret.\n\nWord 3 of 6. Write one ADVERB, a how-word ending in -ly (slowly, rudely, magnificently).\n\nTheme: ${theme}",
+        "prompt": {
+          "$if": "theme!=anything at all",
+          "$value": "Fold, pass. Still a secret.\n\nWord 3 of 6. Write one ADVERB, a how-word ending in -ly (slowly, rudely, magnificently).\n\nTheme: ${theme}",
+          "$else": "Fold, pass. Still a secret.\n\nWord 3 of 6. Write one ADVERB, a how-word ending in -ly (slowly, rudely, magnificently)."
+        },
         "timer": "${wordTimer}",
         "maxLength": 30,
         "next": "word-4"
@@ -75,7 +87,11 @@
       "word-4": {
         "type": "collect",
         "rotateFrom": "word-3",
-        "prompt": "Fold, pass.\n\nWord 4 of 6. Write one VERB that ends in -s, an action (devours, serenades, interrogates).\n\nTheme: ${theme}",
+        "prompt": {
+          "$if": "theme!=anything at all",
+          "$value": "Fold, pass.\n\nWord 4 of 6. Write one VERB that ends in -s, an action (devours, serenades, interrogates).\n\nTheme: ${theme}",
+          "$else": "Fold, pass.\n\nWord 4 of 6. Write one VERB that ends in -s, an action (devours, serenades, interrogates)."
+        },
         "timer": "${wordTimer}",
         "maxLength": 30,
         "next": "word-5"
@@ -83,7 +99,11 @@
       "word-5": {
         "type": "collect",
         "rotateFrom": "word-4",
-        "prompt": "Fold, pass. Almost there.\n\nWord 5 of 6. Write one more ADJECTIVE (furious, invisible, chocolate-covered).\n\nTheme: ${theme}",
+        "prompt": {
+          "$if": "theme!=anything at all",
+          "$value": "Fold, pass. Almost there.\n\nWord 5 of 6. Write one more ADJECTIVE (furious, invisible, chocolate-covered).\n\nTheme: ${theme}",
+          "$else": "Fold, pass. Almost there.\n\nWord 5 of 6. Write one more ADJECTIVE (furious, invisible, chocolate-covered)."
+        },
         "timer": "${wordTimer}",
         "maxLength": 30,
         "next": "word-6"
@@ -91,7 +111,11 @@
       "word-6": {
         "type": "collect",
         "rotateFrom": "word-5",
-        "prompt": "Last fold.\n\nWord 6 of 6. Write one final NOUN (sandwich, principal, thunderstorm).\n\nTheme: ${theme}",
+        "prompt": {
+          "$if": "theme!=anything at all",
+          "$value": "Last fold.\n\nWord 6 of 6. Write one final NOUN (sandwich, principal, thunderstorm).\n\nTheme: ${theme}",
+          "$else": "Last fold.\n\nWord 6 of 6. Write one final NOUN (sandwich, principal, thunderstorm)."
+        },
         "timer": "${wordTimer}",
         "maxLength": 30,
         "next": "unfold"

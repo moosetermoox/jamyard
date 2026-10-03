@@ -130,6 +130,38 @@ export function buildChecklistGroups(items, teamData, players) {
 }
 
 /**
+ * One group's job tags (2026-10-02, an outside reviewer's jigsaw: a team of
+ * two held Facilitator and Recorder, and its list still had Timekeeper's and
+ * Reporter's jobs, which nobody in the team had). A task tagged with a role
+ * nobody in the group holds goes to the held role with the fewest tasks so
+ * far (members' order breaks ties); a group with no held role at all gets
+ * the task untagged. Tags a member holds stay as written.
+ *
+ * @param {(string|null)[]} itemRoles  the list's tags, one per item
+ * @param {string[]} memberIds
+ * @param {Record<string,string>} playerRole  playerId -> role
+ * @returns {(string|null)[]}
+ */
+export function rolesForGroup(itemRoles, memberIds, playerRole) {
+  const tags = Array.isArray(itemRoles) ? itemRoles : [];
+  const held = [];
+  for (const id of memberIds || []) {
+    const r = playerRole && playerRole[id];
+    if (r && !held.includes(r)) held.push(r);
+  }
+  const load = new Map(held.map(r => [r, 0]));
+  for (const r of tags) if (r && load.has(r)) load.set(r, load.get(r) + 1);
+  return tags.map(r => {
+    if (!r || load.has(r)) return r || null;
+    if (held.length === 0) return null;
+    let pick = held[0];
+    for (const h of held) if (load.get(h) < load.get(pick)) pick = h;
+    load.set(pick, load.get(pick) + 1);
+    return pick;
+  });
+}
+
+/**
  * Apply a check/un-check. Mutates state. Players may only touch their own
  * group's list; a teacher (asTeacher) may touch any group by key.
  *

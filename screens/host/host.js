@@ -810,10 +810,23 @@ function askNobodyYet(byClock) {
     message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
     confirmLabel: 'Close anyway', cancelLabel: 'Wait'
   }).then(function (yes) {
+    const wasByClock = !!(nobodyAsk && nobodyAsk.byClock);
     nobodyAsk = null;
-    if (yes) socket.emit('close-submissions', { code: currentRoomCode });
+    if (yes) { socket.emit('close-submissions', { code: currentRoomCode }); return; }
+    // Wait after the clock ran out: give the class more time, on the
+    // projector and on every screen that had nothing to send (they
+    // kept their box; a reviewer's students sat on "You're done for
+    // now" with no way in, 2026-10-02). The clock comes back through
+    // timer-extended, below.
+    if (wasByClock) {
+      clockRanOutStep = collectStep;
+      socket.emit('extend-timer', { code: currentRoomCode });
+    }
   });
 }
+// The answer step whose clock ran out and got a Wait (timer-extended
+// restarts the clock for that step only)
+let clockRanOutStep = -1;
 function answersLanded() {
   if (!nobodyAsk || submittedSoFar === 0) return;
   const byClock = nobodyAsk.byClock;
@@ -1194,6 +1207,10 @@ moreTimeBtn.addEventListener('click', () => {
 
 function showMoreTimeBtn(containerEl) {
   containerEl.insertAdjacentElement('afterend', moreTimeBtn);
+  // Built before the room's language arrived, so the label is set here
+  // (a Spanish room read A BIT MORE TIME, a reviewer 2026-10-02)
+  moreTimeBtn.textContent = UiLang.t('A bit more time');
+  moreTimeBtn.title = UiLang.t('Add 30 seconds');
   moreTimeBtn.hidden = false;
 }
 
@@ -1252,8 +1269,19 @@ function clearTimer() {
 
 // The server said yes (any teacher device may have asked): shift the
 // running countdown and let the ring breathe again.
-socket.on('timer-extended', ({ addSeconds }) => {
+socket.on('timer-extended', ({ addSeconds, atCap }) => {
   const add = Number(addSeconds) || 0;
+  // The clock had run out and the teacher pressed Wait: start it again
+  if (!timerInterval && add > 0 && clockRanOutStep === collectStep) {
+    clockRanOutStep = -1;
+    startTimer(add, collectTimer, closeWhenClockRunsOut);
+    showMoreTimeBtn(collectTimer);
+    if (atCap) moreTimeBtn.hidden = true;
+    return;
+  }
+  // The step has gained all the extra time it may (engine/more-time.js):
+  // the button goes until the next step
+  if (atCap) moreTimeBtn.hidden = true;
   if (!timerInterval || !timerContainerEl || add <= 0) return;
   timerRemaining += add;
   timerTotal += add;
@@ -1743,8 +1771,15 @@ function hotSeatFor(name, turn, turns) {
     .replace('{name}', name).replace('{turn}', String(turn)).replace('{turns}', String(turns));
 }
 
-socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, hostTemplate, show }) => {
+// Whole chains (Idea Chain's gallery) go up one at a time, each replacing
+// the last, one hop per line, so a chain fits the screen (a reviewer,
+// 2026-10-02: arrow-joined paragraphs ran off the projector)
+let revealOneSingle = false;
+
+socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, oneAtATime, hostTemplate, show }) => {
   showSection(revealOneSection);
+  revealOneSingle = !!oneAtATime;
+  revealOneItems.classList.toggle('is-single', revealOneSingle);
   setRichText(revealOneMessage, message || 'Reveal Time!');
   revealOneCounter.textContent = hotSeat && !revealed
     ? UiLang.t('First in the hot seat: {name}').replace('{name}', hotSeat)
@@ -1787,6 +1822,7 @@ socket.on('reveal-one-item', ({ item, index, total, hotSeat, turn, turns }) => {
     return;
   }
   revealOneCounter.textContent = index + ' of ' + total + ' revealed';
+  if (revealOneSingle) revealOneItems.textContent = '';
   const div = document.createElement('div');
   div.className = 'reveal-one-item';
   // Drawing items paint onto a canvas with an animated stroke replay —
@@ -1812,7 +1848,7 @@ socket.on('reveal-one-item', ({ item, index, total, hotSeat, turn, turns }) => {
   // The newest card comes up above the pinned buttons, never under them
   // (Whose Eyes?: Continue sat on the cards while the list grew past the
   // screen, a reviewer 2026-10-02; styles.css gives the room)
-  if (index > 1 && typeof div.scrollIntoView === 'function') {
+  if (index > 1 && !revealOneSingle && typeof div.scrollIntoView === 'function') {
     try { div.scrollIntoView({ block: 'end', behavior: 'smooth' }); } catch (e) { div.scrollIntoView(false); }
   }
 
@@ -1940,9 +1976,16 @@ teamChoiceConfirmBtn.addEventListener('click', () => {
   socket.emit('team-split-confirm', { code: currentRoomCode });
 });
 
+// The heading says the word the cards say: "Groups" over "Group 1",
+// "Group 2" (a group-size split), "Teams" otherwise (a reviewer,
+// 2026-10-02, read "Teams" over a list of groups)
+function splitHeadingFor(names) {
+  return names.length > 0 && names.every(n => /^group\b/i.test(String(n))) ? 'Groups' : 'Teams';
+}
+
 socket.on('team-split', ({ teams, hostTemplate, show }) => {
   showSection(teamSplitSection);
-  teamSplitHeading.textContent = 'Teams';
+  teamSplitHeading.textContent = UiLang.t(splitHeadingFor(Object.keys(teams || {})));
   teamArrange.hidden = true;
   teamChoice.hidden = true;
   teamSplitContinueBtn.hidden = false;
@@ -2350,6 +2393,7 @@ socket.on('checklist-start', ({ prompt, progress, solo, timer, hostTemplate, sho
   checklistHostResults.innerHTML = '';
   checklistContinueBtn.hidden = true;
   checklistProgress.hidden = false;
+  checklistSummary.hidden = false;
   applyTemplate(checklistSection, hostTemplate);
   applyShow(show, {
     prompt: checklistPrompt,
@@ -2379,6 +2423,10 @@ socket.on('checklist-results', ({ results, doneCount, groupCount, solo }) => {
   checklistTimer.hidden = true;
   checklistCloseBtn.hidden = true;
   checklistProgress.hidden = true;
+  // The results line says how many finished; the live counter over the
+  // bars said it too, so it goes (2026-10-02: "0 of 4 groups finished"
+  // twice at the end of work time)
+  checklistSummary.hidden = true;
   checklistContinueBtn.hidden = false;
   if (J) J.sound('reveal');
 
@@ -3166,8 +3214,11 @@ socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, ho
 
 let winnerRevealTimer = null;
 
-socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, winnerEntry, winnerEntries, hostTemplate, hostShow }) => {
+socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, winnerEntry, winnerEntries, hostTemplate, hostShow, continueLabel }) => {
   showSection(winnerSection);
+  // The button says what comes next ("Finish up" before the wrap-up);
+  // it moved the room on while it read "End Session" (2026-10-02)
+  winnerEndBtn.textContent = continueLabel || UiLang.t('Finish up');
 
   // Build-up beat: drumroll while the room holds its breath, then the crown
   // lands. The teacher-facing toggles still decide what's visible.

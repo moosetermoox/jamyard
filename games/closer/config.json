@@ -78,7 +78,7 @@
     },
     "checkout": {
       "type": "rate",
-      "prompt": "Last one, and it's one tap: how did that feel?",
+      "prompt": "Last one: how did that feel? Pick a number, then send it.",
       "scales": [
         {
           "id": "felt",

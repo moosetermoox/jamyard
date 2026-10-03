@@ -68,7 +68,9 @@ async function run() {
     await wait(200);
     r.check(!(host._buffer['one-voice-count'] || []).length, 'rejected tap did not change the count');
 
-    // 3. P2 taps → count 2
+    // 3. P2 taps → count 2 (outside the window of P1's refused tap: that
+    // tap was still a voice, and a classmate inside its window collides)
+    await wait(SAFE_GAP);
     p2.emit('one-voice-tap', { code });
     const c2 = await waitForEvent(host, 'one-voice-count', 5000);
     r.check(c2.count === 2, 'tap 2 counted');

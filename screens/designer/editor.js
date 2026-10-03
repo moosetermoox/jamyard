@@ -625,7 +625,7 @@ async function init() {
   var lastShownFailed = null;
   setInterval(function () {
     var el = document.getElementById('save-status');
-    if (!el) return;
+    if (!el || editorLoadFailed) return;
     var failed = !!lastSaveError;
     if (isDirty === lastShownDirty && failed === lastShownFailed) return;
     lastShownDirty = isDirty;
@@ -643,6 +643,17 @@ async function init() {
       el.className = 'save-status save-status-clean';
     }
   }, 250);
+  // The name in the header renames: it opens Settings at the Name box
+  // (2026-10-02, a reviewer clicked the underlined title and nothing happened)
+  headerGameName.addEventListener('click', function () {
+    if (editorLoadFailed) return;
+    if (document.body.classList.contains('settings-collapsed')) {
+      var expand = document.getElementById('settings-expand');
+      if (expand) expand.click();
+    }
+    settingsName.focus();
+    settingsName.select();
+  });
   testGameBtn.addEventListener('click', testGame);
   reviewBtn.addEventListener('click', runDeepReview);
   reviewCloseBtn.addEventListener('click', function () { reviewPanel.hidden = true; });
@@ -749,7 +760,9 @@ async function loadGame(id) {
   try {
     var response = await fetch('/api/games/' + encodeURIComponent(id));
     if (!response.ok) {
-      throw new Error('Failed to load activity (status ' + response.status + ')');
+      var loadErr = new Error('Failed to load activity (status ' + response.status + ')');
+      loadErr.status = response.status;
+      throw loadErr;
     }
     gameConfig = await response.json();
     onConfigLoaded();
@@ -757,7 +770,35 @@ async function loadGame(id) {
     canvasLoading.hidden = true;
     canvasError.textContent = 'Error: ' + error.message;
     canvasError.hidden = false;
+    showLoadFailure(error.status === 404);
   }
+}
+
+// A link to an activity that is not there (or did not load) says so in
+// plain words where the editor would be, and the header stops offering
+// Saved, Check, Try it out, and Host for nothing (2026-10-02, a reviewer
+// sat on "Loading..." with every button live).
+var editorLoadFailed = false;
+function showLoadFailure(notFound) {
+  editorLoadFailed = true;
+  headerGameName.textContent = notFound ? 'Activity not found' : 'Activity did not load';
+  headerGameName.disabled = true;
+  var box = document.getElementById('load-error');
+  if (box) {
+    if (!notFound) {
+      document.getElementById('load-error-title').textContent = 'This activity did not load';
+      document.getElementById('load-error-text').textContent = 'Reload the page to try again. If it keeps happening, go back to the yard and open it from there.';
+    }
+    box.hidden = false;
+  }
+  var body = document.getElementById('editor-body');
+  if (body) body.hidden = true;
+  var status = document.getElementById('save-status');
+  if (status) status.hidden = true;
+  ['review-btn', 'test-game-btn', 'host-btn'].forEach(function (id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.disabled = true;
+  });
 }
 
 function createBlankConfig() {
@@ -6119,6 +6160,14 @@ function validateConfig() {
     } else if (!(Number.isInteger(ejCfg.first) && ejCfg.first >= 1 && ejCfg.first <= 100)) {
       errors.push('Early-bird joke: "first" must be a whole number from 1 to 100.');
     }
+  }
+
+  // Class size (mirrors validatePlayerLimits in engine/game-loader.js):
+  // Min players 10 with Max players 3 saved without a word (2026-10-02)
+  if (typeof gameConfig.minPlayers === 'number' && typeof gameConfig.maxPlayers === 'number' &&
+      gameConfig.minPlayers % 1 === 0 && gameConfig.maxPlayers % 1 === 0 &&
+      gameConfig.minPlayers > gameConfig.maxPlayers) {
+    errors.push('Min players (' + gameConfig.minPlayers + ') is more than Max players (' + gameConfig.maxPlayers + '). Lower the first or raise the second.');
   }
 
   var hasLobby = phaseIds.some(function (id) { return phases[id].type === 'lobby'; });

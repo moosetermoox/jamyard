@@ -140,6 +140,9 @@ var shareCopied = document.getElementById('share-copied');
 var headerReport = document.getElementById('header-report');
 
 var lobbyBlock = document.getElementById('lobby-block');
+var classListBlock = document.getElementById('class-list-block');
+var classListCount = document.getElementById('class-list-count');
+var classList = document.getElementById('class-list');
 var lobbyCount = document.getElementById('lobby-count');
 var lobbyRoster = document.getElementById('lobby-roster');
 var startActivityBtn = document.getElementById('start-activity-btn');
@@ -149,6 +152,30 @@ var projectorNotice = document.getElementById('projector-notice');
 var reopenProjectorBtn = document.getElementById('reopen-projector-btn');
 var reopenHostAddress = document.getElementById('reopen-host-address');
 var stepText = document.getElementById('step-text');
+
+// The step's words as the projector draws them: a {{x.barChart}} block is
+// a real chart (shared/chart-render.js), not block characters run into one
+// line ("Mars ███ 1 (100%) Venus ░░░ 0 (0%)", a reviewer 2026-10-02), and
+// the rest keeps its line breaks. textContent only: the words are untrusted.
+function renderStepText(el, words) {
+  el.textContent = '';
+  if (window.ChartRender && ChartRender.containsChart(words)) {
+    ChartRender.split(words).forEach(function (seg) {
+      if (seg.type === 'text') {
+        if (!seg.text.trim()) return;
+        var p = document.createElement('div');
+        p.className = 'step-text-part';
+        p.textContent = seg.text.trim();
+        el.appendChild(p);
+        return;
+      }
+      var drawn = ChartRender.buildSegment(seg);
+      if (drawn) el.appendChild(drawn);
+    });
+    return;
+  }
+  el.textContent = words;
+}
 
 var currentCode = null;
 var currentPin = null;
@@ -327,7 +354,9 @@ socket.on('teacher-joined', function (snap) {
   setupCard.hidden = !setupCardWanted();
   renderProjectorNotice(snap && snap.hostConnected);
   currentCode = codeInput.value.trim();
-  currentPin = pinInput.value.trim();
+  // A console signed in by the teacher key alone learns the PIN from the
+  // server (teacher-private), so the header can show it
+  currentPin = pinInput.value.trim() || (snap && typeof snap.teacherPin === 'string' ? snap.teacherPin : '');
   currentKey = linkKey;
   try {
     sessionStorage.setItem('teacherCode', currentCode);
@@ -338,7 +367,10 @@ socket.on('teacher-joined', function (snap) {
   joinSection.hidden = true;
   consoleSection.hidden = false;
   headerRoom.hidden = false;
-  headerRoom.textContent = (snap.gameName ? snap.gameName + ' · ' : '') + 'Room ' + snap.code;
+  // The PIN shows here, on the teacher's own screen (never the projector):
+  // the report page and a second device ask for it (2026-10-02)
+  headerRoom.textContent = (snap.gameName ? snap.gameName + ' · ' : '') + 'Room ' + snap.code +
+    (currentPin ? ' · Teacher PIN ' + currentPin : '');
 
   // The report link is live from the moment we're in: mid-activity it shows
   // what's finished so far, and at the end it's the full record. Code + PIN
@@ -414,13 +446,15 @@ function setPhase(data) {
   // by the server), so a console on a phone knows which question is up
   if (stepText) {
     var words = typeof data.stepText === 'string' ? data.stepText.trim() : '';
-    stepText.textContent = words;
+    renderStepText(stepText, words);
     stepText.hidden = !words || phaseType === 'lobby' || phaseType === 'end';
   }
 
   var isLobby = phaseType === 'lobby';
   lobbyBlock.hidden = !isLobby;
   if (isLobby) renderLobbyRoster();
+  classListBlock.hidden = isLobby || phaseType === 'end' || !phaseType;
+  if (!classListBlock.hidden) renderClassList();
 
   var isCollect = phaseType === 'collect' || phaseType === 'collect-choice';
   entriesBlock.hidden = !isCollect;
@@ -588,16 +622,42 @@ function rosterRow(p) {
   removeBtn.className = 'entry-btn entry-btn-danger';
   removeBtn.textContent = 'Remove';
   removeBtn.title = 'Remove this student from the room, they cannot rejoin this session';
-  removeBtn.addEventListener('click', function () {
-    var ask = window.Dialog && Dialog.confirm
-      ? Dialog.confirm({ title: 'Remove ' + p.name + '?', message: 'They cannot rejoin this session. To fix a name instead, use Rename.', confirmLabel: 'Remove', cancelLabel: 'Keep them' })
-      : Promise.resolve(true);
-    ask.then(function (yes) {
-      if (yes) socket.emit('moderate-kick', { code: currentCode, playerId: p.id });
-    });
-  });
+  removeBtn.addEventListener('click', function () { confirmRemove(p); });
   li.appendChild(removeBtn);
   return li;
+}
+
+function confirmRemove(p) {
+  var ask = window.Dialog && Dialog.confirm
+    ? Dialog.confirm({ title: 'Remove ' + p.name + '?', message: 'They cannot rejoin this session. To fix a name instead, use Rename.', confirmLabel: 'Remove', cancelLabel: 'Keep them' })
+    : Promise.resolve(true);
+  ask.then(function (yes) {
+    if (yes) socket.emit('moderate-kick', { code: currentCode, playerId: p.id });
+  });
+}
+
+// The class list during a step (2026-10-02): every student with Remove,
+// whether or not they have answered. Folded by default, the count on it.
+function renderClassList() {
+  var players = latestRoster.players || [];
+  classListCount.textContent = 'Class list (' + players.length + ')';
+  classList.innerHTML = '';
+  players.forEach(function (p) {
+    var li = document.createElement('li');
+    li.dataset.id = p.id;
+    var name = document.createElement('span');
+    name.className = 'roster-name';
+    name.textContent = p.name + (p.connected === false ? ' (offline)' : '');
+    li.appendChild(name);
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'entry-btn entry-btn-danger';
+    removeBtn.textContent = 'Remove';
+    removeBtn.title = 'Remove this student from the room, they cannot rejoin this session';
+    removeBtn.addEventListener('click', function () { confirmRemove(p); });
+    li.appendChild(removeBtn);
+    classList.appendChild(li);
+  });
 }
 
 function renameForm(p) {
@@ -653,6 +713,7 @@ socket.on('teacher-roster', function (data) {
     if (!still || still.name !== renamingFrom) renamingId = null;
   }
   if (currentPhaseType === 'lobby') renderLobbyRoster();
+  if (!classListBlock.hidden) renderClassList();
 });
 
 startActivityBtn.addEventListener('click', function () {
@@ -746,7 +807,10 @@ function renderEntries(submissions) {
       top.className = 'entry-top';
       var name = document.createElement('span');
       name.className = 'entry-name';
-      name.textContent = sub.name;
+      // An unattributed step promised students the teacher sees what was
+      // said, not who said it: the server sends no name, and the row
+      // carries no Kick either (a kick would point at the writer).
+      name.textContent = sub.unattributed ? 'Anonymous' : sub.name;
       top.appendChild(name);
       if (sub.flagged) {
         // Moderation ladder rung 3: the auto-checks couldn't settle this
@@ -810,7 +874,7 @@ function renderEntries(submissions) {
           if (yes) socket.emit('moderate-kick', { code: currentCode, playerId: sub.playerId });
         });
       });
-      actions.appendChild(kickBtn);
+      if (!sub.unattributed) actions.appendChild(kickBtn);
 
       li.appendChild(actions);
       entriesList.appendChild(li);
@@ -1049,8 +1113,16 @@ var moreTimeFlashTimer = null;
 moreTimeBtn.addEventListener('click', function () {
   socket.emit('extend-timer', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
 });
-socket.on('timer-extended', function () {
+socket.on('timer-extended', function (data) {
   if (moreTimeBtn.hidden) return;
+  // The step has gained all the extra time it may (engine/more-time.js)
+  if (data && data.atCap) {
+    if (moreTimeFlashTimer) clearTimeout(moreTimeFlashTimer);
+    moreTimeFlashTimer = null;
+    moreTimeBtn.textContent = MORE_TIME_LABEL;
+    moreTimeBtn.hidden = true;
+    return;
+  }
   moreTimeBtn.textContent = 'Added 30 seconds';
   if (moreTimeFlashTimer) clearTimeout(moreTimeFlashTimer);
   moreTimeFlashTimer = setTimeout(function () {

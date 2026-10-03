@@ -12,6 +12,7 @@ import { EVENTS } from '../events.js';
 import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups, dealSides } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
+import { pickRotationShift } from '../phases/rotation-shift.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 import { tailOfWords } from '../phases/append-only.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
@@ -117,6 +118,20 @@ function buildRotationAssignment(ctx) {
   // own; who-got-whose is unpredictable).
   const shuffledSenderOf = phase.rotateShuffle ? shuffleDeal(senders) : null;
 
+  // A chain must not come home early: with fewer students than hops the
+  // fixed shift hands a student the story they started (Story Builder with
+  // two students, "A new story lands in your hands", a reviewer 2026-10-02).
+  // Pick the shift that hands nobody a chain they started, then nobody
+  // their own last piece (engine/phases/rotation-shift.js).
+  const isChainHop = !!(engine.config && engine.config.phases && engine.config.phases[phase.rotateFrom]
+    && engine.config.phases[phase.rotateFrom].rotateFrom);
+  let shift = offset;
+  if (!shuffledSenderOf && isChainHop && N > 1) {
+    const originOf = {};
+    for (const s of senders) originOf[s] = chainOriginId(engine, phase.rotateFrom, s);
+    shift = pickRotationShift(senders, originOf, offset);
+  }
+
   const assignment = {};
   const assignedFrom = {};
   const drawingAssignment = {};
@@ -131,7 +146,7 @@ function buildRotationAssignment(ctx) {
     const receiverId = senders[i];
     const senderId = shuffledSenderOf
       ? shuffledSenderOf[receiverId]
-      : senders[((i - offset) % N + N) % N];
+      : senders[((i - shift) % N + N) % N];
     give(receiverId, senderId);
   }
   for (const receiverId of orderedIds) {
@@ -197,6 +212,21 @@ export function classmatesOf(engine, playerId) {
  * @param {string} sourceId  the step this one rotates from
  * @param {string} senderId  who wrote the item at sourceId
  */
+export function chainOriginId(engine, sourceId, senderId) {
+  const phases = (engine.config && engine.config.phases) || {};
+  let pid = sourceId;
+  let holder = senderId;
+  const seen = new Set();
+  while (phases[pid] && phases[pid].rotateFrom && !seen.has(pid)) {
+    seen.add(pid);
+    const links = (engine.phaseData[phases[pid].rotateFrom] || {}).assignedFrom || {};
+    if (!links[holder]) return null;
+    holder = links[holder];
+    pid = phases[pid].rotateFrom;
+  }
+  return holder;
+}
+
 export function chainOriginText(engine, sourceId, senderId) {
   const phases = (engine.config && engine.config.phases) || {};
   let pid = sourceId;
@@ -657,7 +687,11 @@ registerHandler('collect', {
         appendOnly: !!ctx.phase.appendOnly,
         maxLength: ctx.phase.maxLength || null,
         passAllowed: !!ctx.phase.passAllowed,
-        playerTemplate: sc.playerTemplate, show: sc.playerShow
+        // A returning projector gets its own line and layout (One More
+        // Thing's hand-off steps hide the student's prompt there)
+        ...(player
+          ? { playerTemplate: sc.playerTemplate, show: sc.playerShow }
+          : { hostTemplate: sc.hostTemplate, show: sc.hostShow })
       });
     }
   }

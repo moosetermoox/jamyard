@@ -6,7 +6,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { ballotFor, proposalsForProjector, bracketMatchups, bracketLines, tallyBracket } from '../phases/vote-handler.js';
+import { ballotFor, proposalsForProjector, bracketMatchups, bracketLines, tallyBracket, mergeSameAnswers, authorsOf } from '../phases/vote-handler.js';
 import { thumbnailStrokes } from '../drawing.js';
 
 // The vote's own question ("Who should play Brian?"), resolved; both
@@ -17,6 +17,14 @@ function voteQuestion(ctx) {
   if (typeof q !== 'string' || q.trim() === '') return null;
   const text = ctx.resolveTemplate(q).trim();
   return text || null;
+}
+
+// Did this voter write either side of a matchup (a merged entry counts
+// each of its authors)?
+function wroteOneOf(matchup, candidates, voterId) {
+  if (matchup[0] === voterId || matchup[1] === voterId) return true;
+  return (candidates || []).some(c => c && typeof c === 'object' &&
+    (c.playerId === matchup[0] || c.playerId === matchup[1]) && authorsOf(c).includes(voterId));
 }
 
 registerHandler('vote', {
@@ -54,7 +62,7 @@ registerHandler('vote', {
       }
     } else if (Array.isArray(phase.candidates)) {
       // Literal (teacher-typed) option list — choose-your-own-adventure votes
-      candidates = phase.candidates.filter(c => typeof c === 'string' && c.trim()).map(s => s.trim());
+      candidates = mergeSameAnswers(phase.candidates.filter(c => typeof c === 'string' && c.trim()).map(s => s.trim()));
     } else {
       candidates = phase.candidates ? engine.resolve(phase.candidates) : [];
       // engine.resolve returns undefined for non-ref strings — treat a
@@ -68,6 +76,7 @@ registerHandler('vote', {
       // else has no label (a black button on a reviewer's ballot,
       // 2026-09-24) and is left out with a note in the log.
       const kept = [];
+      const studentIds = new Set();
       for (const c of candidates) {
         if (typeof c === 'string') { if (c.trim()) kept.push(c.trim()); continue; }
         if (c && typeof c === 'object') {
@@ -76,13 +85,15 @@ registerHandler('vote', {
           // "remaining", 2026-09-30): a player record becomes a ballot
           // entry by name, its id the player's, so excludeAuthors keeps
           // a self-vote off and .winnerText is the chosen name
-          if (c.id && c.name && c.text === undefined) { kept.push({ playerId: c.id, text: c.name, name: c.name }); continue; }
+          if (c.id && c.name && c.text === undefined) { kept.push({ playerId: c.id, text: c.name, name: c.name }); studentIds.add(c.id); continue; }
           const words = typeof c.item === 'string' ? c.item : (typeof c.text === 'string' ? c.text : null);
           if (words && words.trim()) { kept.push(words.trim()); continue; }
         }
         console.warn(`[vote:${phase.id}] a candidate had no words to show, left off the ballot`);
       }
-      candidates = kept;
+      // The same answer twice is one entry, its votes crediting both
+      // authors (2026-10-02); students by name never merge
+      candidates = mergeSameAnswers(kept, studentIds);
     }
 
     // Nothing to vote on (e.g. the source collect closed empty) — skip
@@ -170,7 +181,7 @@ registerHandler('vote', {
       for (const voter of eligible) {
         const visible = matchups
           .map((m, i) => ({ m, i }))
-          .filter(({ m }) => !excludeAuthors || (m[0] !== voter.id && m[1] !== voter.id));
+          .filter(({ m }) => !excludeAuthors || !wroteOneOf(m, candidates, voter.id));
         if (visible.length === 0) {
           // Voter has nothing to vote on (excluded from every matchup) —
           // pre-mark them complete so the room isn't blocked waiting.
@@ -251,7 +262,7 @@ registerHandler('vote', {
         const excludeAuthors = !!ctx.phase.excludeAuthors;
         const visible = vs.matchups
           .map((m, i) => ({ m, i }))
-          .filter(({ m }) => !excludeAuthors || (m[0] !== socket.id && m[1] !== socket.id));
+          .filter(({ m }) => !excludeAuthors || !wroteOneOf(m, vs.candidates, socket.id));
         socket.emit(EVENTS.VOTE_START, {
           mode: 'head-to-head',
           matchups: visible.map(({ m, i }) => ({

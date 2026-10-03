@@ -134,7 +134,7 @@ function cleanHops(raw) {
   return raw.slice(0, MAX_CHAIN_HOPS).filter(h => typeof h === 'string').map(h => h.slice(0, 500));
 }
 
-const MAX_QUIZ_QUESTIONS = 15;
+const MAX_QUIZ_QUESTIONS = 20;
 
 // Quiz questions ride through the concierge only in this trimmed shape;
 // compileStoryboard re-validates (correct must match a choice, etc.).
@@ -326,6 +326,9 @@ export function validateSuggestions(raw, ctx) {
             voteText: typeof s.voteText === 'string' ? s.voteText.slice(0, 200) : undefined,
             // hotseat: questions per student before the seat moves (2026-10-01)
             perSeat: s.brick === 'hotseat' ? num(s.perSeat) : undefined,
+            // hotseat: who the student in the seat plays (a historical
+            // figure, a character); the class picks the guest first (2026-10-02)
+            character: s.brick === 'hotseat' && typeof s.character === 'string' ? s.character.slice(0, 120) : undefined,
             // quiet: the line after the quiet stretch
             talk: typeof s.talk === 'string' ? s.talk.slice(0, 300) : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined,

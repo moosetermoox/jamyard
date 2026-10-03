@@ -17,6 +17,7 @@
       "prompt": "How is class going for you? What is working well, and what would help?",
       "timer": 60,
       "from": "all",
+      "unattributed": true,
       "next": "for-teacher"
     },
     "for-teacher": {
@@ -52,7 +53,7 @@
   },
   "recipe": {
     "id": "anonymous-feedback",
-    "version": "2",
+    "version": "3",
     "params": {
       "question": "How is class going for you? What is working well, and what would help?",
       "timer": 60

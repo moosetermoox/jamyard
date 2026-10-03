@@ -31,6 +31,8 @@ import { EVENTS } from '../events.js';
  * @property {number} resets
  * @property {number|null} lastTapAt     server receive time of the last counted tap
  * @property {string|null} lastTapBy     playerId of the last counted tap
+ * @property {number|null} [lastHeardAt] receive time of the last refused
+ *   same-student tap (a voice that still collides)
  * @property {number} lockoutUntil       taps before this timestamp are ignored
  * @property {boolean} finished
  * @property {Array<{attempt: number, reachedCount: number}>} history
@@ -69,12 +71,22 @@ export function adjudicateTap(state, playerId, now) {
 
   // Same student may not say two numbers in a row — participation breadth
   // is the game (and it stops one kid soloing to the target).
+  // The refused tap was still a voice in the room, though: a classmate's
+  // tap inside the window of it collides (a reviewer, 2026-10-02: two taps
+  // 100 ms apart did not reset when the first came from the student who
+  // said the last number; in the other order they did).
   if (state.lastTapBy === playerId && state.count > 0) {
+    state.lastHeardAt = now;
     return { type: 'reject', reason: 'same-player' };
   }
 
-  // Collision: this tap landed within the window of the previous one.
-  if (state.lastTapAt !== null && now - state.lastTapAt <= state.windowMs && state.count > 0) {
+  // Collision: this tap landed within the window of the previous voice,
+  // counted or not.
+  const heard = Math.max(
+    state.lastTapAt === null ? -Infinity : state.lastTapAt,
+    typeof state.lastHeardAt === 'number' ? state.lastHeardAt : -Infinity
+  );
+  if (now - heard <= state.windowMs && state.count > 0) {
     state.bestRun = Math.max(state.bestRun, state.count);
     state.history.push({ attempt: state.attempt, reachedCount: state.count });
     state.count = 0;
@@ -82,6 +94,7 @@ export function adjudicateTap(state, playerId, now) {
     state.attempt++;
     state.lastTapAt = null;
     state.lastTapBy = null;
+    state.lastHeardAt = null;
     state.lockoutUntil = now + RESET_LOCKOUT_MS;
 
     if (state.maxAttempts !== null && state.attempt > state.maxAttempts) {
@@ -135,6 +148,7 @@ registerHandler('one-voice', {
       resets: 0,
       lastTapAt: null,
       lastTapBy: null,
+      lastHeardAt: null,
       lockoutUntil: 0,
       finished: false,
       history: [],

@@ -189,7 +189,7 @@
     tools.appendChild(pen);
 
     var isFav = P.Favorites.has(game.id);
-    var heart = shelfTool('button', 'heart', (isFav ? 'Remove "' : 'Heart "') + game.name + '"');
+    var heart = shelfTool('button', 'heart', 'Favorite "' + game.name + '"');
     heart.type = 'button';
     heart.title = isFav ? 'Hearted: keeps it up front. Click to remove' : 'Heart it: keeps it up front';
     heart.setAttribute('aria-pressed', isFav ? 'true' : 'false');
@@ -201,7 +201,7 @@
       var nowFav = P.Favorites.has(game.id);
       heart.classList.toggle('is-on', nowFav);
       heart.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
-      heart.setAttribute('aria-label', (nowFav ? 'Remove "' : 'Heart "') + game.name + '"');
+      heart.setAttribute('aria-label', 'Favorite "' + game.name + '"');
       heart.title = nowFav ? 'Hearted: keeps it up front. Click to remove' : 'Heart it: keeps it up front';
       if (opts.onChange) opts.onChange({ hearted: game.id, inPlace: true });
     });
@@ -339,7 +339,7 @@
     var favBtn = el('button', 'myyard-act myyard-act-fav' + (isFav ? ' is-fav' : ''), isFav ? '♥' : '♡');
     favBtn.type = 'button';
     favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-    favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
+    favBtn.setAttribute('aria-label', 'Favorite "' + game.name + '"');
     favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
     favBtn.addEventListener('click', function () {
       P.Favorites.toggle(game.id);

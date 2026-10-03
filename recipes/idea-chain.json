@@ -18,7 +18,7 @@
     "transformPrompt": {
       "type": "templateString",
       "label": "How to transform each round",
-      "helper": "What students do with the version they receive each round: change it, twist it, or carry it forward. The same instruction is reused across all four rounds, so it must work on any version, never ask for a fresh start.",
+      "helper": "What students do with the version that reaches them: change it, twist it, or carry it forward. Students read this same line in all four rounds, so ask for a change to what they got, not a new idea.",
       "placeholder": "Rewrite it with one twist: change the setting, the mood, or what happens next.",
       "required": true,
       "minLength": 3,

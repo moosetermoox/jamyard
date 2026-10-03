@@ -1635,6 +1635,15 @@ a { color: #AE3A16; }
 
 select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weight: 800; }
 
+/* Recipe form help (2026-10-02, a reviewer's list): an example in an
+   empty box reads as an example, light and slanted, never as a filled-in
+   answer; a field's limits show before they are broken; a field that
+   only matters for another choice hides with it */
+.recipe-field-input::placeholder { color: #9A8E78; font-style: italic; font-weight: 500; opacity: 1; }
+.recipe-field-limit { font-size: 0.8rem; color: #6E6353; font-weight: 700; margin-bottom: 4px; }
+.recipe-object-field-label .recipe-field-limit { font-size: 0.75rem; margin: 0; }
+.recipe-field[hidden], .recipe-field-value-help[hidden] { display: none; }
+
 .recipe-object-card {
   border: none;
   border-radius: 2px;

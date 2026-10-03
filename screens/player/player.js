@@ -238,6 +238,7 @@ const revealSection = document.getElementById('reveal-section');
 const aiResultDisplay = document.getElementById('ai-result');
 const endSection = document.getElementById('end-section');
 const doneSection = document.getElementById('done-section');
+const removedSection = document.getElementById('removed-section');
 const doneMessageEl = document.getElementById('done-message');
 
 // Elements - New sections
@@ -344,6 +345,9 @@ const ratePromptDisplay = document.getElementById('rate-prompt-display');
 const rateTimerDisplay = document.getElementById('rate-timer-display');
 const rateScales = document.getElementById('rate-scales');
 const rateSubmitBtn = document.getElementById('rate-submit-btn');
+// Submit Ratings stays pressable before every scale has a pick, so a tap
+// says what is missing instead of doing nothing (a reviewer, 2026-10-02).
+const rateNotice = document.getElementById('rate-notice');
 const rateResults = document.getElementById('rate-results');
 
 // Elements - Relay
@@ -513,8 +517,13 @@ function forgetSavedSeat() {
 // Answers come from /shared/bot-brain.js: prompt-aware rules so a snack
 // question gets a snack answer. Falls back to a playful generic if the
 // script didn't load for some reason.
+// The seat of the last Add sample answers press: a keyword answer is dealt
+// by seat too, so two pretend students never send the same line on one step
+var botFillSeat = null;
 function botFillAnswer(promptText) {
-  if (typeof botAnswerFor === 'function') return botAnswerFor(promptText);
+  if (typeof botAnswerFor === 'function') {
+    return botAnswerFor(promptText, botFillSeat === null ? undefined : { seat: botFillSeat, salt: latestPhaseInstanceId });
+  }
   return 'Pizza is the best food';
 }
 
@@ -534,6 +543,7 @@ function sampleFor(samples, seat) {
 
 window.addEventListener('message', function(e) {
   if (!e.data || e.data.type !== 'bot-fill') return;
+  botFillSeat = typeof e.data.seat === 'number' ? e.data.seat : null;
   var sample = sampleFor(e.data.samples, e.data.seat);
 
   // Find the currently visible section
@@ -1111,7 +1121,14 @@ socket.on('connect', () => {
   }
 });
 
-socket.on('join-error', ({ message }) => {
+socket.on('join-error', ({ message, removed }) => {
+  // A removed student trying the same room again gets the removed screen,
+  // never the Join form's red line under a live Join button
+  if (removed) {
+    currentRoomCode = null;
+    showRemovedScreen();
+    return;
+  }
   // The fixed lines ("Room not found. Check the code on the big screen.")
   // have a row in every language table; anything else shows as sent
   showError(window.UiLang && typeof UiLang.t === 'function' ? UiLang.t(message) : message);
@@ -1144,9 +1161,24 @@ socket.on('kicked', ({ message } = {}) => {
   // The joke bubble sat above "You have been removed" (a reviewer,
   // 2026-09-29): it lives outside the sections, so showSection never hides it
   hideEarlyJoke();
-  showSection(joinSection);
+  showRemovedScreen();
+});
+
+// The removed screen says so plainly (2026-10-02, an outside reviewer: the
+// Join form came back with the code filled in and a live Join button that
+// only rejected them). "Join a different room" opens an empty Join form.
+function showRemovedScreen() {
+  forgetSavedSeat();
+  roomCodeInput.value = '';
+  roomCodeInput.dispatchEvent(new Event('input'));
   joinBtn.disabled = false;
-  showError(message || 'You have been removed from this session.');
+  errorMessage.hidden = true;
+  showSection(removedSection);
+}
+
+document.getElementById('removed-join-other').addEventListener('click', () => {
+  showSection(joinSection);
+  roomCodeInput.focus();
 });
 
 // The teacher gave this student a new name from the console (a rude or
@@ -1258,6 +1290,7 @@ function startTimer(seconds, wrapperEl, onExpire) {
 // auto-submits), so an unshifted player would get cut off early.
 socket.on('timer-extended', function ({ addSeconds }) {
   var add = Number(addSeconds) || 0;
+  if (reopenCollectClock(add)) return;
   if (!timerInterval || !timerWrapperEl || add <= 0) return;
   timerRemaining += add;
   timerTotal += add;
@@ -1338,6 +1371,9 @@ function initDrawPad() {
       drawColors.appendChild(swatch);
     })(Draw.PALETTE[ci], (Draw.COLOR_NAMES && Draw.COLOR_NAMES[ci]) || ('Color ' + (ci + 1)));
   }
+  // The pad's name for a screen reader, in the activity's language
+  // (UiLang.apply swaps text, never an aria-label; 2026-10-02)
+  drawPadCanvas.setAttribute('aria-label', UiLang.t('Drawing pad'));
   drawUndoBtn.addEventListener('click', function () { drawPadApi.undo(); });
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
@@ -1642,17 +1678,23 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     });
   }
 
+  collectOpenAfterClock = null;
   if (timer) {
-    startTimer(timer, collectTimerDisplay, () => {
+    startTimer(timer, collectTimerDisplay, function onCollectClock() {
+      // Did anything go? A student with nothing to send keeps the box:
+      // the step is open until the teacher closes it, and when the
+      // projector's "Nobody has answered yet" gets a Wait, the clock
+      // comes back here (timer-extended, below). Before, every screen
+      // read "You're done for now" with no way to answer (a reviewer,
+      // 2026-10-02).
+      var sent = true;
       if (collectMode === 'choice') {
-        // The picked choice if there is one, else a random one
+        // The picked choice goes (several picks send an array). Nothing
+        // picked sends nothing, so it counts as no answer (owner
+        // 2026-10-02; it used to send a random choice) and the box stays.
         var pickedChoice = choiceBallot && choiceBallot.picked();
-        var randomChoice = choices[Math.floor(Math.random() * choices.length)];
-        // Several picks send what is picked (an array); nothing picked
-        // sends one at random, as before
-        var text = pickedChoice ? pickedChoice.value
-          : (typeof randomChoice === 'string' ? randomChoice : (randomChoice.text || randomChoice.name || String(randomChoice)));
-        socket.emit('submit-response', { code: currentRoomCode, response: text });
+        if (pickedChoice) socket.emit('submit-response', { code: currentRoomCode, response: pickedChoice.value });
+        sent = !!pickedChoice;
       } else if (collectMode === 'fields') {
         // Time's up: send what is there (the server keeps an answer with
         // some boxes empty, 2026-09-29); nothing typed sends nothing
@@ -1665,25 +1707,51 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
           result[inputs[k].getAttribute('data-key')] = typed;
         }
         if (anyFilled) socket.emit('submit-response', { code: currentRoomCode, response: result });
+        sent = anyFilled;
       } else if (collectMode === 'classmate') {
         // Time's up: the name picked goes; nothing picked sends nothing
         var pickedName = choiceBallot && choiceBallot.picked();
         if (pickedName) socket.emit('submit-response', { code: currentRoomCode, response: pickedName.value });
+        sent = !!pickedName;
       } else if (collectMode === 'drawing') {
         // Auto-submit whatever's on the pad; a blank pad submits nothing
         // (the server rejects empties, and the host closes the phase anyway)
-        if (drawPadApi && !drawPadApi.isEmpty()) {
+        sent = !!(drawPadApi && !drawPadApi.isEmpty());
+        if (sent) {
           socket.emit('submit-response', { code: currentRoomCode, response: { strokes: drawPadApi.getStrokes() } });
+          submitBtn.disabled = true;
         }
-        submitBtn.disabled = true;
       } else {
-        submitBtn.disabled = true;
-        socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
+        var typedText = responseInput.value.trim();
+        sent = typedText !== '';
+        if (sent) {
+          submitBtn.disabled = true;
+          socket.emit('submit-response', { code: currentRoomCode, response: typedText });
+        }
       }
-      showSection(submittedSection);
+      if (sent) {
+        showSection(submittedSection);
+      } else {
+        collectOpenAfterClock = { onExpire: onCollectClock, phase: latestPhaseInstanceId };
+      }
     });
   }
 });
+
+// A collect clock that ran out with nothing sent (above). The teacher's
+// Wait (or A bit more time) sends timer-extended: the clock starts again
+// on this screen with the time added, as long as the step is the same.
+var collectOpenAfterClock = null;
+function reopenCollectClock(addSeconds) {
+  var open = collectOpenAfterClock;
+  if (!open || timerInterval || addSeconds <= 0) return false;
+  collectOpenAfterClock = null;
+  // Another step, or the student sent an answer by hand since: no clock
+  if (open.phase !== latestPhaseInstanceId || collectSection.hidden) return false;
+  submitBtn.disabled = false;
+  startTimer(addSeconds, collectTimerDisplay, open.onExpire);
+  return true;
+}
 
 const processTitle = document.getElementById('process-title');
 
@@ -1845,7 +1913,7 @@ socket.on('leaderboard', ({ standings, allStandings, teamStandings, myTeam, styl
     // Team competition: lead with the team result, own contribution below.
     // Default team names already read "Team 1", so only add the word for
     // custom names that lack it ("Team Team 1" looked broken on the wall).
-    var myTeamLabel = /^team\b/i.test(String(myTeamStanding.team))
+    var myTeamLabel = /^(team|group)\b/i.test(String(myTeamStanding.team))
       ? myTeamStanding.team : 'Team ' + myTeamStanding.team;
     leaderboardRank.textContent = '#' + myTeamStanding.rank + '. ' + myTeamLabel;
     leaderboardScore.textContent = myTeamStanding.score + ' team points' +
@@ -2387,6 +2455,7 @@ const estimateInputRow = document.getElementById('estimate-input-row');
 // slider with the number as its readout, anything open stays typed. The
 // range comes from the server (the step's min/max, or its own wording).
 var ESTIMATE_SCALE_MAX_STEPS = 12;
+var ESTIMATE_MAX_GUESS = 999999999999999; // fifteen digits, held exactly
 
 function markScalePick(val) {
   var picks = estimateScale.querySelectorAll('.scale-pick');
@@ -2454,6 +2523,13 @@ function submitEstimate() {
     estimatePlayerStatus.textContent = 'Type a number first.';
     return false;
   }
+  // A twenty-digit guess turned into 100000000000000000000 without a
+  // word and dragged the class average with it (a reviewer, 2026-10-02):
+  // fifteen digits is the most a guess can hold exactly
+  if (Math.abs(v) > ESTIMATE_MAX_GUESS) {
+    estimatePlayerStatus.textContent = UiLang.t('That number is too long. Use 15 digits or fewer.');
+    return false;
+  }
   // Inside the range, when there is one (the server clamps too)
   var lo = estimateInput.min !== '' ? parseFloat(estimateInput.min) : NaN;
   var hi = estimateInput.max !== '' ? parseFloat(estimateInput.max) : NaN;
@@ -2478,6 +2554,7 @@ socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTempl
   if (max != null) estimateInput.max = max; else estimateInput.removeAttribute('max');
   renderEstimatePicker(min, max);
   estimateSubmitBtn.disabled = false;
+  estimateSubmitBtn.hidden = false;
   estimatePlayerStatus.textContent = '';
   estimatePlayerResults.hidden = true;
   estimatePlayerResults.innerHTML = '';
@@ -2509,6 +2586,12 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   estimateSubmitBtn.disabled = true;
   setEstimatePickerDisabled(true);
   estimatePlayerStatus.textContent = '';
+  // The guessing is over: the box, the picker, and Submit Guess leave the
+  // screen, so nothing reads as still open (a reviewer, 2026-10-02)
+  estimateSubmitBtn.hidden = true;
+  estimateInputRow.hidden = true;
+  estimateScale.hidden = true;
+  estimateSlider.hidden = true;
 
   var mine = (guesses || []).find(function (g) { return g.playerId === socket.id; });
   var topScore = Math.max.apply(null, [0].concat((guesses || []).map(function (g) { return g.score || 0; })));
@@ -2731,6 +2814,20 @@ var checklistChecked = []; // per item: null or {playerId, name}
 var checklistItemRoles = []; // per item: null or role name (rolesFrom)
 var checklistYourRole = null;
 
+// A task tagged by its words ("Recorder: write it down") shows the job
+// once, as the tag beside it, never again at the head of the line
+// (a reviewer 2026-10-02 read "RECORDER: Summarize..." next to RECORDER)
+function checklistTaskWords(text, role) {
+  var words = String(text || '');
+  if (!role) return words;
+  var colon = words.indexOf(':');
+  if (colon > 0 && words.slice(0, colon).trim().toLowerCase() === String(role).trim().toLowerCase()) {
+    var rest = words.slice(colon + 1).trim();
+    if (rest) return rest;
+  }
+  return words;
+}
+
 function renderChecklistItems() {
   checklistItemsEl.innerHTML = '';
   for (var i = 0; i < checklistItemTexts.length; i++) {
@@ -2749,7 +2846,7 @@ function renderChecklistItems() {
 
       var text = document.createElement('span');
       text.className = 'checklist-item-text';
-      text.textContent = checklistItemTexts[index];
+      text.textContent = checklistTaskWords(checklistItemTexts[index], itemRole);
       row.appendChild(text);
 
       // Role tag: whose job this is; "your job" when it's the viewer's role.
@@ -3313,8 +3410,10 @@ socket.on('rate-start', function(payload) {
   rateCurrentRatings = {};
   rateResults.hidden = true;
   rateResults.innerHTML = '';
-  rateSubmitBtn.disabled = true;
+  rateSubmitBtn.disabled = false;
+  rateSubmitBtn.classList.add('is-not-ready');
   rateSubmitBtn.hidden = false;
+  if (rateNotice) rateNotice.hidden = true;
   applyTemplate(rateSection, playerTemplate);
   applyShow(show, {
     prompt: ratePromptDisplay,
@@ -3345,11 +3444,27 @@ socket.on('rate-results', function(payload) {
   showSection(rateSection);
   rateScales.hidden = true;
   rateSubmitBtn.hidden = true;
+  if (rateNotice) rateNotice.hidden = true;
   rateResults.hidden = false;
   rateResults.innerHTML = renderRateResults(scales, averages, distributions, raterCount);
 });
 
+function allScalesRated() {
+  for (var s = 0; s < rateCurrentScales.length; s++) {
+    if (rateCurrentRatings[rateCurrentScales[s].id] == null) return false;
+  }
+  return true;
+}
+
 rateSubmitBtn.addEventListener('click', function() {
+  if (!allScalesRated()) {
+    if (rateNotice) {
+      rateNotice.textContent = UiLang.t('Pick a rating on each scale.');
+      rateNotice.hidden = false;
+    }
+    return;
+  }
+  if (rateNotice) rateNotice.hidden = true;
   socket.emit('rate-submit', { code: currentRoomCode, ratings: rateCurrentRatings });
   rateSubmitBtn.disabled = true;
 });
@@ -3387,12 +3502,10 @@ function renderRateScales() {
             rateCurrentRatings[scale.id] = val;
             for (var k = 0; k < btns.length; k++) btns[k].classList.remove('rate-btn-selected');
             b.classList.add('rate-btn-selected');
-            // Enable submit when all scales rated
-            var ready = true;
-            for (var s = 0; s < rateCurrentScales.length; s++) {
-              if (rateCurrentRatings[rateCurrentScales[s].id] == null) { ready = false; break; }
-            }
-            rateSubmitBtn.disabled = !ready;
+            // Submit reads ready once every scale has a pick
+            var ready = allScalesRated();
+            rateSubmitBtn.classList.toggle('is-not-ready', !ready);
+            if (ready && rateNotice) rateNotice.hidden = true;
           });
           btnRow.appendChild(b);
           btns.push(b);
@@ -3742,6 +3855,8 @@ const sqFeedback = document.getElementById('sq-feedback');
 const sqNextBtn = document.getElementById('sq-next-btn');
 const sqDone = document.getElementById('sq-done');
 const sqDoneScore = document.getElementById('sq-done-score');
+const sqDoneMark = document.getElementById('sq-done-mark');
+const sqDoneTitle = document.getElementById('sq-done-title');
 let sqPending = null;     // the payload behind the Next button
 let sqInstanceId = null;
 let sqBotAuto = false;    // prototype Bot Fill: play the whole quiz through
@@ -3804,6 +3919,15 @@ function renderSoloDone(data) {
   // A quiz the teacher ended early: the score is out of what this
   // student answered, never out of the whole list as if the rest were wrong
   var answered = Number.isInteger(data.answered) ? data.answered : (data.total || 0);
+  // Nothing answered (the quiz closed before this student started): no
+  // green check, no "0 of 0", an honest line instead (a reviewer, 2026-10-02)
+  var none = answered === 0;
+  if (sqDoneMark) sqDoneMark.hidden = none;
+  if (sqDoneTitle) sqDoneTitle.textContent = none ? UiLang.t('The quiz is over.') : UiLang.t("You're done!");
+  if (none) {
+    sqDoneScore.textContent = UiLang.t('You did not answer any questions this time.');
+    return;
+  }
   var outOf = answered < (data.total || 0) ? answered + ' ' + UiLang.t('answered') : String(data.total || 0);
   sqDoneScore.textContent = UiLang.t('Your score') + ': ' + (data.correct || 0) + ' ' + UiLang.t('of') + ' ' + outOf;
   if (J) J.sound('tada');
@@ -3859,6 +3983,9 @@ socket.on('solo-quiz-done', function (data) {
 // Rolling start: this student's last input landed, nothing else needs
 // them. Their own screen, not the shared wait screen.
 socket.on('player-done', ({ message } = {}) => {
+  // The joke never sits over a finished screen (a reviewer, 2026-10-02):
+  // these payloads can arrive without a step id, which is what folds it
+  hideEarlyJoke();
   showSection(doneSection);
   if (doneMessageEl) setRichText(doneMessageEl, message || '');
   if (J) J.sound('tada');
@@ -3867,6 +3994,7 @@ socket.on('player-done', ({ message } = {}) => {
 socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
   eliminatedBanner.hidden = true;
   isEliminated = false;
+  hideEarlyJoke();
   showSection(endSection);
   applyTemplate(endSection, playerTemplate);
   const endMsg = endSection.querySelector('h1');
@@ -3911,16 +4039,11 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, question, playerTe
     showPickOneVote(candidates);
     if (timer) {
       startTimer(timer, voteTimerDisplay, () => {
-        // Time is up: the picked option goes in if there is one, else a
-        // random candidate (string candidates ARE the choice)
+        // Time is up: the picked option goes in if there is one. Nothing
+        // picked is no vote (owner 2026-10-02; it used to cast a random
+        // one), but the voter still counts as done so the room moves on.
         const picked = pickOneBallot && pickOneBallot.picked();
-        if (picked) {
-          socket.emit('submit-vote', { code: currentRoomCode, choice: picked.value });
-        } else if (currentCandidates.length > 0) {
-          const randomIdx = Math.floor(Math.random() * currentCandidates.length);
-          const c = currentCandidates[randomIdx];
-          socket.emit('submit-vote', { code: currentRoomCode, choice: typeof c === 'string' ? c : c.playerId });
-        }
+        socket.emit('submit-vote', { code: currentRoomCode, choice: picked ? picked.value : null });
         showSection(voteSubmittedSection);
       });
     }
@@ -3945,15 +4068,11 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, question, playerTe
     showNextMatchup();
     if (timer) {
       startTimer(timer, voteTimerDisplay, () => {
-        // Auto-vote: the side picked on the open matchup, then random
-        // picks for the ones left
+        // Time is up: the side picked on the open matchup goes in; the
+        // matchups not reached get no vote (owner 2026-10-02; they used to
+        // get random picks). The tally counts by choice, never by position.
         const openPick = matchupBallot && matchupBallot.picked();
-        for (let i = currentMatchupIndex; i < currentMatchups.length; i++) {
-          const matchup = currentMatchups[i];
-          const pick = (i === currentMatchupIndex && openPick) ? openPick.value
-            : (Math.random() < 0.5 ? matchup.optionA.playerId : matchup.optionB.playerId);
-          matchupVotes.push(pick);
-        }
+        if (openPick) matchupVotes.push(openPick.value);
         socket.emit('submit-vote', {
           code: currentRoomCode,
           votes: matchupVotes.map(function(choice) { return { choice: choice }; })
@@ -4019,10 +4138,13 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames
     }
     if (isTie && winnerNames && winnerNames.length > 1) {
       winnerTitle.textContent = '\ud83d\udc51 ' + formatTieNamesPlayer(winnerNames) + ' tie!';
-      winnerDetails.textContent = iWon ? 'That\'s you! ' + winnerScore + ' each' : winnerScore + ' each';
+      // Never a bare number under the crown (a reviewer, 2026-10-02, saw a
+      // stray "2"): the projector shows no count here either, and the
+      // standings below carry every score beside its name
+      winnerDetails.textContent = iWon ? 'That\'s you!' : '';
     } else {
       winnerTitle.textContent = '\ud83d\udc51 ' + winnerName + ' wins!';
-      winnerDetails.textContent = iWon ? 'That\'s you! ' + winnerScore : String(winnerScore);
+      winnerDetails.textContent = iWon ? 'That\'s you!' : '';
     }
 
     // What they won for \u2014 the winning entry itself.
@@ -4324,7 +4446,7 @@ const allPlayerSections = [
   announceSection, winnerSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
   turnSection, buzzSection, estimateSection, matchSection, sortSection, checklistSection,
-  doneSection, soloQuizSection
+  doneSection, soloQuizSection, removedSection
 ];
 
 function showSection(el) {

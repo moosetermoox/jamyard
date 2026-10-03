@@ -55,27 +55,42 @@ export function runMostVotes({ scores, count }) {
   return out;
 }
 
-function runBottomPercent({ scores, percent }) {
-  const entries = Object.entries(scores);
+/**
+ * The percent is a CAP (a reviewer's 60% round put 5 of 7 out, 2026-10-02:
+ * rounding up and then taking every tie at the cutoff overshot it). At most
+ * floor(n * percent / 100) go, and at least one while the percent is above
+ * zero, so a small class still moves. Everyone below the cutoff score goes;
+ * a tie AT the cutoff that would overshoot is settled by lot to fill the
+ * cap exactly.
+ * @param {{ scores: Record<string, number>, percent: number, random?: () => number }} input
+ * @returns {string[]}
+ */
+export function runBottomPercent({ scores, percent, random = Math.random }) {
+  const entries = Object.entries(scores || {});
   if (entries.length === 0) return [];
+  const pct = Number(percent) || 0;
+  if (pct <= 0) return [];
 
   // Sort ascending by score (lowest first)
   entries.sort((a, b) => a[1] - b[1]);
 
-  const countToEliminate = Math.round(entries.length * percent / 100);
-  if (countToEliminate === 0) return [];
+  const cap = Math.min(entries.length, Math.max(1, Math.floor(entries.length * pct / 100)));
 
   // Find the score at the cutoff boundary
-  const cutoffScore = entries[countToEliminate - 1][1];
+  const cutoffScore = entries[cap - 1][1];
 
-  // Eliminate all players at or below the cutoff score (handles ties)
-  const out = entries
-    .filter(([, score]) => score <= cutoffScore)
-    .map(([id]) => id);
   // Everyone tied at the cutoff (a round where nobody got a vote, say)
   // would empty the room: nobody goes, the round just repeats.
-  if (out.length === entries.length) return [];
-  return out;
+  if (entries.every(([, score]) => score === cutoffScore)) return [];
+
+  const below = entries.filter(([, score]) => score < cutoffScore).map(([id]) => id);
+  const tied = entries.filter(([, score]) => score === cutoffScore).map(([id]) => id);
+  // Draw the tied ones by lot (Fisher-Yates) and take what the cap leaves
+  for (let i = tied.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [tied[i], tied[j]] = [tied[j], tied[i]];
+  }
+  return below.concat(tied.slice(0, cap - below.length));
 }
 
 /**

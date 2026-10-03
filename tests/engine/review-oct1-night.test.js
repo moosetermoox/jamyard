@@ -116,6 +116,7 @@ describe('the feedback return on the projector', () => {
   it('a quoted return has its own line, never "who got the best surprise"', () => {
     const reveal = read('engine/phase-handlers/reveal.js');
     expect(reveal).toContain("phase.chainQuoted === true ? FEEDBACK_HOST_CONTENT : OWN_HOST_CONTENT");
+    expect(reveal).toContain('ownHostLine(phase, sc)');
   });
 });
 

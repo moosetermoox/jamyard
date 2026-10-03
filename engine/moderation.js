@@ -66,12 +66,16 @@ export function collectPassedIds(players) {
 // Passes are excluded entirely: there is nothing to moderate, and the
 // moderation panel lives on the projected host screen — listing a pass there
 // would make it publicly attributable.
-export function buildSubmissionList(players) {
+// `unattributed` (a collect that promised students the teacher sees a
+// summary, not who said what): the rows carry no name. The playerId stays
+// so Hide still works; the console never prints it.
+export function buildSubmissionList(players, { unattributed = false } = {}) {
   return players
     .filter(p => hasSubmitted(p) && !isPassResponse(p.response))
     .map(p => ({
       playerId: p.id,
-      name: p.name,
+      name: unattributed ? '' : p.name,
+      ...(unattributed ? { unattributed: true } : {}),
       text: responseToText(p.response),
       // Strokes ride along so the moderation panel / teacher console can
       // render a thumbnail — a text placeholder is unmoderatable.
@@ -152,4 +156,11 @@ export function hideStoredResponse(room, playerId, hidden) {
     }
   }
   return out;
+}
+
+// The projector's "N of M submitted" counter, read fresh off the eligible
+// players (2026-10-02: a removed student who had answered stayed in it).
+export function submissionCountPayload(eligible, phaseInstanceId) {
+  const list = Array.isArray(eligible) ? eligible : [];
+  return { count: list.filter(p => p.response).length, total: list.length, phaseInstanceId };
 }

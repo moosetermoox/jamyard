@@ -75,7 +75,7 @@ describe('buildActivityReport', () => {
 
   it('omits a heading whose template tokens would render unresolved', () => {
     const engine = stubEngine({
-      phases: { q: { type: 'collect', prompt: 'Improve this: {{seed.assigned}}' } },
+      phases: { q: { type: 'collect', prompt: 'Improve this: {{seed.side}}' } },
       phaseData: { q: { responses: [{ playerId: 'p1', name: 'Ada', text: 'ok' }] } }
     });
     expect(sectionFor(buildActivityReport(engine), 'q').heading).toBeUndefined();

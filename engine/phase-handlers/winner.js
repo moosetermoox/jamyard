@@ -5,6 +5,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { continueLabelForPhase } from '../phases/continue-labels.js';
 
 registerHandler('winner', {
   async onEnter(ctx) {
@@ -14,9 +15,9 @@ registerHandler('winner', {
 
     console.log(`[handlePhase] Winner declared: ${result.winnerId} (${result.winnerScore} votes)`);
 
-    // The crown is a payoff beat — give the drumroll + reveal room to land
-    // before auto-advancing (the host's End Session button is always there).
-    const winnerPause = phase.pause || 10;
+    // The crown is a payoff beat, so it is host-paced: it stays up until the
+    // teacher presses the continue button, labelled for the next step (owner
+    // 2026-10-02: ten seconds was not enough; it used to auto-advance).
     ctx.emitToRoom(EVENTS.WINNER_ANNOUNCED, {
       winnerId: result.winnerId,
       winnerName: result.winnerName,
@@ -28,18 +29,11 @@ registerHandler('winner', {
       winnerDrawing: result.winnerDrawing || null,
       isTie: result.isTie,
       standings: result.standings,
-      pause: winnerPause,
+      // The crown's button says what comes next ("Finish up" before the
+      // wrap-up screen), never a fixed "End Session" (a reviewer 2026-10-02)
+      continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
       ...sc
     });
-
-    // Auto-advance after pause
-    const nextId = ctx.getNextPhaseId();
-    if (nextId) {
-      setTimeout(async () => {
-        if (ctx.isStale()) return;
-        await ctx.advanceTo(nextId);
-      }, winnerPause * 1000);
-    }
   },
 
   onReconnect(ctx, socket) {

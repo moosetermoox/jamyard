@@ -26,12 +26,17 @@ import { audienceFor } from './engine/audience.js';
 import { applyIdeaSettings, parseAnonymity } from './engine/idea-settings.js';
 import { readsAsFindYourMatch } from './engine/find-match-idea.js';
 import { refitRecipeIdFor } from './engine/match-refit.js';
+import { looksUnclear, UNCLEAR_LINE } from './engine/unclear-idea.js';
+import { timeWindow, rankByTime, timeNote } from './engine/suggest-time.js';
+import { askedQuestionCount, builtQuestionCount, capPlanQuestions, questionCapFor, questionCountNote } from './engine/question-count.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
+import { mapPreviewParams } from './engine/recipe-map-params.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor, firstStudentStep } from './engine/make-print.js';
+import { teacherFacingError } from './engine/teacher-error.js';
 import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
 import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
 import { foreachSitOut, withoutSitOut, sitOutIds } from './engine/phases/sit-out.js';
@@ -55,6 +60,10 @@ function repairSavedConfig(config) {
   try {
     const gates = ensureReviewGate(config, { secretOnly: true });
     if (gates.length) console.log(`[repair] "${config.name}": review step added before the rounds (${gates.join(', ')})`);
+    // ... and the round's "It was ..." waits for the teacher and says who
+    // guessed right (engine/review-gate.js)
+    const paced = paceGuessWhoReveals(config);
+    if (paced.length) console.log(`[repair] "${config.name}": guess-who reveal paced by the teacher (${paced.join(', ')})`);
   } catch (err) {
     console.log(`[repair] gate skipped for "${config && config.name}": ${err.message}`);
   }
@@ -110,7 +119,7 @@ import {
   refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
   cachedTranslation, cacheTranslation, publicSettings as wordHelpSettings
 } from './engine/word-help.js';
-import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn, isEarlyBirdJoin } from './engine/early-joke.js';
+import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn, isEarlyBirdJoin, isJokeReconnect } from './engine/early-joke.js';
 
 // The joke as the student screen tells it: setup first, punchline held
 // back (engine/early-joke.js splitJoke); null when this seat got none.
@@ -135,7 +144,8 @@ import {
   rankedResultsList,
   topLines,
   resolveBranchTarget,
-  isOwnCandidate
+  isOwnCandidate,
+  creditCoAuthors
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
 import { hotSeatItem } from './engine/phase-handlers/reveal-one.js';
@@ -193,9 +203,12 @@ import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
+import { pressMoreTime } from './engine/more-time.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
+import { guessedRightLine } from './engine/phases/guessed-right.js';
+import { withZeroRows, foolLine } from './engine/phases/bluff-results.js';
 import { splitByRight, formatConfidenceDial, sureButWrongLine } from './engine/phases/confidence.js';
-import { ensureReviewGate } from './engine/review-gate.js';
+import { ensureReviewGate, paceGuessWhoReveals } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
 import { pollExtremes } from './engine/phases/poll-extremes.js';
@@ -203,7 +216,7 @@ import { gradeFreeText } from './engine/phases/free-text-grading.js';
 import { gradeRankings } from './engine/phases/rank-grading.js';
 import { checkNewName, SELF_RENAME_MESSAGES } from './engine/student-rename.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
-import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
+import { foolPoints, mergeScores, authorsByTextOf } from './engine/phases/bluff-scoring.js';
 import { remapForeachSubConfig, resolveCurrentRefsInSubConfig } from './engine/phases/foreach-remap.js';
 import { applyIterationScoring } from './engine/phases/foreach-scoring.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
@@ -230,7 +243,7 @@ import { gateTeacher, generateTeacherPin, generateTeacherKey } from './engine/te
 import { buildActivityReport } from './engine/report.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
-import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText, hideStoredResponse } from './engine/moderation.js';
+import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText, hideStoredResponse, submissionCountPayload } from './engine/moderation.js';
 import { chainsFor, spotlightItemFor, spotlightAllowed } from './engine/spotlight.js';
 import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
@@ -1884,12 +1897,9 @@ async function closeCollect(code, room) {
           // known). Merged into .scores alongside any truth-picking points.
           if (collectPhase.foolPoints && collectPhase.excludeAuthored) {
             const bluffSrc = (room.engine.phaseData[collectPhase.excludeAuthored] || {}).responses || [];
-            const authorsByText = {};
-            for (const br of bluffSrc) {
-              if (br && br.playerId && br.text != null) {
-                authorsByText[String(br.text).trim().toLowerCase()] = br.playerId;
-              }
-            }
+            // Two students who wrote the same fake share one ballot option
+            // (the pool dedupes it) and both earn its fool points
+            const authorsByText = authorsByTextOf(bluffSrc);
             const fooled = foolPoints({
               responses: choiceResponses,
               authorsByText,
@@ -1899,7 +1909,22 @@ async function closeCollect(code, room) {
             stored.scores = mergeScores(stored.scores, fooled);
             stored.foolScores = fooled;
             console.log(`[close-submissions] Fool points: ${JSON.stringify(fooled)}`);
+            // Every fake on the ballot gets its row, a zero too, and the
+            // line under the chart says whether any fake drew a vote (a
+            // reviewer's round asked "Whose fake pulled the votes?" over
+            // a chart where none had, 2026-10-02; engine/phases/bluff-results.js)
+            const ballot = room.phaseState && Array.isArray(room.phaseState.ballot) ? room.phaseState.ballot : [];
+            withZeroRows(tally, ballot);
+            stored.foolLine = foolLine(room.engine.language, choiceResponses, stored.correctAnswer);
           }
+
+          // Who guessed right, in one line for the reveal after: a step
+          // with a right answer, or a guess-who round, where the round's
+          // author is the answer (engine/phases/guessed-right.js)
+          const currentItem = room.engine._currentForeachItem;
+          const rightAnswer = stored.correctAnswer != null ? stored.correctAnswer
+            : (collectPhase._foreachSecretAuthor && currentItem && currentItem.playerName ? currentItem.playerName : null);
+          if (rightAnswer != null) stored.rightLine = guessedRightLine(room.engine.language, choiceResponses, rightAnswer);
 
           room.engine.storePhaseData(collectPhase.id, stored);
           room.lastClosedCollectId = collectPhase.id;
@@ -2006,7 +2031,7 @@ async function tallyAndAdvance(code, room) {
     });
     engine.storePhaseData(vs.phaseId, {
       votes: vs.votes,
-      scores: result.scores,
+      scores: creditCoAuthors(result.scores, vs.candidates),
       noCounts: result.noCounts,
       results: result.results,
       approved: result.approved,
@@ -2045,6 +2070,13 @@ async function tallyAndAdvance(code, room) {
       result = tallyPickOne(vs.votes, vs.candidateIds);
     } else {
       result = tallyHeadToHead(vs.votes, vs.candidateIds, vs.matchups);
+    }
+    // The same answer from two students is one entry; its votes count for
+    // both, so a tie between them is a shared crown (2026-10-02)
+    const credited = creditCoAuthors(result.scores, vs.candidates);
+    if (Object.keys(credited).length !== Object.keys(result.scores).length) {
+      const top = Math.max(0, ...Object.values(credited));
+      result = { ...result, scores: credited, tied: Object.values(credited).filter(v => v === top).length > 1 };
     }
 
     // The winner's WORDS beside its id: over the class's answers the id is a
@@ -2174,7 +2206,7 @@ function notifyTeachersClosed(code, room) {
     phaseId: phase.id,
     phaseType: phase.type,
     phaseInstanceId: room.phaseInstanceId,
-    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
+    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language, engine.phaseData),
     closeLabel: null,
     closed: true,
     discussionPrompt: discussionPromptFor(phase),
@@ -2215,7 +2247,7 @@ function stepTextFor(phase, engine) {
     if (typeof raw !== 'string' || !raw.trim()) continue;
     let text = raw;
     try { text = resolveTemplate(raw, engine); } catch { text = raw; }
-    text = text.replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
+    text = text.replace(/^#{1,6}\s+/gm, '').replace(/\*\*/g, '').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
     if (!text) continue;
     return text.length > 240 ? text.slice(0, 237).trimEnd() + '…' : text;
   }
@@ -2249,7 +2281,7 @@ function buildTeacherSnapshot(code, room) {
   };
   if (phase && (phase.type === 'collect' || phase.type === 'collect-choice')) {
     const eligible = withoutSitOut(getEligibleVoters(engine.players, phase.from || 'all'), phase);
-    snap.submissions = buildSubmissionList(eligible);
+    snap.submissions = buildSubmissionList(eligible, { unattributed: phase.unattributed === true });
   }
   if (phase && phase.type === 'preview') {
     const data = engine.getPhaseData(phase.id);
@@ -2263,7 +2295,7 @@ function buildTeacherSnapshot(code, room) {
   snap.wordHelp = room.wordHelp ? summarizeWordHelp(room.wordHelp) : null;
   snap.displayDrawing = phase ? resolveDisplayDrawing(phase, engine) : null;
   if (engine && phase) {
-    snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);
+    snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language, engine.phaseData);
     snap.closeLabel = closeLabelFor(phase.type, engine.language);
     snap.closed = !!(ps && ps.closed);
     snap.players = engine.players.listPublic();
@@ -2317,8 +2349,23 @@ function emitSubmissionsUpdate(code, room) {
   const phase = room.engine.getCurrentPhase();
   if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
   const eligible = withoutSitOut(getEligibleVoters(room.engine.players, phase.from || 'all'), phase);
-  const payload = { submissions: buildSubmissionList(eligible) };
+  const payload = { submissions: buildSubmissionList(eligible, { unattributed: phase.unattributed === true }) };
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
+}
+
+// The projector's "N of M submitted" while an answer step is open, read
+// fresh off the room: a late joiner grows M (2026-09-26), a removed student
+// leaves both N and M (2026-10-02, an outside reviewer's projector stayed at
+// "1 of 2 submitted" after Remove).
+function emitSubmissionCount(code, room) {
+  if (!room || !room.engine) return;
+  const openPhase = room.engine.getCurrentPhase();
+  if (!openPhase || (openPhase.type !== 'collect' && openPhase.type !== 'collect-choice')) return;
+  const eligibleNow = withoutSitOut(getEligibleVoters(room.engine.players, openPhase.from || 'all'), openPhase);
+  const countPayload = submissionCountPayload(eligibleNow, room.phaseInstanceId);
+  const hostNow = roomToHost.get(code);
+  if (hostNow) io.to(hostNow).emit(EVENTS.SUBMISSION_COUNT, countPayload);
+  io.to(teachersChannel(code)).emit(EVENTS.SUBMISSION_COUNT, countPayload);
 }
 
 // Live Poll (collect-choice with liveResults): the projector's chart
@@ -2519,7 +2566,7 @@ async function handlePhase(code, room) {
     phaseInstanceId: room.phaseInstanceId,
     // Lets the console's next-step button say what advancing DOES
     // ("Start the voting"), not a generic "Next step".
-    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
+    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language, engine.phaseData),
     // Two-stage phases: while open, the console button CLOSES (results
     // show on the projector first), so it must say the close action.
     closeLabel: closeLabelFor(phase.type, engine.language),
@@ -2897,7 +2944,10 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
         const merged = { ...(config.recipe.params || {}) };
         for (const [k, v] of Object.entries(body.params)) if (allowed.has(k)) merged[k] = v;
         const compiled = compileRecipe(recipe, merged);
-        if (!compiled.config) return res.status(400).json({ error: 'The example did not fit the recipe: ' + JSON.stringify(compiled.diagnostics || []).slice(0, 300) });
+        if (!compiled.config) {
+          const first = (compiled.diagnostics || []).find(d => d.severity === 'error');
+          return res.status(400).json({ error: first ? first.message : 'Those settings could not be used.', diagnostics: compiled.diagnostics || [] });
+        }
         base = { ...compiled.config, id: config.id, name: config.name, description: config.description };
         recompiled = true;
       }
@@ -3109,7 +3159,7 @@ app.post('/api/recipes/:id/compile', (req, res) => {
 
   if (!config) {
     return res.status(400).json({
-      error: 'Recipe parameters did not validate.',
+      error: 'Some settings need a fix first.',
       diagnostics
     });
   }
@@ -3120,7 +3170,7 @@ app.post('/api/recipes/:id/compile', (req, res) => {
   const validation = validate(config, req.params.id, { returnResults: true });
   if (validation.errors && validation.errors.length > 0) {
     return res.status(500).json({
-      error: 'Recipe compiled but produced an invalid game config (recipe-author bug).',
+      error: 'This recipe could not be built with these settings. Try other settings, or tell us through Feedback.',
       diagnostics,
       configErrors: validation.errors
     });
@@ -3137,11 +3187,8 @@ app.post('/api/recipes/:id/compile', (req, res) => {
 app.get('/api/recipes/:id/map', (req, res) => {
   const recipe = getRecipe(req.params.id);
   if (!recipe) return res.status(404).json({ error: `Recipe "${req.params.id}" not found` });
-  const defaults = {};
-  for (const [name, spec] of Object.entries(recipe.parameters || {})) {
-    if (spec && spec.default !== undefined) defaults[name] = spec.default;
-  }
-  const { config } = compileRecipe(recipe, defaults);
+  // A required question with no default draws with its placeholder
+  const { config } = compileRecipe(recipe, mapPreviewParams(recipe));
   if (!config) {
     return res.status(400).json({ error: 'Recipe needs parameters before it can be drawn.' });
   }
@@ -3630,7 +3677,7 @@ app.put('/api/games/:gameId', async (req, res) => {
     res.json({ success: true, stripped });
   } catch (error) {
     console.log(`[api/games PUT] Error: ${error.message}`);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: teacherFacingError(error.message) });
   }
 });
 
@@ -3699,7 +3746,7 @@ app.post('/api/games', async (req, res) => {
     res.json({ success: true, id, source: 'user' });
   } catch (error) {
     console.log(`[api/games POST] Error: ${error.message}`);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: teacherFacingError(error.message) });
   }
 });
 
@@ -3744,7 +3791,7 @@ app.post('/api/games/:gameId/copy', async (req, res) => {
   } catch (error) {
     console.log(`[api/games copy] Error: ${error.message}`);
     const status = error.message.startsWith('Game not found') ? 404 : 400;
-    res.status(status).json({ error: error.message });
+    res.status(status).json({ error: teacherFacingError(error.message) });
   }
 });
 
@@ -4125,6 +4172,30 @@ app.post('/api/games/generate-theme', async (req, res) => {
 // featured activity, a recipe with legal params, or a bricks-only
 // storyboard) via engine/suggest-validate.js, so the AI structurally
 // cannot show a teacher something the platform can't deliver.
+// A config's running time in minutes, or null when it cannot be estimated
+function minutesOfConfig(config) {
+  if (!config || !config.phases) return null;
+  try {
+    const m = estimateDuration(config).minutes;
+    return Number.isFinite(m) && m > 0 ? m : null;
+  } catch {
+    return null;
+  }
+}
+
+// A suggested plan's running time: compiled the way the Create page builds
+// it (screens/shared/step-suggestions.js, loaded once on first use)
+async function storyboardMinutes(storyboard) {
+  if (!storyboard || !Array.isArray(storyboard.steps)) return null;
+  try {
+    if (!globalThis.StepSuggestions) await import('./screens/shared/step-suggestions.js');
+    const built = globalThis.StepSuggestions.compileStoryboard(storyboard);
+    return built && built.config ? minutesOfConfig(built.config) : null;
+  } catch {
+    return null;
+  }
+}
+
 app.post('/api/games/suggest', async (req, res) => {
   try {
     const { occasion, topic, time } = req.body || {};
@@ -4137,7 +4208,10 @@ app.post('/api/games/suggest', async (req, res) => {
       featured: !!config.featured,
       name: config.name,
       description: config.description || '',
-      playTime: config.playTime || null
+      playTime: config.playTime || null,
+      // Computed from the timers (engine/duration-estimate.js), so the AI
+      // reads a running time it can weigh against the teacher's answer
+      minutes: minutesOfConfig(config)
     }));
     games = applyFeaturedOverrides(games, await featuredOverridesSafe())
       .filter(g => g.featured);
@@ -4161,19 +4235,32 @@ app.post('/api/games/suggest', async (req, res) => {
     // Enrich with real catalog data so the cards never rely on AI prose.
     const gamesById = {};
     for (const g of games) gamesById[g.id] = g;
-    const suggestions = checked.suggestions.map(s => {
+    const enriched = await Promise.all(checked.suggestions.map(async s => {
       if (s.kind === 'host') {
         const g = gamesById[s.id];
-        return { ...s, name: g.name, description: g.description, playTime: g.playTime };
+        return { ...s, name: g.name, description: g.description, playTime: g.playTime, minutes: g.minutes };
       }
       if (s.kind === 'recipe') {
         const r = recipesById[s.id];
-        return { ...s, name: r.name, description: r.description || '' };
+        let minutes = null;
+        try {
+          const { config } = compileRecipe(r, s.params || {});
+          minutes = minutesOfConfig(config);
+        } catch { /* no estimate: it sorts after the estimated ones */ }
+        return { ...s, name: r.name, description: r.description || '', minutes };
       }
-      return s;
-    });
+      return { ...s, minutes: await storyboardMinutes(s.storyboard) };
+    }));
 
-    res.json({ suggestions, note: raw.note, dropped: checked.dropped });
+    // The time the teacher picked, against the computed running times:
+    // the ideas that fill it come first (a reviewer picked the whole
+    // period and got a ten-minute idea on top, 2026-10-02)
+    const win = timeWindow(time);
+    const suggestions = rankByTime(enriched, win);
+    const fitNote = timeNote(suggestions, win);
+    const note = [raw.note, fitNote].filter(Boolean).join(' ') || null;
+
+    res.json({ suggestions, note, dropped: checked.dropped });
   } catch (error) {
     console.log(`[api/games/suggest] Error: ${error.message}`);
     res.status(error.statusCode || 500).json({ error: error.message });
@@ -4197,12 +4284,20 @@ async function storyboardOutcome(body, onEvent) {
   if (!description || typeof description !== 'string' || description.trim().length < 10) {
     return { status: 400, json: { error: 'Please describe the activity (at least 10 characters).' } };
   }
+  if (looksUnclear(description)) {
+    await logIdea(body, { stage: 'storyboard', result: 'none', reason: 'unclear' });
+    return { status: 200, json: { unclear: true, reason: UNCLEAR_LINE } };
+  }
   try {
     console.log(`[api/games/storyboard] Planning: "${description.substring(0, 80)}..."`);
     const storyboard = await aiService.generateStoryboard(description, { onEvent });
     if (storyboard.error) {
       await logIdea(body, { stage: 'storyboard', result: 'error', reason: storyboard.error });
       return { status: 500, json: { error: storyboard.error } };
+    }
+    if (storyboard.unclear) {
+      await logIdea(body, { stage: 'storyboard', result: 'none', reason: 'unclear' });
+      return { status: 200, json: { unclear: true, reason: UNCLEAR_LINE } };
     }
     // Honest refusal, not an error: the idea's core needs a mechanic no
     // brick provides, and a hollow lookalike would be worse than saying so.
@@ -4221,13 +4316,18 @@ async function storyboardOutcome(body, onEvent) {
     // What was unique: the bricks the plan is made of.
     const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
     const ideaId = await logIdea(body, { stage: 'storyboard', result: 'storyboard', targetName: storyboard.name || '', steps });
+    // A quiz longer than one holds is cut to the cap so the plan builds,
+    // and the card says how many the idea asked for against how many
+    // there are (engine/question-count.js)
+    capPlanQuestions(storyboard);
+    const questionNote = questionCountNote(askedQuestionCount(description), builtQuestionCount(storyboard), questionCapFor(storyboard));
     // The settings the idea named in plain words ("no names"), read by the
     // server the same way the recipe match reads them, so a planned
     // activity keeps them too (2026-09-28: a "word cloud, no names" plan
     // was built with names shown). The client writes them on the config.
     const anonymous = parseAnonymity(description);
     const settings = anonymous === null ? {} : { anonymous };
-    return { status: 200, json: { storyboard, settings, ideaId } };
+    return { status: 200, json: { storyboard, settings, ideaId, questionNote } };
   } catch (error) {
     console.log(`[api/games/storyboard] Error: ${error.message}`);
     await logIdea(body, { stage: 'storyboard', result: 'error', reason: error.message });
@@ -4282,6 +4382,12 @@ app.post('/api/games/from-description', async (req, res) => {
     const { description, recipeId } = req.body || {};
     if (!description || typeof description !== 'string' || description.trim().length < 10) {
       return res.status(400).json({ error: 'Please provide a description (at least 10 characters).' });
+    }
+    // Keyboard mash is not a missing feature (a reviewer, 2026-10-02): say
+    // the words were unclear, before any AI call (engine/unclear-idea.js)
+    if (looksUnclear(description)) {
+      await logIdea(req.body, { stage: recipeId ? 'alternate' : 'match', result: 'none', reason: 'unclear' });
+      return res.json({ unclear: true, reason: UNCLEAR_LINE });
     }
 
     // recipeId narrows the matcher to one recipe — the "or maybe this
@@ -4554,6 +4660,9 @@ app.post('/api/games/from-description', async (req, res) => {
       alternates,
       map: buildActivityMap(config),
       timing,
+      // The questions asked for against the questions made, read from the
+      // idea by the server (engine/question-count.js), said on the card
+      questionNote: questionCountNote(askedQuestionCount(description), builtQuestionCount({ params: match.params })),
       ideaId: await logIdea(req.body, { stage, result: 'match', target: recipe.id, targetName: config.name || recipe.name, minutes: requestedMinutes })
     });
   } catch (error) {
@@ -4691,7 +4800,7 @@ io.on('connection', (socket) => {
       room.wordHelp = createWordHelpState(config, room.engine.language);
       // Early-bird joke (engine/early-joke.js): who among the first N
       // joiners got which joke, null when the activity has none.
-      room.earlyJoke = createEarlyJokeState(config);
+      room.earlyJoke = createEarlyJokeState(config, room.engine.language);
       // Try it out's pretend students: logged and counted apart from a class.
       room.pretend = payload.pretend === true;
 
@@ -4775,7 +4884,11 @@ io.on('connection', (socket) => {
     socket.join(teachersChannel(code));
     recordEvent(room, 'teacher-console-joined');
     console.log(`[join-teacher] Console ${socket.id} joined room ${code}`);
-    socket.emit(EVENTS.TEACHER_JOINED, buildTeacherSnapshot(code, room));
+    // The PIN rides to the console it opened (teacher-private): the console
+    // shows it beside the room code, since the report page and a second
+    // device can ask for it (2026-10-02, a reviewer was asked for a PIN
+    // nothing had shown them)
+    socket.emit(EVENTS.TEACHER_JOINED, { ...buildTeacherSnapshot(code, room), teacherPin: room.teacherPin });
     // Pairing must be VISIBLE: the PIN can be glimpsed off the projector, so
     // the host screen (and any earlier console) announces every new pairing —
     // a hijacked console can't connect silently. deviceCount lets the teacher
@@ -4804,7 +4917,7 @@ io.on('connection', (socket) => {
     // Block players the host kicked from this room (same-session token).
     if (token && room.kickedTokens && room.kickedTokens.has(token)) {
       console.log(`[join-room] Blocked kicked player from rejoining ${code}`);
-      socket.emit(EVENTS.JOIN_ERROR, { message: 'You have been removed from this session.' });
+      socket.emit(EVENTS.JOIN_ERROR, { message: 'You have been removed from this session.', removed: true });
       return;
     }
 
@@ -4874,8 +4987,13 @@ io.on('connection', (socket) => {
         const theme = room.engine ? (room.engine.config.theme || null) : null;
         const language = room.engine ? room.engine.language : 'en';
         // The same joke as before, never a fresh roll (a refresh must not
-        // re-deal, and a late reconnect must not steal an eleventh seat).
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(jokeFor(room.earlyJoke, socket.id), { rolling: !!(room.engine && isRolling(room.engine.config)) }) });
+        // re-deal, and a late reconnect must not steal an eleventh seat),
+        // and only where a fresh join would draw one, never on the end step
+        // (engine/early-joke.js isJokeReconnect, 2026-10-02).
+        const rjPhase = room.engine ? room.engine.getCurrentPhase() : null;
+        const rjRolling = !!(room.engine && isRolling(room.engine.config));
+        const rjJoke = isJokeReconnect({ phaseType: rjPhase ? rjPhase.type : null, rolling: rjRolling }) ? jokeFor(room.earlyJoke, socket.id) : null;
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(rjJoke, { rolling: rjRolling }) });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
@@ -4916,7 +5034,7 @@ io.on('connection', (socket) => {
       // early-joke.js keeps the count and the deal; past N this is null),
       // and only while the room still waits in its lobby (or is rolling).
       const joinPhase = room.engine ? room.engine.getCurrentPhase() : null;
-      const earlyBird = isEarlyBirdJoin({ phaseType: joinPhase ? joinPhase.type : null, rolling: !!(room.engine && isRolling(room.engine.config)) });
+      const earlyBird = isEarlyBirdJoin({ phaseType: joinPhase ? joinPhase.type : null, rolling: !!(room.engine && isRolling(room.engine.config)), msSinceOpen: room.createdAt ? Date.now() - room.createdAt : undefined });
       const joke = earlyBird ? dealJoke(room.earlyJoke, socket.id) : null;
       socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(joke, { rolling: !!(room.engine && isRolling(room.engine.config)) }) });
 
@@ -4945,16 +5063,7 @@ io.on('connection', (socket) => {
         // The projector's "N of M submitted" counted the room at the step's
         // start: a fresh joiner grows M now, not at their first answer
         // (a reviewer saw "0 of 4" with five in, 2026-09-26)
-        {
-          const openPhase = room.engine.getCurrentPhase();
-          if (openPhase && (openPhase.type === 'collect' || openPhase.type === 'collect-choice')) {
-            const eligibleNow = withoutSitOut(getEligibleVoters(players, openPhase.from || 'all'), openPhase);
-            const countPayload = { count: eligibleNow.filter(p => p.response).length, total: eligibleNow.length, phaseInstanceId: room.phaseInstanceId };
-            const hostNow = roomToHost.get(code);
-            if (hostNow) io.to(hostNow).emit(EVENTS.SUBMISSION_COUNT, countPayload);
-            io.to(teachersChannel(code)).emit(EVENTS.SUBMISSION_COUNT, countPayload);
-          }
-        }
+        emitSubmissionCount(code, room);
       } catch (seatError) {
         // A seat that can't be given is a waiting screen, never a failed join.
         console.warn(`[join-room] Late seating failed for ${socket.id}: ${seatError.message}`);
@@ -5488,6 +5597,7 @@ io.on('connection', (socket) => {
     }
     emitTeacherRoster(code, room);
     emitSubmissionsUpdate(code, room);
+    emitSubmissionCount(code, room);
   });
 
   // Teacher renames a student (a rude or unreadable name, 2026-09-27: the
@@ -5582,17 +5692,28 @@ io.on('connection', (socket) => {
       // Two-stage phases stay current after closing; more time only makes
       // sense while inputs are still open.
       if (room.phaseState && room.phaseState.closed) return;
+      // A ceiling on the extra time one step can gain (engine/more-time.js,
+      // 2026-10-02: forty presses turned 45 seconds into 20:42)
+      const usedNow = room.moreTime && room.moreTime.phaseInstanceId === room.phaseInstanceId ? room.moreTime.used : 0;
+      const press = pressMoreTime(usedNow, phase.timer, EXTEND_TIMER_SECONDS);
+      if (!press.ok) {
+        socket.emit(EVENTS.TIMER_EXTENDED, { addSeconds: 0, atCap: true });
+        return;
+      }
       // Server-timed: push the server's own deadline back too, or it would
       // still close at the original time. No armed timer left (it already
       // fired, or a manual close cleared it) = nothing to extend.
       if (serverTimed && !extendPhaseTimer(room, EXTEND_TIMER_SECONDS)) return;
       // Host-clock steps keep a deadline too (collect records one so a
       // refreshed student gets the time left): push it back as well
+      // (from now when it already ran out: the projector's Wait after
+      // "Nobody has answered yet" restarts the clock)
       if (!serverTimed && room.phaseState && room.phaseState.timerEndsAt) {
-        room.phaseState.timerEndsAt += EXTEND_TIMER_SECONDS * 1000;
+        room.phaseState.timerEndsAt = Math.max(room.phaseState.timerEndsAt, Date.now()) + EXTEND_TIMER_SECONDS * 1000;
       }
+      room.moreTime = { phaseInstanceId: room.phaseInstanceId, used: press.used };
       recordEvent(room, 'extend-timer');
-      const message = { addSeconds: EXTEND_TIMER_SECONDS };
+      const message = { addSeconds: EXTEND_TIMER_SECONDS, atCap: press.atCap };
       io.to(code).emit(EVENTS.TIMER_EXTENDED, message);
       io.to(teachersChannel(code)).emit(EVENTS.TIMER_EXTENDED, message);
     } catch (error) {
@@ -5645,7 +5766,9 @@ io.on('connection', (socket) => {
         console.log(`[submit-vote] ${socket.id} tried to vote for their own answer, refused`);
         return;
       }
-      vs.votes.push({ voterId: socket.id, choice });
+      // No choice = the timer ran out before a pick: no vote, but the
+      // voter is done (owner 2026-10-02)
+      if (choice !== null && choice !== undefined) vs.votes.push({ voterId: socket.id, choice });
     } else if (vs.mode === 'approve' && Array.isArray(votesList)) {
       // Yes or no on every entry (2026-09-25): only ballot entries count,
       // never the voter's own answer, never a candidate off the ballot,
@@ -6348,6 +6471,10 @@ io.on('connection', (socket) => {
     const player = room.engine.players.find(socket.id);
     if (!player) return;
     if (typeof value !== 'number' || !Number.isFinite(value)) return;
+    // A twenty-digit guess is already rounded by the time it arrives
+    // (100000000000000000000) and drags the class average with it; the
+    // student screen says so before sending, this refuses the rest
+    if (Math.abs(value) > Number.MAX_SAFE_INTEGER) return;
 
     // Server-side bounds clamp (the client also enforces the range): the
     // step's min/max, or the question's own "scale of 1 to 10"
@@ -6384,6 +6511,7 @@ io.on('connection', (socket) => {
     if (isStalePhaseEvent(room, phaseInstanceId, 'estimate-set-answer')) return;
     if (!isTeacherSocket(code, room, socket.id)) return;
     if (typeof answer !== 'number' || !Number.isFinite(answer)) return;
+    if (Math.abs(answer) > Number.MAX_SAFE_INTEGER) return;
     room.phaseState.answer = answer;
     recordEvent(room, 'estimate-set-answer');
     console.log(`[estimate-set-answer] Room ${code}: answer set from the console`);

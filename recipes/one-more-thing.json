@@ -54,7 +54,13 @@
         "prompt": "A classmate's list is in the box below. Read it, then ADD one thing they missed, a detail, a missing point, or a connection between ideas. New line, leave their lines alone.",
         "timer": 90,
         "maxLength": 650,
-        "next": "add-again"
+        "next": "add-again",
+        "hostTemplate": "Every list just moved to a classmate.\n\nRead the list on your screen, then add one thing it missed.",
+        "hostShow": [
+          "counter",
+          "timer",
+          "closeButton"
+        ]
       },
       "add-again": {
         "type": "collect",
@@ -63,7 +69,13 @@
         "prompt": "A different classmate's list, already grown once. Read the whole thing, then ADD one more thing it's still missing. New line.",
         "timer": 90,
         "maxLength": 800,
-        "next": "returned"
+        "next": "returned",
+        "hostTemplate": "The lists moved again, each one already grown once.\n\nRead the whole list on your screen, then add one more thing it is still missing.",
+        "hostShow": [
+          "counter",
+          "timer",
+          "closeButton"
+        ]
       },
       "returned": {
         "type": "reveal",
@@ -74,7 +86,8 @@
           "add-again"
         ],
         "chainDisplay": "final",
-        "next": "cluster"
+        "next": "cluster",
+        "content": "Everyone's list just came back to its owner, grown by two classmates.\n\nGive the room a quiet minute to read. Then ask: what did a classmate add that you had forgotten?"
       },
       "cluster": {
         "type": "ai-process",

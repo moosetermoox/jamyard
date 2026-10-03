@@ -46,6 +46,7 @@
     'class-judges-own': 'the class votes on what everyone made',
     'ai-reads-pile': "AI works on the whole class's answers",
     'work-goes-up-front': "everyone's work goes up on the projector",
+    'results-go-up-front': "the class's results go up on the projector",
     'partners-combine': 'partners combine their answers into one',
     'build-on-last': 'each student adds to what the last one made',
     'round-per-answer': 'a round for each answer the class wrote'

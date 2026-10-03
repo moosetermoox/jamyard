@@ -89,9 +89,11 @@ async function run() {
     r.check(Array.isArray(crown.winnerDrawing) && crown.winnerDrawing[0].points.length === 100, 'winnerDrawing rides on the payload too');
     r.check(!crown.winnerEntry, 'no "[drawing]" placeholder text is announced');
 
-    // --- end ---
+    // --- end: the crown is host-paced, the teacher presses continue ---
     try {
-      await waitForEvent(players[0], 'game-ended', 15000);
+      const ended = waitForEvent(players[0], 'game-ended', 15000);
+      host.emit('advance-phase', { code });
+      await ended;
       r.check(true, 'the room reached the end');
     } catch {
       r.warn('game-ended not observed');
