@@ -460,7 +460,14 @@ export const STRINGS = {
     'Waiting for others to place wagers...': 'Esperando a que los demás apuesten...',
     'Wager placed. Waiting for others...': 'Apuesta hecha. Esperando a los demás...',
     "Reconnecting, waiting for your teacher's screen…": 'Reconectando, esperando la pantalla de tu profesor…',
-    'The teacher is resolving an issue. Please wait...': 'El profesor está resolviendo un problema. Espera un momento...'
+    'The teacher is resolving an issue. Please wait...': 'El profesor está resolviendo un problema. Espera un momento...',
+    // The student's done counter, the meadow's own tag, the projector's end
+    // buttons (a Spanish room read them in English, the owner's re-check 2026-10-03)
+    '{count} of {total} in': '{count} de {total} listos',
+    'you': 'tú',
+    'Play Again': 'Jugar otra vez',
+    'Copy report link': 'Copiar el enlace del informe',
+    '✓ Copied, open it in a private window': '✓ Copiado, ábrelo en una ventana privada'
   },
   fr: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -772,7 +779,14 @@ export const STRINGS = {
     'Waiting for others to place wagers...': 'En attente que les autres parient...',
     'Wager placed. Waiting for others...': 'Pari placé. En attente des autres...',
     "Reconnecting, waiting for your teacher's screen…": 'Reconnexion, en attente de l’écran de ton professeur…',
-    'The teacher is resolving an issue. Please wait...': 'Le professeur règle un problème. Un instant...'
+    'The teacher is resolving an issue. Please wait...': 'Le professeur règle un problème. Un instant...',
+    // The student's done counter, the meadow's own tag, the projector's end
+    // buttons (a Spanish room read them in English, the owner's re-check 2026-10-03)
+    '{count} of {total} in': '{count} sur {total} ont fini',
+    'you': 'toi',
+    'Play Again': 'Rejouer',
+    'Copy report link': 'Copier le lien du rapport',
+    '✓ Copied, open it in a private window': '✓ Copié, ouvre-le dans une fenêtre privée'
   },
   de: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1084,7 +1098,14 @@ export const STRINGS = {
     'Waiting for others to place wagers...': 'Warten, bis die anderen gesetzt haben...',
     'Wager placed. Waiting for others...': 'Einsatz gesetzt. Warten auf die anderen...',
     "Reconnecting, waiting for your teacher's screen…": 'Verbindung wird wiederhergestellt, warten auf den Bildschirm der Lehrkraft…',
-    'The teacher is resolving an issue. Please wait...': 'Die Lehrkraft löst gerade ein Problem. Bitte warten...'
+    'The teacher is resolving an issue. Please wait...': 'Die Lehrkraft löst gerade ein Problem. Bitte warten...',
+    // The student's done counter, the meadow's own tag, the projector's end
+    // buttons (a Spanish room read them in English, the owner's re-check 2026-10-03)
+    '{count} of {total} in': '{count} von {total} fertig',
+    'you': 'du',
+    'Play Again': 'Noch einmal spielen',
+    'Copy report link': 'Link zum Bericht kopieren',
+    '✓ Copied, open it in a private window': '✓ Kopiert, in einem privaten Fenster öffnen'
   },
   pt: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1396,7 +1417,14 @@ export const STRINGS = {
     'Waiting for others to place wagers...': 'Esperando os outros apostarem...',
     'Wager placed. Waiting for others...': 'Aposta feita. Esperando os outros...',
     "Reconnecting, waiting for your teacher's screen…": 'Reconectando, esperando a tela do seu professor…',
-    'The teacher is resolving an issue. Please wait...': 'O professor está resolvendo um problema. Aguarde...'
+    'The teacher is resolving an issue. Please wait...': 'O professor está resolvendo um problema. Aguarde...',
+    // The student's done counter, the meadow's own tag, the projector's end
+    // buttons (a Spanish room read them in English, the owner's re-check 2026-10-03)
+    '{count} of {total} in': '{count} de {total} prontos',
+    'you': 'você',
+    'Play Again': 'Jogar de novo',
+    'Copy report link': 'Copiar o link do relatório',
+    '✓ Copied, open it in a private window': '✓ Copiado, abra em uma janela privada'
   },
   it: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1708,6 +1736,13 @@ export const STRINGS = {
     'Waiting for others to place wagers...': 'In attesa che gli altri puntino...',
     'Wager placed. Waiting for others...': 'Puntata fatta. In attesa degli altri...',
     "Reconnecting, waiting for your teacher's screen…": 'Riconnessione, in attesa dello schermo dell’insegnante…',
-    'The teacher is resolving an issue. Please wait...': 'L’insegnante sta risolvendo un problema. Attendi...'
+    'The teacher is resolving an issue. Please wait...': 'L’insegnante sta risolvendo un problema. Attendi...',
+    // The student's done counter, the meadow's own tag, the projector's end
+    // buttons (a Spanish room read them in English, the owner's re-check 2026-10-03)
+    '{count} of {total} in': '{count} su {total} pronti',
+    'you': 'tu',
+    'Play Again': 'Gioca ancora',
+    'Copy report link': 'Copia il link del resoconto',
+    '✓ Copied, open it in a private window': '✓ Copiato, aprilo in una finestra privata'
   }
 };

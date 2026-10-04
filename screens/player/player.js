@@ -1088,7 +1088,8 @@ socket.on('word-lookup-result', (data) => {
 
 socket.on('room-progress', ({ count, total } = {}) => {
   if (typeof count !== 'number' || typeof total !== 'number') return;
-  const text = count + ' of ' + total + ' in';
+  // "1 of 1 in" read English in a Spanish room (the owner's live re-check, 2026-10-03)
+  const text = UiLang.t('{count} of {total} in').replace('{count}', String(count)).replace('{total}', String(total));
   submittedProgress.textContent = text;
   submittedProgress.hidden = false;
   voteSubmittedProgress.textContent = text;

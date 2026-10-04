@@ -3036,10 +3036,10 @@ copyReportBtn.addEventListener('click', () => {
   let link = window.location.origin + '/teacher/report#code=' + currentRoomCode;
   if (currentTeacherPin) link += '&pin=' + currentTeacherPin;
   const done = () => {
-    copyReportBtn.textContent = '✓ Copied, open it in a private window';
+    copyReportBtn.textContent = UiLang.t('✓ Copied, open it in a private window');
     if (reportCopyTimer) clearTimeout(reportCopyTimer);
     reportCopyTimer = setTimeout(() => {
-      copyReportBtn.textContent = 'Copy report link';
+      copyReportBtn.textContent = UiLang.t('Copy report link');
       reportCopyTimer = null;
     }, 2500);
   };
