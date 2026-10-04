@@ -98,9 +98,9 @@ personal info").
 All documents — draftable by Claude, published by the teacher.
 Two of the three blocking facts landed 2026-08-30: operating name is
 **Max Cady** (person, not an LLC), privacy-contact email is
-**mccady@gmail.com** (rendered obfuscated as "mccady at gmail dot com"
-on /privacy — owner doesn't want scrapers; keep the obfuscation in any
-public-facing document, use the real address in district paperwork).
+**max@jamyard.org** since 2026-10-04 (owner's call; a plain mailto link on
+/privacy, and the operator's name links to linkedin.com/in/maxcady; it was
+mccady@gmail.com, shown obfuscated, before).
 Still needed: confirmation of the named security coordinator
 (presumably also Max Cady; confirm before drafting the infosec program).
 The privacy policy's retention table must name everything a room
