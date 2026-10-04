@@ -6707,18 +6707,42 @@ async function testGame() {
 
 // --- AI Review ---
 
-async function runLightReview() {
+// The light review runs after a save, but once per version of the activity
+// and only when the teacher pauses (2026-10-04, owner: fewer AI calls, no
+// quality cost). Autosave fires on every blur, so this used to ask the AI
+// again for every field left, often about an activity it had just read.
+// Same review, same panel; an activity it already reviewed is not sent again.
+var LIGHT_REVIEW_PAUSE_MS = 6000;
+var lightReviewTimer = null;
+var lastLightReviewed = null;   // the activity as last sent (or deep-reviewed)
+var lightReviewBusy = false;
+
+function runLightReview() {
+  clearTimeout(lightReviewTimer);
+  lightReviewTimer = setTimeout(lightReviewNow, LIGHT_REVIEW_PAUSE_MS);
+}
+
+async function lightReviewNow() {
+  var snapshot = JSON.stringify(gameConfig);
+  if (snapshot === lastLightReviewed) return;
+  if (lightReviewBusy) { runLightReview(); return; }
+  lightReviewBusy = true;
+  lastLightReviewed = snapshot;
   try {
     var response = await fetch('/api/games/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config: gameConfig, depth: 'light' })
+      body: JSON.stringify({ config: JSON.parse(snapshot), depth: 'light' })
     });
-    if (!response.ok) return;
+    if (!response.ok) { lastLightReviewed = null; return; }
     var result = await response.json();
-    applyReviewResults(result.ai);
+    // The teacher may have changed it again meanwhile; the next pause reviews that
+    if (JSON.stringify(gameConfig) === snapshot) applyReviewResults(result.ai);
   } catch (error) {
+    lastLightReviewed = null;
     console.log('Light review failed:', error.message);
+  } finally {
+    lightReviewBusy = false;
   }
 }
 
@@ -6739,6 +6763,8 @@ async function runDeepReview() {
     }
     var result = await response.json();
     lastReviewResult = result;
+    // A deep review covers what the light one would say about this version
+    lastLightReviewed = JSON.stringify(gameConfig);
     applyReviewResults(result.ai);
     showReviewPanel(result);
   } catch (error) {

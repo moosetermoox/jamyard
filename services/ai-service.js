@@ -5,6 +5,8 @@ import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
 import { stripPlayerIdRefs } from '../engine/ai-name-fill.js';
 import { pickIdeaQuestions } from '../engine/idea-questions.js';
+import { AnswerCache, cacheKey } from './answer-cache.js';
+import { storedExample, recordExample } from '../engine/example-ideas.js';
 import { LANGUAGES as LANGUAGE_NAMES, detectLanguage, resolveLanguage } from '../engine/i18n/index.js';
 
 /**
@@ -980,6 +982,9 @@ export function trimChatHistory(messages) {
 export class AIService {
   constructor(config = {}) {
     this.mode = config.mode || 'mock';
+    // An identical request gets the answer already given (services/answer-cache.js):
+    // the make page's fit questions and an activity's translation
+    this.answers = config.answerCache || new AnswerCache();
 
     if (this.mode === 'real') {
       this.client = new Anthropic({
@@ -1715,6 +1720,12 @@ Return the revised config.`;
         { question: 'What topic or subject should this be about?', label: 'Topic', kind: 'text', choices: [], placeholder: 'e.g. photosynthesis, To Kill a Mockingbird, fractions' }
       ] };
     }
+    const askKey = cacheKey('customize-questions', {
+      name: config.name || '', description: config.description || '', phases: config.phases || {},
+      classDesc, settings
+    });
+    const known = this.answers.get(askKey);
+    if (known) return known;
     try {
       const phaseTexts = [];
       for (const [id, phase] of Object.entries(config.phases || {})) {
@@ -1773,6 +1784,8 @@ Return ONLY JSON: {"questions":[{"question":"...","label":"...","kind":"choice",
         .filter(q => !AIService.asksAboutTypedContent(q.question, settings))
         .slice(0, 2)
         .map(q => AIService.shapeCustomizeQuestion(q));
+      // An empty list looks like a failure, so only a real answer is kept
+      if (questions.length) this.answers.set(askKey, { questions });
       return { questions };
     } catch (error) {
       if (error && error.name === 'AiBudgetError') throw error;
@@ -1792,6 +1805,9 @@ Return ONLY JSON: {"questions":[{"question":"...","label":"...","kind":"choice",
     if (this.mode === 'mock') return { questions: [] };
     const idea = String(description || '').trim().slice(0, 1200);
     if (!idea) return { questions: [] };
+    // An example idea is answered ahead of time (engine/example-ideas.js)
+    const stored = storedExample(idea, 'questions');
+    if (stored !== undefined) return stored;
     const classDesc = String(classDescription || '').trim().slice(0, 160);
     try {
       const message = await this._callClaude({
@@ -1835,6 +1851,7 @@ Return ONLY JSON: {"questions":[]} or {"questions":[{"question":"...","label":".
         parsed = JSON.parse(match[0]);
       }
       const questions = pickIdeaQuestions(parsed && parsed.questions).map(q => AIService.shapeCustomizeQuestion(q));
+      recordExample(idea, 'questions', { questions });
       return { questions };
     } catch (error) {
       console.error('[AIService] generateIdeaQuestions error:', error.message);
@@ -2070,6 +2087,9 @@ Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a stri
     if (texts.length === 0 || this.mode === 'mock') return JSON.parse(JSON.stringify(config));
     const byKey = {};
     for (const t of texts) byKey[pathKey(t.path)] = t.text.slice(0, 2000);
+    const translateKey = cacheKey('translate-activity', { language, byKey });
+    const knownTexts = this.answers.get(translateKey);
+    if (knownTexts) return applyTexts(config, knownTexts);
     const message = await this._callClaude({
       model: MODELS.haiku,
       max_tokens: 8000,
@@ -2109,6 +2129,7 @@ Return ONLY the JSON object, no other prose.`
       if (tokens.some((tok) => !v.includes(tok))) continue;
       out[key] = v;
     }
+    if (Object.keys(out).length) this.answers.set(translateKey, out);
     return applyTexts(config, out);
   }
 
@@ -2348,6 +2369,10 @@ Return ONLY JSON: {"suggestions":[...], "note": null or "one honest sentence abo
       }
       return board;
     }
+    // An example idea is answered ahead of time (engine/example-ideas.js);
+    // the plan dialog draws its steps from the finished plan
+    const storedPlan = storedExample(description, 'storyboard');
+    if (storedPlan !== undefined) return storedPlan;
     try {
       const params = {
         model: MODELS.sonnet,
@@ -2478,7 +2503,9 @@ ${description}`
       } else {
         message = await this._callClaude(params);
       }
-      return withPlanLanguage(this._parseStoryboard(extractText(message)), description);
+      const plan = withPlanLanguage(this._parseStoryboard(extractText(message)), description);
+      if (plan && !plan.error) recordExample(description, 'storyboard', plan);
+      return plan;
     } catch (error) {
       if (error && error.name === 'AiBudgetError') throw error;
       return { error: 'Storyboard generation failed: ' + error.message };
@@ -2764,7 +2791,16 @@ ${responseList}${responses.some(r => r && r.playerId) ? ID_RULE : ''}`;
     if (this.mode === 'mock') {
       return this._matchRecipeMock(description, recipes);
     }
-    const match = await this._matchRecipeReal(description, recipes, options);
+    // The Create page's example ideas are answered ahead of time
+    // (engine/example-ideas.js); a forced re-run is kept per recipe
+    const exampleKind = options && options.forced
+      ? 'forced:' + (recipes || []).map(r => r && r.id).join(',')
+      : 'match';
+    let match = storedExample(description, exampleKind);
+    if (match === undefined) {
+      match = await this._matchRecipeReal(description, recipes, options);
+      if (match && !match.error) recordExample(description, exampleKind, match);
+    }
     // Quiz questions the matcher wrote into the params: choices shuffled,
     // the answer's place is no tell (review eighteen, 2026-09-28)
     if (match && match.params) match.params = shuffleQuizParams(match.params);

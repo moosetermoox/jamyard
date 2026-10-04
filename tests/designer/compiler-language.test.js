@@ -99,7 +99,7 @@ describe('a Spanish plan reads in Spanish', () => {
 
   it('the server stamps the plan with the idea\'s language', () => {
     const svc = readFileSync(new URL('../../services/ai-service.js', import.meta.url), 'utf8');
-    expect(svc).toContain('return withPlanLanguage(this._parseStoryboard(extractText(message)), description);');
+    expect(svc).toContain('const plan = withPlanLanguage(this._parseStoryboard(extractText(message)), description);');
     const designer = readFileSync(new URL('../../screens/designer/designer.js', import.meta.url), 'utf8');
     expect(designer).toContain('language: storyboard.language,');
   });
