@@ -94,6 +94,19 @@ describe('using them', () => {
     expect(q).toEqual(store.examples[1].answers.questions);
     expect(m.recipe || m.game || m.noMatch).toBeTruthy();
   });
+  it('a teacher with a class profile gets the questions asked live (they were recorded without one)', async () => {
+    const service = new AIService({ mode: 'real' });
+    let sent = null;
+    service._callClaude = async (params) => { sent = params; return { content: [{ type: 'text', text: '{"questions":[]}' }] }; };
+    const idea = store.examples[1].idea;
+    await service.generateIdeaQuestions(idea, { classDescription: '7th grade science' });
+    expect(sent).not.toBe(null);
+    expect(sent.messages[0].content).toContain('7th grade science');
+    // and the plan and the pick, which never read the profile, still come from the file
+    sent = null;
+    await service.matchRecipe(idea, Object.values(recipes), {});
+    expect(sent).toBe(null);
+  });
   it('mock mode never uses them (tests and pretend rooms run as before)', async () => {
     const service = new AIService();
     const idea = store.examples[1].idea;

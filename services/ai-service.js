@@ -1805,10 +1805,12 @@ Return ONLY JSON: {"questions":[{"question":"...","label":"...","kind":"choice",
     if (this.mode === 'mock') return { questions: [] };
     const idea = String(description || '').trim().slice(0, 1200);
     if (!idea) return { questions: [] };
-    // An example idea is answered ahead of time (engine/example-ideas.js)
-    const stored = storedExample(idea, 'questions');
-    if (stored !== undefined) return stored;
     const classDesc = String(classDescription || '').trim().slice(0, 160);
+    // An example idea is answered ahead of time (engine/example-ideas.js),
+    // but only for a teacher with no class profile: the stored questions
+    // were recorded without one, and a profile is part of this prompt
+    const stored = classDesc ? undefined : storedExample(idea, 'questions');
+    if (stored !== undefined) return stored;
     try {
       const message = await this._callClaude({
         model: MODELS.haiku,
@@ -1851,7 +1853,7 @@ Return ONLY JSON: {"questions":[]} or {"questions":[{"question":"...","label":".
         parsed = JSON.parse(match[0]);
       }
       const questions = pickIdeaQuestions(parsed && parsed.questions).map(q => AIService.shapeCustomizeQuestion(q));
-      recordExample(idea, 'questions', { questions });
+      if (!classDesc) recordExample(idea, 'questions', { questions });
       return { questions };
     } catch (error) {
       console.error('[AIService] generateIdeaQuestions error:', error.message);
