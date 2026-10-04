@@ -58,6 +58,7 @@ async function joinTeacher(label, payload) {
 async function main() {
   const server = await startServer();
   const sockets = [];
+  const savedIds = []; // every copy this proof saves, removed at the end
   try {
     // --- 1. The PIN lockout can no longer deny the teacher ---
     const host = await connect('HOST', URL_BASE);
@@ -121,14 +122,19 @@ async function main() {
       });
       return { status: res.status, body: await res.json() };
     };
+    // Since review nineteen (2026-09-29) a dedupe save takes a random tail
+    // (`mintPrivateId`), never the id asked for and never "-2": ids are not
+    // guessable. This proof expected the old rule until 2026-10-04.
     const first = await save();
     const second = await save();
     log('SAVE', `first ${first.body.id}, second ${second.body.id}`);
-    r.check(first.status === 200 && first.body.id === COPY_BASE, '2. a first save keeps the id it asked for');
-    r.check(second.status === 200 && second.body.id === COPY_BASE + '-2', '2. a second save of the same id is stepped past by the server');
+    savedIds.push(first.body.id, second.body.id);
+    const tailed = (id) => typeof id === 'string' && id.startsWith(COPY_BASE + '-') && id.length > COPY_BASE.length + 4;
+    r.check(first.status === 200 && tailed(first.body.id), '2. a first save gets the asked id plus a random tail');
+    r.check(second.status === 200 && tailed(second.body.id) && second.body.id !== first.body.id, '2. a second save of the same id gets its own tail');
     const noDedupe = await fetch(`${URL_BASE}/api/games`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: COPY_BASE, config: cfg })
+      body: JSON.stringify({ id: first.body.id, config: cfg })
     });
     r.check(noDedupe.status === 409, '2. without dedupe a taken id is still refused');
 
@@ -136,11 +142,11 @@ async function main() {
     r.check(!('ids' in bare), '2. the list carries no `ids` any more');
     r.check(!bare.games.some(g => g.id.startsWith(COPY_BASE)), "2. a bare list shows no teacher's saved activity");
     r.check(bare.games.some(g => g.id === 'exit-ticket'), '2. a bare list still shows the built-ins');
-    const mine = await (await fetch(`${URL_BASE}/api/games?mine=${COPY_BASE}`)).json();
-    r.check(mine.games.some(g => g.id === COPY_BASE) && !mine.games.some(g => g.id === COPY_BASE + '-2'), '2. ?mine= shows exactly the copies the browser names');
+    const mine = await (await fetch(`${URL_BASE}/api/games?mine=${first.body.id}`)).json();
+    r.check(mine.games.some(g => g.id === first.body.id) && !mine.games.some(g => g.id === second.body.id), '2. ?mine= shows exactly the copies the browser names');
     const ownerList = await (await fetch(`${URL_BASE}/api/games`, { headers: { authorization: OWNER_AUTH } })).json();
-    r.check(ownerList.games.some(g => g.id === COPY_BASE) && ownerList.games.some(g => g.id === COPY_BASE + '-2'), '2. the owner console still gets every row');
-    const byId = await fetch(`${URL_BASE}/api/games/${COPY_BASE}`);
+    r.check(ownerList.games.some(g => g.id === first.body.id) && ownerList.games.some(g => g.id === second.body.id), '2. the owner console still gets every row');
+    const byId = await fetch(`${URL_BASE}/api/games/${first.body.id}`);
     r.check(byId.status === 200, '2. fetch by id still works (share links)');
 
     const picker = await connect('PICKER', URL_BASE);
@@ -148,12 +154,12 @@ async function main() {
     picker.emit('get-games');
     const plain = await waitForEvent(picker, 'games-list', 4000);
     r.check(!plain.games.some(g => g.id.startsWith(COPY_BASE)) && plain.games.some(g => g.id === 'exit-ticket'), "2. the host picker's socket list shows no one else's activities");
-    picker.emit('get-games', { mine: [], game: COPY_BASE + '-2' });
+    picker.emit('get-games', { mine: [], game: second.body.id });
     const linked = await waitForEvent(picker, 'games-list', 4000);
-    r.check(linked.games.some(g => g.id === COPY_BASE + '-2') && !linked.games.some(g => g.id === COPY_BASE), '2. a ?game= link brings exactly its own activity into the picker');
+    r.check(linked.games.some(g => g.id === second.body.id) && !linked.games.some(g => g.id === first.body.id), '2. a ?game= link brings exactly its own activity into the picker');
   } finally {
     for (const s of sockets) { try { s.disconnect(); } catch { /* gone */ } }
-    for (const id of [COPY_BASE, COPY_BASE + '-2']) {
+    for (const id of savedIds.filter(Boolean)) {
       await rm(join(ROOT, 'games', 'user', id), { recursive: true, force: true });
     }
     server.kill();
