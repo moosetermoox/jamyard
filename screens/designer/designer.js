@@ -1751,13 +1751,40 @@ function createBrowserId() {
   }
 }
 
-async function submitAIDescription(modal, description, status, generateBtn, overlay) {
+async function submitAIDescription(modal, description, status, generateBtn, overlay, opts) {
   status.textContent = '';
   status.className = 'recipe-form-status recipe-form-status-working';
-  status.textContent = 'AI is matching your idea to a recipe…';
   generateBtn.disabled = true;
   generateBtn.textContent = 'Thinking…';
 
+  // Follow-up questions (2026-10-04, owner): before the match, the idea may
+  // get one or two short questions whose answers change what gets built.
+  // Asked once: the second pass (answers in, or skipped) goes straight on.
+  // Any failure asks nothing.
+  if (!(opts && opts.asked)) {
+    status.textContent = 'Reading your idea…';
+    var questions = [];
+    try {
+      var qResp = await fetch('/api/games/idea-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: description,
+          classDescription: window.TeacherProfile ? TeacherProfile.describe() : ''
+        })
+      });
+      var qData = qResp.ok ? await qResp.json() : null;
+      questions = qData && Array.isArray(qData.questions) ? qData.questions : [];
+    } catch (e) {
+      questions = [];
+    }
+    if (questions.length) {
+      renderIdeaQuestions(modal, overlay, description, questions);
+      return;
+    }
+  }
+
+  status.textContent = 'AI is matching your idea to a recipe…';
   try {
     var resp = await fetch('/api/games/from-description', {
       method: 'POST',
@@ -1823,6 +1850,126 @@ async function submitAIDescription(modal, description, status, generateBtn, over
     generateBtn.disabled = false;
     generateBtn.textContent = 'Generate';
   }
+}
+
+// The follow-up questions, in the idea box (2026-10-04): each question as a
+// row of answer chips with "Type your own…", or a typing box with the mic.
+// Build it puts the answers into the idea (shared/idea-answers.js) and runs
+// the match on the fuller idea; Skip runs it on the idea as typed. A
+// question left blank is simply not sent.
+function renderIdeaQuestions(modal, overlay, description, questions) {
+  clearModal(modal);
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = questions.length > 1 ? 'Two quick questions first' : 'A quick question first';
+  modal.appendChild(title);
+
+  var idea = document.createElement('p');
+  idea.className = 'idea-q-idea';
+  idea.textContent = description;
+  modal.appendChild(idea);
+
+  var answers = questions.map(function () { return ''; });
+  var list = document.createElement('div');
+  list.className = 'idea-q-list';
+
+  questions.forEach(function (q, i) {
+    var row = document.createElement('div');
+    row.className = 'idea-q-row';
+
+    var ask = document.createElement('p');
+    ask.className = 'idea-q-question';
+    ask.id = 'idea-q-' + i;
+    ask.textContent = q.question;
+    row.appendChild(ask);
+
+    var input = document.createElement('textarea');
+    input.className = 'idea-q-input recipe-field-input';
+    input.id = 'idea-q-input-' + i;
+    input.rows = q.kind === 'text' ? 3 : 1;
+    input.placeholder = q.placeholder || (q.kind === 'text' ? 'Type your answer' : 'Type your own answer');
+    input.setAttribute('aria-labelledby', ask.id);
+    input.addEventListener('input', function () {
+      answers[i] = input.value;
+      chips.forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+    });
+
+    var chips = [];
+    if (q.kind === 'choice' && Array.isArray(q.choices) && q.choices.length) {
+      var chipRow = document.createElement('div');
+      chipRow.className = 'idea-q-chips';
+      chipRow.setAttribute('role', 'group');
+      chipRow.setAttribute('aria-labelledby', ask.id);
+      q.choices.forEach(function (choice) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'idea-q-chip';
+        chip.textContent = choice;
+        chip.setAttribute('aria-pressed', 'false');
+        chip.addEventListener('click', function () {
+          var on = chip.getAttribute('aria-pressed') !== 'true';
+          chips.forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+          chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+          answers[i] = on ? choice : '';
+          input.value = '';
+          input.hidden = true;
+        });
+        chips.push(chip);
+        chipRow.appendChild(chip);
+      });
+      var own = document.createElement('button');
+      own.type = 'button';
+      own.className = 'idea-q-chip idea-q-own';
+      own.textContent = 'Type your own…';
+      own.addEventListener('click', function () {
+        chips.forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+        answers[i] = input.value;
+        input.hidden = false;
+        input.focus();
+      });
+      chipRow.appendChild(own);
+      row.appendChild(chipRow);
+      input.hidden = true;
+    }
+    row.appendChild(input);
+    list.appendChild(row);
+    if (window.Speech && Speech.isSupported && Speech.isSupported() && Speech.attachMic) Speech.attachMic(input);
+  });
+  modal.appendChild(list);
+
+  var status = document.createElement('div');
+  status.className = 'recipe-form-status';
+  modal.appendChild(status);
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+
+  var skipBtn = document.createElement('button');
+  skipBtn.type = 'button';
+  skipBtn.className = 'recipe-cancel-btn';
+  skipBtn.textContent = 'Skip, just build it';
+  btnRow.appendChild(skipBtn);
+
+  var buildBtn = document.createElement('button');
+  buildBtn.type = 'button';
+  buildBtn.className = 'recipe-create-btn';
+  buildBtn.textContent = 'Build it';
+  btnRow.appendChild(buildBtn);
+  modal.appendChild(btnRow);
+
+  skipBtn.addEventListener('click', function () {
+    skipBtn.disabled = true;
+    submitAIDescription(modal, description, status, buildBtn, overlay, { asked: true });
+  });
+  buildBtn.addEventListener('click', function () {
+    skipBtn.disabled = true;
+    var answered = questions.map(function (q, i) { return { question: q.question, answer: answers[i] }; });
+    submitAIDescription(modal, IdeaAnswers.combine(description, answered), status, buildBtn, overlay, { asked: true });
+  });
+
+  var first = modal.querySelector('.idea-q-chip, .idea-q-input:not([hidden])');
+  if (first) first.focus();
 }
 
 function renderMatchPreview(modal, data, overlay, description) {

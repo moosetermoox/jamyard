@@ -3914,6 +3914,26 @@ app.post('/api/games/customize-questions', async (req, res) => {
   }
 });
 
+// The Create page's follow-up questions (2026-10-04): before a typed idea is
+// matched, zero to two short questions when the answer changes the steps or
+// the content (AIService.generateIdeaQuestions, engine/idea-questions.js).
+// Never an error the page must handle: a mashed idea, a bad body, or any
+// failure answers no questions, and the match that follows says the rest.
+app.post('/api/games/idea-questions', async (req, res) => {
+  try {
+    const { description, classDescription } = req.body || {};
+    if (typeof description !== 'string' || description.trim().length < 10 || looksUnclear(description)) {
+      return res.json({ questions: [] });
+    }
+    const classDesc = typeof classDescription === 'string' ? classDescription : '';
+    const result = await aiService.generateIdeaQuestions(description, { classDescription: classDesc });
+    res.json({ questions: Array.isArray(result && result.questions) ? result.questions : [] });
+  } catch (error) {
+    console.log(`[api/games/idea-questions] ${error.message}`);
+    res.json({ questions: [] });
+  }
+});
+
 // Library quiz Customize panel: topic in, multiple-choice questions out
 // (quiz-show recipe param shape). Works in mock mode too (canned
 // questions) so the flow is always testable; no student data involved.
