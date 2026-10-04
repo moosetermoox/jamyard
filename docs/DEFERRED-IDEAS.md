@@ -77,3 +77,17 @@ playtest iterations.
 sort-phase-sized session. Scope call already made: v1 is the AI's three
 options only — a student write-in round (collect step in the loop) is a
 possible v2.
+
+## Editor: "When is this for?" box (PR #64, closed unmerged 2026-10-03)
+
+A two-row box under Description in the designer's Settings panel that writes the
+yard's hover line (`when`) on any activity, so a database-only activity (Guess
+Who: Rose, Bud, Thorn) could carry one without a row in `engine/when-lines.js`.
+Validated both sides, carried through both AI rewrite paths, guarded by
+`tests/screens/when-setting.test.js`. 96 lines.
+
+**Why deferred:** the owner does not want the box in the editor right now.
+
+**Where the code is:** branch `when-setting` on origin (commit c5e7d64). Its
+code merges clean against master as of 2026-10-03; only the three docs files
+conflict. Rebase it and reopen the PR to bring it back.
