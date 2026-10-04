@@ -146,7 +146,8 @@
       el.classList.add('meadow-you');
       var tag = document.createElement('span');
       tag.className = 'meadow-you-tag';
-      tag.textContent = 'you';
+      // the tag follows the room's language (the student screen loads UiLang)
+      tag.textContent = (typeof UiLang !== 'undefined' && UiLang.t) ? UiLang.t('you') : 'you';
       el.appendChild(tag);
     }
 
