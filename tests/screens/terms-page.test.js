@@ -36,7 +36,10 @@ describe('the terms, on the privacy page', () => {
     expect(html).toContain('id="terms"');
     expect(html).toContain('<h1>Terms</h1>');
     expect(html).toContain('Students never agree to anything');
-    expect(html).toContain('mccady at gmail dot com');
+    // The contact address is the site's own (2026-10-04), and the operator's name links out
+    expect(html).toContain('href="mailto:max@jamyard.org"');
+    expect(html).not.toContain('gmail');
+    expect(html).toContain('href="https://www.linkedin.com/in/maxcady/"');
     // One page: nothing points at a separate terms page any more
     expect(html).not.toContain('href="/terms"');
   });
