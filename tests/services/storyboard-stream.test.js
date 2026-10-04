@@ -52,7 +52,7 @@ describe('storyboard at effort low', () => {
     service.client = { messages: { create: async (p) => { sent = p; return textResponse(board); } } };
     const result = await service.generateStoryboard('an exit check where everyone writes one thing they learned');
     expect(result.steps).toHaveLength(3);
-    expect(sent.model).toBe('claude-sonnet-5');
+    expect(sent.model).toBe('claude-sonnet-5-5');
     expect(sent.output_config).toEqual({ effort: 'low' });
     expect(sent.thinking).toEqual({ type: 'adaptive' });
   });
@@ -122,7 +122,7 @@ describe('storyboard streaming', () => {
 describe('cached system prompts', () => {
   it('turns cache: true into one cached system block carrying the style rules, and drops the flag', () => {
     const service = realService();
-    const out = service._prepareParams({ model: 'claude-sonnet-5', max_tokens: 100, system: 'Be brief.', cache: true, messages: [] });
+    const out = service._prepareParams({ model: 'claude-sonnet-5-5', max_tokens: 100, system: 'Be brief.', cache: true, messages: [] });
     expect(out.cache).toBeUndefined();
     expect(Array.isArray(out.system)).toBe(true);
     expect(out.system).toHaveLength(1);
