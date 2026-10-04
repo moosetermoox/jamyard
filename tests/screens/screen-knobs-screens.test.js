@@ -47,7 +47,10 @@ describe('a graded open answer and stations on the server', () => {
     expect(server).toContain('const g = gradeFreeText(responses, [right].concat(accepted), collectPhase.pointsCorrect);');
   });
   it('the projector reads a placeholder where a station token stands', () => {
-    expect(server).toContain("if (/\\.station$/.test(trimmed)) return 'their group\\'s own text';");
+    // the stand-in lives in the one map (engine/per-player-template.js, 2026-10-03)
+    const template = read('engine/per-player-template.js');
+    expect(template).toContain("station: 'their group\\'s own text'");
+    expect(server).toContain('projectorPlaceholder(trimmed)');
   });
 });
 

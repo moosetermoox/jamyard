@@ -39,7 +39,7 @@ import { mapPreviewParams } from './engine/recipe-map-params.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor, firstStudentStep } from './engine/make-print.js';
 import { teacherFacingError } from './engine/teacher-error.js';
-import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
+import { resolvePerPlayerTemplate, projectorPlaceholder } from './engine/per-player-template.js';
 import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
 import { foreachSitOut, withoutSitOut, sitOutIds } from './engine/phases/sit-out.js';
 import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
@@ -718,18 +718,11 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
 function resolveTemplate(template, engine) {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
     const trimmed = ref.trim();
-    // .mine / .assigned have no recipient at this layer: the projector
-    // shows a blank where each student's own item goes (the make page's
-    // print draws a token the same way; a note in our words read as an
-    // internal remark on a reviewer's projector, 2026-09-24)
-    if (/\.mine$/.test(trimmed)) return '…';
-    if (/\.assigned$/.test(trimmed)) return '…';
-    // Pair tokens (the pairs brick, 2026-09-20): the projector never sees a
-    // partner's private piece, and each student holds their own side.
-    if (/\.partner$/.test(trimmed)) return '…';
-    if (/\.partnerSide$/.test(trimmed)) return 'the other side';
-    if (/\.side$/.test(trimmed)) return 'their side';
-    if (/\.station$/.test(trimmed)) return 'their group\'s own text';
+    // A per-student token has no recipient at this layer: the projector
+    // shows the stand-in for its suffix (engine/per-player-template.js,
+    // one map for every suffix)
+    const placeholder = projectorPlaceholder(trimmed);
+    if (placeholder !== null) return placeholder;
     const value = engine.resolve(trimmed);
     return value !== undefined ? String(value) : match;
   });
@@ -6636,6 +6629,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'sort') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-sorting')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only (the sweep, 2026-10-03: any student could close it)
     recordEvent(room, 'close-sorting');
     await closeSorting(code, room);
   });

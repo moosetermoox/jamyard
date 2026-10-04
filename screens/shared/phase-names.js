@@ -57,6 +57,16 @@ window.PHASE_NAMES = {
   'quiet': 'Quiet time',
   'hotseat': 'Hot seat',
   'findmatch': 'Find your match',
+  // the bricks that had no name yet, so the plan dialog showed the raw id
+  // (the brick sweep, 2026-10-03)
+  'chain': 'Pass it on',
+  'deal': 'Shuffle and deal',
+  'pairs': 'Partner exchange',
+  'roles': 'Hand out jobs',
+  'draw': 'Draw it',
+  'summarize': 'Sum it up',
+  'review': 'Teacher looks first',
+  'bracket': 'Bracket',
   'end': 'Wrap up'
 };
 

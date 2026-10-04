@@ -16,12 +16,28 @@
 
 export const GATE_TEMPLATE = 'Read the answers below before the rounds start. One a student would rather keep private? Press Hide beside it on your Teacher view. Try again asks everyone to answer again.';
 
-function namesAuthor(foreach) {
+// A round's text that puts the author's name up: the item carries both
+// `playerName` (stamped at enter) and `name` (the response's own), and a
+// template may read either (Doodle Bluff's rounds read `_current.name`;
+// the sweep of 2026-10-03 found only the first was looked for).
+export const AUTHOR_NAME_TOKEN = /\{\{\s*_current\.(playerName|name)\s*[.|}]/;
+
+function mentionsAuthor(value, seen = new Set()) {
+  if (typeof value === 'string') return AUTHOR_NAME_TOKEN.test(value);
+  if (Array.isArray(value)) return value.some(v => mentionsAuthor(v, seen));
+  if (value && typeof value === 'object' && !seen.has(value)) {
+    seen.add(value);
+    return Object.values(value).some(v => mentionsAuthor(v, seen));
+  }
+  return false;
+}
+
+export function namesAuthor(foreach) {
   if (!foreach || typeof foreach !== 'object') return false;
   if (foreach.candidateSource === 'players') return true;
   const subs = foreach.subPhases && typeof foreach.subPhases === 'object' ? Object.values(foreach.subPhases) : [];
-  return subs.some(sub => sub && typeof sub === 'object' &&
-    ['message', 'prompt', 'template', 'content'].some(k => typeof sub[k] === 'string' && sub[k].includes('_current.playerName')));
+  // every string the round shows, whichever field holds it
+  return subs.some(sub => sub && typeof sub === 'object' && mentionsAuthor(sub));
 }
 
 function sourceCollectOf(phases, foreach) {
