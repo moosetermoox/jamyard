@@ -4,9 +4,12 @@
 // shared text box").
 //
 // A drawn projector and one student's screen play three short scenes
-// once on load, then the page is still and a Replay button runs them
-// again (never a mouse sweep across the picture, which would restart
-// fourteen seconds of motion on the way to the join tab):
+// once, the first time the picture comes into view (2026-10-04, owner:
+// the madlib intro sits above it, so a visitor reading the sentence
+// scrolled down to a picture that had already finished), then the page
+// is still and a Replay button runs them again (never a mouse sweep
+// across the picture, which would restart fourteen seconds of motion on
+// the way to the join tab):
 //
 //   Scene 1, Snowball's first minute (states 0 to 11): the code lands on
 //   the projector, the student taps it in and joins, three names pile up
@@ -34,6 +37,7 @@
 
   var LAST = 19;
   var WIDTH = 660;
+  var IN_VIEW = 0.5; // the share of the picture on screen before the first play
   var PROMPT = 'What is the most important idea from this unit?';
   var ANSWER = 'Same size pieces';
   var PARTIAL = 'Same size pie';
@@ -113,15 +117,27 @@
     return s >= at && s < until;
   }
 
+  // A fixed element still over the page: the intro writes its own fade as
+  // inline styles (opacity 1 down to 0, visibility hidden at the end), so
+  // it covers the picture until it is half gone. No element = nothing covers.
+  function covered(el) {
+    if (!el || el.hidden) return false;
+    var st = el.style || {};
+    if (st.visibility === 'hidden' || st.display === 'none') return false;
+    return st.opacity === '' || st.opacity == null || Number(st.opacity) > 0.5;
+  }
+
   // root = the .fold-pic wrapper; opts.tab = the header's join tab (lifts
-  // for one beat when the drawn student presses Join); opts.still = true
-  // renders the finished state and never plays (tests, reduced motion)
+  // for one beat when the drawn student presses Join); opts.cover = a fixed
+  // element the picture waits under (the intro); opts.still = true renders
+  // the finished state and never plays (tests, reduced motion)
   function mount(root, opts) {
     opts = opts || {};
     if (!root) return null;
     var canvas = root.querySelector('.fold-pic-canvas');
     var replayBtn = root.querySelector('.fold-pic-replay');
     var tab = opts.tab || null;
+    var cover = opts.cover || null;
     var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
     var still = !!opts.still || mq('(prefers-reduced-motion: reduce)') || mq('(max-width: 600px)');
     var s = 0;
@@ -207,6 +223,35 @@
     }
     fit();
 
+    // The first play waits until the picture is on screen AND nothing fixed
+    // sits over it (opts.cover = the madlib intro, which the picture lies
+    // under until the reader scrolls it half away; an intersection observer
+    // does not see a cover). A picture already in view and uncovered plays
+    // at once; a browser with no observer plays on load as before.
+    function whenInView(fn) {
+      var seen = typeof IntersectionObserver !== 'function';
+      var io = null;
+      var done = false;
+      function check() {
+        if (done || !seen || covered(cover)) return;
+        done = true;
+        if (io) io.disconnect();
+        window.removeEventListener('scroll', check);
+        fn();
+      }
+      if (cover) window.addEventListener('scroll', check, { passive: true });
+      if (!seen) {
+        io = new IntersectionObserver(function (entries) {
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].isIntersecting) { seen = true; check(); return; }
+          }
+        }, { threshold: IN_VIEW });
+        io.observe(root);
+      } else {
+        check();
+      }
+    }
+
     // is-live turns the hidden states on; until then the markup shows the
     // finished picture, which is also what a still visit gets
     root.classList.add('is-live');
@@ -214,7 +259,9 @@
       s = LAST;
       apply();
     } else {
-      play();
+      s = 0;
+      apply();
+      whenInView(play);
     }
 
     return {
@@ -227,6 +274,8 @@
   window.FoldPicture = {
     LAST: LAST,
     WIDTH: WIDTH,
+    IN_VIEW: IN_VIEW,
+    covered: covered,
     PROMPT: PROMPT,
     ANSWER: ANSWER,
     PARTIAL: PARTIAL,

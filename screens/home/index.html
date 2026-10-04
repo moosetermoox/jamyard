@@ -1505,8 +1505,8 @@
     })();
   </script>
   <script>
-    // ── The fold's picture: plays once on load, Replay runs it again ──
-    FoldPicture.mount(document.getElementById('fold-picture'), { tab: document.getElementById('join-tab') });
+    // ── The fold's picture: plays once when it scrolls into view from under the intro, Replay runs it again ──
+    FoldPicture.mount(document.getElementById('fold-picture'), { tab: document.getElementById('join-tab'), cover: document.getElementById('intro') });
   </script>
   <script>
     // ── The intro: the madlib sentence, the scroll fade, the wordmark's flight ──

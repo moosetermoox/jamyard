@@ -10,7 +10,7 @@
  * mechanic and sub lines gone because the picture does that job).
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFile } from 'node:fs/promises';
 
 const ROOT = new URL('../..', import.meta.url);
@@ -205,7 +205,7 @@ describe('home page 16h fold', () => {
   it('loads the module and its stylesheet, mounts it on the picture, and hands it the join tab to nudge', () => {
     expect(html).toContain('<link rel="stylesheet" href="/shared/fold-picture.css">');
     expect(html).toContain('<script src="/shared/fold-picture.js"></script>');
-    expect(html).toContain("FoldPicture.mount(document.getElementById('fold-picture'), { tab: document.getElementById('join-tab') })");
+    expect(html).toContain("FoldPicture.mount(document.getElementById('fold-picture'), { tab: document.getElementById('join-tab'), cover: document.getElementById('intro') })");
     expect(css).toMatch(/\.join-tab\.is-nudged/);
   });
 
@@ -246,5 +246,160 @@ describe('home page 16h fold', () => {
 
   it('respects reduced motion in the stylesheet: no arrival transition', () => {
     expect(css).toMatch(/prefers-reduced-motion:\s*reduce/);
+  });
+});
+
+describe('FoldPicture waits for the picture to come into view (owner 2026-10-04)', () => {
+  // The madlib intro sits above the picture; a reader who scrolled down
+  // found the scenes already over. A stub root with no children is enough
+  // to drive mount: the state counter says whether the play began.
+  function stubRoot() {
+    const classes = new Set();
+    return {
+      clientWidth: 660,
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      classList: { add: (c) => classes.add(c), toggle: (c, on) => { on ? classes.add(c) : classes.delete(c); }, has: (c) => classes.has(c) }
+    };
+  }
+
+  let FP, observers;
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    observers = [];
+    globalThis.IntersectionObserver = class {
+      constructor(cb, opts) { this.cb = cb; this.opts = opts; this.observed = []; this.disconnected = false; observers.push(this); }
+      observe(el) { this.observed.push(el); }
+      disconnect() { this.disconnected = true; }
+    };
+    globalThis.matchMedia = () => ({ matches: false });
+    globalThis.addEventListener = () => {};
+    globalThis.removeEventListener = () => {};
+    FP = await loadModule();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    delete globalThis.IntersectionObserver;
+    delete globalThis.matchMedia;
+    delete globalThis.addEventListener;
+    delete globalThis.removeEventListener;
+  });
+
+  it('holds the first state until the picture is on screen, then plays once from the start', () => {
+    const root = stubRoot();
+    const h = FP.mount(root);
+    expect(observers.length).toBe(1);
+    expect(observers[0].observed).toEqual([root]);
+    expect(observers[0].opts.threshold).toBe(FP.IN_VIEW);
+    // Not in view: time passes, nothing moves
+    vi.advanceTimersByTime(FP.total() * 2);
+    expect(h.state()).toBe(0);
+    // Scrolled into view: the scenes start
+    observers[0].cb([{ isIntersecting: false }, { isIntersecting: true }]);
+    expect(observers[0].disconnected).toBe(true);
+    vi.advanceTimersByTime(FP.dwell(0) + 1);
+    expect(h.state()).toBe(1);
+    vi.advanceTimersByTime(FP.total());
+    expect(h.state()).toBe(FP.LAST);
+    expect(root.classList.has('is-done')).toBe(true);
+  });
+
+  it('plays on load where there is no observer, and a still visit never observes', () => {
+    delete globalThis.IntersectionObserver;
+    const h = FP.mount(stubRoot());
+    vi.advanceTimersByTime(FP.dwell(0) + 1);
+    expect(h.state()).toBe(1);
+
+    globalThis.matchMedia = (q) => ({ matches: q.indexOf('reduced-motion') >= 0 });
+    globalThis.IntersectionObserver = class { constructor() { observers.push(this); } observe() {} disconnect() {} };
+    const still = FP.mount(stubRoot());
+    expect(still.state()).toBe(FP.LAST);
+    expect(observers.length).toBe(0);
+  });
+
+  it('the page comment says when it plays', async () => {
+    const html = await read('screens/home/index.html');
+    expect(html).toContain('plays once when it scrolls into view');
+    expect(html).not.toContain('plays once on load');
+  });
+});
+
+describe('FoldPicture waits under the intro (owner 2026-10-04)', () => {
+  // The intro is position: fixed over the fold, so the picture can be "in
+  // view" to an observer while the reader still sees the sentence. The page
+  // hands the intro as `cover`; the picture plays once it is half faded.
+  function stubRoot() {
+    const classes = new Set();
+    return {
+      clientWidth: 660,
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      classList: { add: (c) => classes.add(c), toggle: (c, on) => { on ? classes.add(c) : classes.delete(c); }, has: (c) => classes.has(c) }
+    };
+  }
+
+  let FP, observers, scrollHandlers;
+  beforeEach(async () => {
+    vi.useFakeTimers();
+    observers = [];
+    scrollHandlers = [];
+    globalThis.IntersectionObserver = class {
+      constructor(cb) { this.cb = cb; this.disconnected = false; observers.push(this); }
+      observe() {}
+      disconnect() { this.disconnected = true; }
+    };
+    globalThis.matchMedia = () => ({ matches: false });
+    globalThis.addEventListener = (name, fn) => { if (name === 'scroll') scrollHandlers.push(fn); };
+    globalThis.removeEventListener = (name, fn) => { if (name === 'scroll') scrollHandlers = scrollHandlers.filter((f) => f !== fn); };
+    FP = await loadModule();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    delete globalThis.IntersectionObserver;
+    delete globalThis.matchMedia;
+    delete globalThis.addEventListener;
+    delete globalThis.removeEventListener;
+  });
+
+  it('covered(): an element with no fade yet covers, half faded or hidden does not, no element never does', () => {
+    expect(FP.covered(null)).toBe(false);
+    expect(FP.covered({ style: {} })).toBe(true);
+    expect(FP.covered({ style: { opacity: '1' } })).toBe(true);
+    expect(FP.covered({ style: { opacity: '0.6' } })).toBe(true);
+    expect(FP.covered({ style: { opacity: '0.5' } })).toBe(false);
+    expect(FP.covered({ style: { opacity: '0' } })).toBe(false);
+    expect(FP.covered({ style: { opacity: '0', visibility: 'hidden' } })).toBe(false);
+    expect(FP.covered({ hidden: true, style: {} })).toBe(false);
+  });
+
+  it('in view but under the intro: holds until a scroll fades the intro past half', () => {
+    const intro = { style: { opacity: '1' } };
+    const h = FP.mount(stubRoot(), { cover: intro });
+    expect(scrollHandlers.length).toBe(1);
+    observers[0].cb([{ isIntersecting: true }]);
+    vi.advanceTimersByTime(FP.total());
+    expect(h.state()).toBe(0);
+    // Scrolling a little: the intro at 0.8 still covers
+    intro.style.opacity = '0.8';
+    scrollHandlers[0]();
+    vi.advanceTimersByTime(FP.total());
+    expect(h.state()).toBe(0);
+    // Half gone: the scenes start, the listeners go
+    intro.style.opacity = '0.4';
+    scrollHandlers[0]();
+    expect(scrollHandlers.length).toBe(0);
+    expect(observers[0].disconnected).toBe(true);
+    vi.advanceTimersByTime(FP.dwell(0) + 1);
+    expect(h.state()).toBe(1);
+  });
+
+  it('the intro already gone (a deep link, a reload down the page): plays as soon as the picture is seen', () => {
+    const intro = { style: { opacity: '0', visibility: 'hidden' } };
+    const h = FP.mount(stubRoot(), { cover: intro });
+    vi.advanceTimersByTime(FP.total());
+    expect(h.state()).toBe(0);
+    observers[0].cb([{ isIntersecting: true }]);
+    vi.advanceTimersByTime(FP.dwell(0) + 1);
+    expect(h.state()).toBe(1);
   });
 });
