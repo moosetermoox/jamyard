@@ -1,0 +1,212 @@
+{
+ "note": "The Create page example ideas, answered ahead of time. Recorded by scripts/record-example-ideas.js; see engine/example-ideas.js.",
+ "recordedAt": "2026-10-04",
+ "examples": [
+  {
+   "idea": "I want my class to laugh together",
+   "answers": {
+    "questions": {
+     "questions": []
+    },
+    "match": {
+     "recipe": "doodle-bluff",
+     "params": {
+      "phraseSource": "ai",
+      "aiTopic": "strange, funny, drawable scenes",
+      "rounds": 8,
+      "drawTimer": 90
+     },
+     "explanation": "Everyone draws a silly phrase, then writes fake titles for each drawing and hunts for the real one. The comedy comes from the bad drawings and the creative bluffs classmates invent.",
+     "missing": [],
+     "alternates": [
+      {
+       "recipe": "creative-vote",
+       "why": "Students write funny captions or responses to a prompt, the class sees them all, then votes for the best one. More verbal humor, less drawing."
+      },
+      {
+       "recipe": "closer",
+       "why": "Pairs answer playful questions and read each other's answers. Quieter laughs, more connection, good for building trust while still being fun."
+      }
+     ]
+    }
+   }
+  },
+  {
+   "idea": "A quick poll before lunch",
+   "answers": {
+    "questions": {
+     "questions": []
+    },
+    "match": {
+     "game": "live-poll",
+     "explanation": "One multiple-choice question whose bar chart grows on the projector as answers come in. Students answer as they arrive, and you end it whenever you like.",
+     "carriesContent": false,
+     "alternates": []
+    },
+    "forced:live-poll": {
+     "recipe": "live-poll",
+     "params": {
+      "question": "How are you feeling about today's lesson?",
+      "choices": [
+       "Got it!",
+       "Mostly got it",
+       "A little confused",
+       "Lost"
+      ]
+     },
+     "explanation": "A quick multiple-choice poll students answer as they arrive, with results shown live on the projector. End it whenever you're ready.",
+     "missing": [],
+     "alternates": []
+    }
+   }
+  },
+  {
+   "idea": "Turn everyone's ideas into one class answer",
+   "answers": {
+    "questions": {
+     "questions": []
+    },
+    "match": {
+     "recipe": "snowball",
+     "params": {
+      "prompt": "What is one big idea or answer you think the class should agree on?"
+     },
+     "explanation": "Snowball funnels everyone's thinking into one shared answer: solo first (no one skips the thinking step), then pairs merge their ideas into one stronger version, then the class sees the final merged answers together.",
+     "missing": [],
+     "alternates": [
+      {
+       "recipe": "discussion-starter",
+       "why": "Collects everyone's ideas and AI groups them into themes, but stops short of merging them into one class answer."
+      }
+     ]
+    }
+   }
+  },
+  {
+   "idea": "Honest anonymous feedback about how class is going",
+   "answers": {
+    "questions": {
+     "questions": [
+      {
+       "question": "Do you want to see all responses, or keep them private with you?",
+       "label": "Who sees the feedback",
+       "kind": "choice",
+       "choices": [
+        "Show all responses to the class",
+        "Keep responses private with teacher only"
+       ],
+       "placeholder": ""
+      }
+     ]
+    },
+    "match": {
+     "recipe": "anonymous-feedback",
+     "params": {
+      "question": "How is class going for you? What's working, what could be better, anything else on your mind.",
+      "timer": 120
+     },
+     "explanation": "Collects anonymous feedback for you, groups it into themes, then shares a summary with the class so everyone learns what the room is thinking.",
+     "missing": [],
+     "alternates": []
+    }
+   }
+  },
+  {
+   "idea": "Students write encouragement for a classmate",
+   "answers": {
+    "questions": {
+     "questions": []
+    },
+    "match": {
+     "game": "someones-got-you",
+     "explanation": "Everyone shares one small real thing they're working on; a classmate they don't pick writes them one line of genuine encouragement. You review every line before the wall goes up.",
+     "carriesContent": false,
+     "alternates": []
+    }
+   }
+  },
+  {
+   "idea": "A bluffing game where students invent fake answers",
+   "answers": {
+    "questions": {
+     "questions": []
+    },
+    "match": {
+     "recipe": "trivia-bluff",
+     "params": {
+      "questions": [
+       {
+        "question": "In what year did the first successful airplane flight occur?",
+        "truth": "1903",
+        "houseLie": "1901"
+       },
+       {
+        "question": "What is the smallest country in the world by area?",
+        "truth": "Vatican City",
+        "houseLie": "Monaco"
+       },
+       {
+        "question": "How many strings does a standard violin have?",
+        "truth": "4",
+        "houseLie": "6"
+       }
+      ]
+     },
+     "explanation": "Students invent believable fake answers to fill in the blanks of trivia facts, then vote for which answer is real. Everyone scores for spotting the truth and for fooling classmates with their lie.",
+     "missing": [],
+     "alternates": [
+      {
+       "recipe": "doodle-bluff",
+       "why": "A slightly different bluff game: draw a phrase someone else wrote, then invent fake titles and hunt for the real one."
+      }
+     ]
+    }
+   }
+  },
+  {
+   "idea": "Help my students get to know each other",
+   "answers": {
+    "questions": {
+     "questions": [
+      {
+       "question": "What kind of questions should students answer about each other?",
+       "label": "The questions",
+       "kind": "text",
+       "choices": [],
+       "placeholder": "Paste them, or name a topic"
+      }
+     ]
+    },
+    "match": {
+     "recipe": "closer",
+     "params": {
+      "tier1Prompts": [
+       "Window seat or aisle seat, and why?",
+       "If our class had a mascot, what should it be?",
+       "If you could teleport to any place for just one hour, where would you go?"
+      ],
+      "tier2Prompts": [
+       "What's something you've changed your mind about in the last year?",
+       "What do you think makes someone a good friend?",
+       "What's a compliment you received that you still remember?"
+      ],
+      "tier3Prompts": [
+       "What's something you're proud of that you rarely get to talk about?",
+       "If you could thank one person right now, who would it be and for what?",
+       "What's a moment from this year you want to remember in ten years?"
+      ],
+      "partners": "new-each-tier"
+     },
+     "explanation": "Closer pairs students for guided conversations that move from playful to reflective, so they hear each other's real answers three times with different classmates. Nothing to type: the screen prompts, you talk.",
+     "missing": [],
+     "alternates": [
+      {
+       "recipe": "snowball",
+       "why": "One shared question distilled by everyone, builds community through finding common ground instead of individual stories."
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

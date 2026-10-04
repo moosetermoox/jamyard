@@ -28,7 +28,7 @@ describe('matchRecipe alternates', () => {
         { recipe: 'doodle-bluff', why: 'Drawing badly is its own comedy.' }
       ]
     });
-    const result = await service.matchRecipe('I want my class to laugh together', recipes);
+    const result = await service.matchRecipe('I want my class to laugh together on Friday afternoons', recipes);
     expect(result.recipe).toBe('one-voice');
     expect(result.alternates).toEqual([
       { recipe: 'doodle-bluff', why: 'Drawing badly is its own comedy.' }
@@ -48,7 +48,7 @@ describe('matchRecipe alternates', () => {
         { recipe: 'creative-vote', why: 'a third good fit' }
       ]
     });
-    const result = await service.matchRecipe('I want my class to laugh together', recipes);
+    const result = await service.matchRecipe('I want my class to laugh together on Friday afternoons', recipes);
     expect(result.alternates).toEqual([
       { recipe: 'doodle-bluff', why: '' },
       { recipe: 'trivia-bluff', why: 'bluffing is funny' }
@@ -62,7 +62,7 @@ describe('matchRecipe alternates', () => {
       params: {},
       explanation: 'Fits.'
     });
-    const result = await service.matchRecipe('I want my class to laugh together', recipes);
+    const result = await service.matchRecipe('I want my class to laugh together on Friday afternoons', recipes);
     expect(result.alternates).toEqual([]);
   });
 
@@ -103,7 +103,7 @@ describe('matchRecipe alternates', () => {
       system = params.system;
       return textResponse({ recipe: 'one-voice', params: {} });
     };
-    await service.matchRecipe('I want my class to laugh together', recipes);
+    await service.matchRecipe('I want my class to laugh together on Friday afternoons', recipes);
     expect(system).toContain('noMatch');
   });
 });
