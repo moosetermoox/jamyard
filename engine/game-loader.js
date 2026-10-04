@@ -310,6 +310,21 @@ export function validate(config, gameId, options) {
     }
   }
 
+  // A buzzer round's own question list (2026-10-04): a list, every item a
+  // question (a string, or an object with a "question"). The editor mirrors this.
+  for (const name of phaseNames) {
+    const phase = config.phases[name];
+    if (!phase || phase.type !== 'buzz' || phase.questions == null) continue;
+    const list = phase.questions;
+    const usable = (q) => (typeof q === 'string' && q.split('|')[0].trim() !== '') ||
+      (q && typeof q === 'object' && typeof q.question === 'string' && q.question.trim() !== '');
+    if (!Array.isArray(list)) {
+      errors.push(`Game "${gameId}": phase "${name}" (buzz) has questions that are not a list.`);
+    } else if (!list.every(usable)) {
+      errors.push(`Game "${gameId}": phase "${name}" (buzz) has an item in its questions with no question in it; give every item a "question", or remove it.`);
+    }
+  }
+
   for (const [name, phase] of Object.entries(config.phases)) {
     // Phase type validation — schema-driven
     if (!phase.type || !PHASE_SCHEMAS[phase.type]) {

@@ -149,6 +149,19 @@ function cleanQuestions(raw) {
     }));
 }
 
+// A buzzer round's own questions (2026-10-04): {question, answer} pairs,
+// the buzz step's list (engine/phases/buzz-questions.js re-reads them)
+function cleanBuzzQuestions(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  const out = raw.slice(0, 50)
+    .filter(q => q && typeof q === 'object' && typeof q.question === 'string' && q.question.trim())
+    .map(q => ({
+      question: q.question.trim().slice(0, 300),
+      answer: typeof q.answer === 'string' ? q.answer.trim().slice(0, 200) : (typeof q.answer === 'number' ? String(q.answer) : '')
+    }));
+  return out.length ? out : undefined;
+}
+
 const MAX_SUGGESTIONS = 3;
 const MAX_STORYBOARD_STEPS = 12;
 
@@ -264,7 +277,7 @@ export function validateSuggestions(raw, ctx) {
             perChoice: typeof s.perChoice === 'number' && Number.isFinite(s.perChoice) ? s.perChoice : undefined,
             secretLabel: typeof s.secretLabel === 'string' ? s.secretLabel.slice(0, 80) : undefined,
             clueLabel: typeof s.clueLabel === 'string' ? s.clueLabel.slice(0, 80) : undefined,
-            questions: cleanQuestions(s.questions),
+            questions: s.brick === 'buzz' ? cleanBuzzQuestions(s.questions) : cleanQuestions(s.questions),
             speedBonus: typeof s.speedBonus === 'boolean' ? s.speedBonus : undefined,
             // rank: ranked-choice voting, one item picked by instant runoff
             runoff: s.runoff === true ? true : undefined,

@@ -192,6 +192,15 @@
       <p id="answer-set" class="block-hint" hidden>The answer is <strong id="answer-value"></strong>. Close the step to reveal it and score the guesses.</p>
     </div>
 
+    <!-- A buzzer round with its own questions (2026-10-04): the question on
+         the class screen now, and its answer. The answer is console only. -->
+    <div id="buzz-answer-block" hidden>
+      <h2 id="buzz-answer-count">Question</h2>
+      <p id="buzz-answer-question" class="preview-text"></p>
+      <p class="block-hint">Answer: <strong id="buzz-answer-text"></strong></p>
+      <p class="block-hint">Only you see the answer. Mark buzzes right or wrong, and move on, on the projector.</p>
+    </div>
+
     <!-- Controls -->
     <div id="controls-block" class="controls-block">
       <button id="close-step-btn" hidden title="Stop accepting answers for this step and move on">Close submissions</button>

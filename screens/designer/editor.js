@@ -2800,6 +2800,23 @@ function renderPhaseConfig(phaseId) {
     loLabel.appendChild(loCb);
     loLabel.appendChild(loText);
     phaseConfigForm.appendChild(loLabel);
+    // The teacher's own questions (2026-10-04): one per line, "question | answer".
+    // Shown in turn on the projector and the screens; the answer on your console only.
+    var buzzLines = (Array.isArray(phase.questions) ? phase.questions : []).map(function (q) {
+      if (typeof q === 'string') return q;
+      if (!q || typeof q.question !== 'string') return '';
+      return q.question + (q.answer ? ' | ' + q.answer : '');
+    }).filter(function (l) { return l; }).join('\n');
+    addTextAreaWithHelp('Questions (optional)', 'One per line, with the answer after a bar: What gas do plants take in? | carbon dioxide. Each goes up in turn on the class screen; the answer shows on your teacher console only. Leave empty to ask out loud.', 'phase-buzz-questions', buzzLines, 'What gas do plants take in? | carbon dioxide', function (value) {
+      var list = String(value || '').split('\n').map(function (line) {
+        var bar = line.indexOf('|');
+        var question = (bar >= 0 ? line.slice(0, bar) : line).trim();
+        var answer = bar >= 0 ? line.slice(bar + 1).trim() : '';
+        return question ? { question: question, answer: answer } : null;
+      }).filter(function (q) { return q; });
+      if (list.length) phase.questions = list; else delete phase.questions;
+      renderCanvas();
+    });
   }
 
   if (type === 'estimate') {
@@ -6297,6 +6314,18 @@ function validateConfig() {
     // runoff validation (mirrors engine/game-loader.js)
     if (phase.type === 'rank' && phase.runoff === true && phase.correctOrder !== undefined) {
       errors.push(label + ': "Pick one by instant runoff" and "The right order" cannot go together; keep one of them.');
+    }
+
+    // A buzzer round's own questions (mirrors engine/game-loader.js)
+    if (phase.type === 'buzz' && phase.questions != null) {
+      if (!Array.isArray(phase.questions)) {
+        errors.push(label + ': the questions must be a list.');
+      } else if (!phase.questions.every(function (q) {
+        return (typeof q === 'string' && q.split('|')[0].trim() !== '') ||
+          (q && typeof q === 'object' && typeof q.question === 'string' && q.question.trim() !== '');
+      })) {
+        errors.push(label + ': every line in the questions needs a question.');
+      }
     }
 
     // confidenceFor validation (mirrors engine/game-loader.js)

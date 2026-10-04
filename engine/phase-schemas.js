@@ -1051,6 +1051,12 @@ export const PHASE_SCHEMAS = {
         type: 'boolean', optional: true, default: true,
         label: 'Lock out wrong answers',
         helper: 'A wrong answer locks that player out until the next question (stops buzz-spamming).'
+      },
+      questions: {
+        type: 'array', optional: true,
+        item: { type: 'object', allowAnyKeys: true },
+        label: 'Questions (optional)',
+        helper: 'The teacher\'s own questions, in order: each {"question": "...", "answer": "..."} (or a string, "question | answer"). The projector and the students\' screens show each question in turn; the answer is shown on the teacher console only. Next stops at the last question. Leave it out when the teacher asks out loud.'
       }
     },
     transitions: {

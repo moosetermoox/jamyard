@@ -1,0 +1,22 @@
+{
+  "name": "Buzzer questions fixture",
+  "description": "A test fixture (2026-10-04): a buzzer round with its own three questions, for scripts/simulate-buzz-questions.js. Never listed.",
+  "minPlayers": 1,
+  "earlyJoke": false,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "buzz" },
+    "buzz": {
+      "type": "buzz",
+      "prompt": "Listen for the question, then buzz!",
+      "points": 10,
+      "questions": [
+        { "question": "What gas do plants take in?", "answer": "carbon dioxide" },
+        { "question": "What is the powerhouse of the cell?", "answer": "mitochondria" },
+        "Which planet is closest to the sun? | Mercury"
+      ],
+      "next": "standings"
+    },
+    "standings": { "type": "leaderboard", "from": "buzz.scores", "style": "full", "next": "end" },
+    "end": { "type": "end", "message": "That's the round." }
+  }
+}
