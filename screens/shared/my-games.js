@@ -73,7 +73,16 @@
   globalThis.MyGames = {
     list: function () {
       var ids = read();
-      return Array.isArray(ids) ? ids : [];
+      if (!Array.isArray(ids)) return [];
+      // Each id once, whatever an older write left behind (the list sent as
+      // ?mine= carried a copy's id twice after Create then the make page,
+      // 2026-10-03; the server deduped, the browser should not send it)
+      var seen = {};
+      return ids.filter(function (id) {
+        if (typeof id !== 'string' || !id || seen[id]) return false;
+        seen[id] = true;
+        return true;
+      });
     },
     add: function (id) {
       if (!id) return;

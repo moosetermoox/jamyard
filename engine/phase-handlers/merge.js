@@ -279,6 +279,20 @@ registerHandler('merge', {
       if (id === playerId) continue;
       ctx.emitToPlayer(id, EVENTS.MERGE_STATUS, { agreedCount: group.agreed.size, agreesNeeded: needed, youAgreed: group.agreed.has(id) });
     }
+    // The newcomer made a trio: the projector's line turns "partner" into
+    // "group" as the trio's own screens do (it kept saying "sit next to
+    // your partner" after a late joiner, 2026-10-03). No timer in this
+    // payload, so the projector's clock keeps running as it was.
+    if (group.members.length >= 3) {
+      const sc = ctx.resolveScreenControl();
+      const largestGroup = Math.max(0, ...state.groups.map(g => g.members.length));
+      ctx.emitToHost(EVENTS.MERGE_PROGRESS, {
+        instruction: wordsForGroup(ctx.resolveTemplate(ctx.phase.instruction || 'Combine your answers into one stronger answer.'), largestGroup, ctx.engine.language),
+        totalGroups: state.groups.length,
+        submittedGroups: state.groups.filter(g => g.submitted).length,
+        hostTemplate: sc.hostTemplate, show: sc.hostShow
+      });
+    }
     return null;
   },
 

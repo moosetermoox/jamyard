@@ -2164,6 +2164,12 @@
     return '/designer/edit?game=' + q + '&from=library';
   }
 
+  // The card may not sit there forever: a press that never reached the
+  // server (seen once right after Create, 2026-10-03, not reproduced) would
+  // show "Opening..." until the teacher found Cancel. Past the time the
+  // card itself promises, it says so and points at Cancel.
+  var OPENING_PATIENCE_MS = { plain: 15000, language: 30000, ai: 45000 };
+  var openingWatchdog = null;
   function setOpening(dest, withAi) {
     state.busy = true;
     document.body.classList.add('is-opening');
@@ -2176,12 +2182,18 @@
     el.tryBtn.disabled = true;
     el.hostBtn.disabled = true;
     el.cancel.hidden = false;
+    clearTimeout(openingWatchdog);
+    openingWatchdog = setTimeout(function () {
+      if (!state.busy) return;
+      el.openingText.textContent = 'This is taking longer than it should. Press Cancel and try the button again.';
+    }, withAi ? OPENING_PATIENCE_MS.ai : state.language ? OPENING_PATIENCE_MS.language : OPENING_PATIENCE_MS.plain);
   }
 
   function clearOpening() {
     // Nothing opened after all (a failure, or Cancel): the console tab
     // that Host may have opened is closed rather than left waiting
     if (window.HostLaunch) HostLaunch.abandon();
+    clearTimeout(openingWatchdog);
     state.busy = false;
     document.body.classList.remove('is-opening');
     el.opening.hidden = true;
@@ -2218,6 +2230,8 @@
   // --- The doors. Untouched = the original runs (no copy saved); the
   // designer gets an unsaved draft. Anything touched = a saved copy.
   function go(dest) {
+    // A busy flag left behind with no card up would make every press dead
+    if (state.busy && el.opening.hidden) state.busy = false;
     if (state.busy || !state.config) return;
     el.error.hidden = true;
     // A repeated word in the pairs is said here, by the buttons, before
