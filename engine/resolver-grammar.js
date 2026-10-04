@@ -59,7 +59,9 @@ export const PER_PLAYER_SUFFIXES = new Set(['mine', 'assigned', 'partner', 'side
  * announce/reveal gate their per-recipient rendering path on this;
  * collect prompts always resolve per-player.
  */
-export const PER_PLAYER_TOKEN = /\{\{\s*[a-zA-Z0-9_-]+\.(mine|assigned|partner|side|partnerSide|station)\s*\}\}/;
+// Built from the one list above, so a new suffix lands everywhere at once
+// (tests/engine/per-player-suffix.test.js sweeps the other places)
+export const PER_PLAYER_TOKEN = new RegExp('\\{\\{\\s*[a-zA-Z0-9_-]+\\.(' + [...PER_PLAYER_SUFFIXES].join('|') + ')\\s*\\}\\}');
 
 /**
  * Built-in scope identifiers — refs starting with these don't point at

@@ -21,12 +21,40 @@
  */
 
 import { translate } from './i18n/index.js';
+import { PER_PLAYER_SUFFIXES } from './resolver-grammar.js';
 
 export const MISSING_ASSIGNED = 'No answer came in yet. Pick your own.';
 export const MISSING_MINE = 'You did not answer that one.';
 export const MISSING_PARTNER = 'Your partner has not written anything yet.';
 
-const PER_PLAYER_SUFFIX = /\.(mine|assigned|partner|partnerSide|side|station)\s*$/;
+// The one list of per-player suffixes lives in resolver-grammar.js
+// (PER_PLAYER_SUFFIXES); this module's regexes, its resolver per suffix
+// (RESOLVERS), and the projector's placeholder per suffix
+// (PROJECTOR_PLACEHOLDERS) are all keyed by it, and
+// tests/engine/per-player-suffix.test.js fails when one falls behind.
+const PER_PLAYER_SUFFIX = new RegExp('\\.(' + [...PER_PLAYER_SUFFIXES].join('|') + ')\\s*$');
+
+/**
+ * What the projector shows where a per-student token stands: it has no
+ * recipient at that layer, so each student's own item is a blank (the make
+ * page's print draws a token the same way; a note in our words read as an
+ * internal remark on a reviewer's projector, 2026-09-24), a partner's
+ * private piece never shows, and each student holds their own side.
+ */
+export const PROJECTOR_PLACEHOLDERS = Object.freeze({
+  mine: '…',
+  assigned: '…',
+  partner: '…',
+  partnerSide: 'the other side',
+  side: 'their side',
+  station: 'their group\'s own text'
+});
+
+/** The projector's stand-in for a ref ending in a per-player suffix, or null when it is not one. */
+export function projectorPlaceholder(ref) {
+  const m = PER_PLAYER_SUFFIX.exec(String(ref || ''));
+  return m ? PROJECTOR_PLACEHOLDERS[m[1]] : null;
+}
 
 /**
  * The text a student's group gets on a step with stations (2026-09-30):
@@ -62,52 +90,68 @@ function partnersAt(data, playerId) {
  * @param {string} playerId
  * @returns {string}
  */
+/**
+ * One resolver per per-player suffix: (engine, phaseId, playerId, lang)
+ * to the text that student sees. Keyed by PER_PLAYER_SUFFIXES.
+ */
+export const RESOLVERS = Object.freeze({
+  assigned(engine, phaseId, playerId, lang) {
+    const data = engine.phaseData[phaseId];
+    if (data && data.assigned && data.assigned[playerId] !== undefined) {
+      return String(data.assigned[playerId]);
+    }
+    return translate(lang, MISSING_ASSIGNED);
+  },
+  mine(engine, phaseId, playerId, lang) {
+    const data = engine.phaseData[phaseId];
+    if (data && data.byPlayer && data.byPlayer[playerId] !== undefined) {
+      return String(data.byPlayer[playerId]);
+    }
+    return translate(lang, MISSING_MINE);
+  },
+  partner(engine, phaseId, playerId, lang) {
+    const data = engine.phaseData[phaseId];
+    const partners = partnersAt(data, playerId);
+    if (!partners) return translate(lang, MISSING_PARTNER);
+    const byPlayer = data.byPlayer || {};
+    const passed = new Set(data.passedIds || []);
+    const texts = partners
+      .filter(id => !passed.has(id))
+      .map(id => byPlayer[id])
+      .filter(t => t !== undefined && t !== null && String(t) !== '')
+      .map(String);
+    return texts.length ? texts.join('\n\n') : translate(lang, MISSING_PARTNER);
+  },
+  partnerSide(engine, phaseId, playerId) {
+    const data = engine.phaseData[phaseId];
+    const partners = partnersAt(data, playerId);
+    if (!partners || !data.sides) return '';
+    // A triple: the side the two partners share, else the odd one out.
+    const own = data.sides[playerId];
+    const other = partners.map(id => data.sides[id]).find(s => s !== undefined && s !== own);
+    return other !== undefined ? String(other) : '';
+  },
+  side(engine, phaseId, playerId) {
+    const data = engine.phaseData[phaseId];
+    if (data && data.sides && data.sides[playerId] !== undefined) return String(data.sides[playerId]);
+    return '';
+  },
+  station(engine, phaseId, playerId) {
+    return stationFor(engine, phaseId, playerId);
+  }
+});
+
+// {{ <phaseId>.<suffix> }} for every per-player suffix, in one pass
+const PER_PLAYER_REF = new RegExp('\\{\\{\\s*([a-zA-Z0-9_-]+)\\.(' + [...PER_PLAYER_SUFFIXES].join('|') + ')\\s*\\}\\}', 'g');
+
 export function resolvePerPlayerTemplate(template, engine, playerId) {
   if (!template) return '';
   const lang = engine.language || 'en';
   return template
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.assigned\s*\}\}/g, (match, phaseId) => {
-      const data = engine.phaseData[phaseId];
-      if (data && data.assigned && data.assigned[playerId] !== undefined) {
-        return String(data.assigned[playerId]);
-      }
-      return translate(lang, MISSING_ASSIGNED);
+    .replace(PER_PLAYER_REF, (match, phaseId, suffix) => {
+      const resolver = RESOLVERS[suffix];
+      return resolver ? resolver(engine, phaseId, playerId, lang) : match;
     })
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.mine\s*\}\}/g, (match, phaseId) => {
-      const data = engine.phaseData[phaseId];
-      if (data && data.byPlayer && data.byPlayer[playerId] !== undefined) {
-        return String(data.byPlayer[playerId]);
-      }
-      return translate(lang, MISSING_MINE);
-    })
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.partner\s*\}\}/g, (match, phaseId) => {
-      const data = engine.phaseData[phaseId];
-      const partners = partnersAt(data, playerId);
-      if (!partners) return translate(lang, MISSING_PARTNER);
-      const byPlayer = data.byPlayer || {};
-      const passed = new Set(data.passedIds || []);
-      const texts = partners
-        .filter(id => !passed.has(id))
-        .map(id => byPlayer[id])
-        .filter(t => t !== undefined && t !== null && String(t) !== '')
-        .map(String);
-      return texts.length ? texts.join('\n\n') : translate(lang, MISSING_PARTNER);
-    })
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.partnerSide\s*\}\}/g, (match, phaseId) => {
-      const data = engine.phaseData[phaseId];
-      const partners = partnersAt(data, playerId);
-      if (!partners || !data.sides) return '';
-      // A triple: the side the two partners share, else the odd one out.
-      const own = data.sides[playerId];
-      const other = partners.map(id => data.sides[id]).find(s => s !== undefined && s !== own);
-      return other !== undefined ? String(other) : '';
-    })
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.side\s*\}\}/g, (match, phaseId) => {
-      const data = engine.phaseData[phaseId];
-      if (data && data.sides && data.sides[playerId] !== undefined) return String(data.sides[playerId]);
-      return '';
-    })
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.station\s*\}\}/g, (match, phaseId) => stationFor(engine, phaseId, playerId))
     .replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
       if (PER_PLAYER_SUFFIX.test(ref)) return match;
       const value = engine.resolve(ref.trim());

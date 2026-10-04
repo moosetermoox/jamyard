@@ -1,25 +1,35 @@
 /**
- * The projector's copy of a prompt has no recipient, so a per-student token
- * reads as a host-friendly note there (server.js resolveTemplate). The pair
- * tokens joined mine/assigned on 2026-09-20 after a browser proof showed the
- * projector printing "{{pair-write.side}}" and "{{pair-write.partner}}" raw.
+ * A per-student token ({{X.mine}}, {{X.assigned}}, the pair tokens, a
+ * station) has no recipient on the projector, so the projector shows a
+ * stand-in there (server.js resolveTemplate reads it off
+ * engine/per-player-template.js's PROJECTOR_PLACEHOLDERS, one map for every
+ * suffix since 2026-10-03; tests/engine/per-player-suffix.test.js keeps the
+ * map in step with the list of suffixes).
  */
-
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { PER_PLAYER_SUFFIXES } from '../../engine/resolver-grammar.js';
+import { PROJECTOR_PLACEHOLDERS, projectorPlaceholder } from '../../engine/per-player-template.js';
 
 describe('projector notes for per-student tokens', () => {
-  const server = readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
-  const fn = server.slice(server.indexOf('function resolveTemplate(template, engine)'));
-  const body = fn.slice(0, fn.indexOf('\n}\n'));
-
   it('every per-student suffix has a note, none reaches the projector raw', () => {
-    for (const suffix of ['mine', 'assigned', 'partner', 'partnerSide', 'side']) {
-      expect(body, suffix).toMatch(new RegExp('\\\\.' + suffix + '\\$/'));
+    for (const suffix of PER_PLAYER_SUFFIXES) {
+      const note = projectorPlaceholder(`ask.${suffix}`);
+      expect(typeof note, suffix).toBe('string');
+      expect(note, suffix).toBe(PROJECTOR_PLACEHOLDERS[suffix]);
     }
   });
 
-  it('checks partnerSide before side, so the longer suffix wins', () => {
-    expect(body.indexOf('partnerSide$')).toBeLessThan(body.indexOf('.side$'));
+  it('the longer suffix wins: partnerSide is the other side, side is their own', () => {
+    expect(projectorPlaceholder('ask.partnerSide')).toBe('the other side');
+    expect(projectorPlaceholder('ask.side')).toBe('their side');
+    expect(projectorPlaceholder('ask.partner')).toBe('…');
+  });
+
+  it('the server reads the map in resolveTemplate', () => {
+    const server = readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
+    const fn = server.slice(server.indexOf('function resolveTemplate(template, engine)'));
+    const body = fn.slice(0, fn.indexOf('\n}\n'));
+    expect(body).toContain('projectorPlaceholder(trimmed)');
   });
 });
