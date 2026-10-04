@@ -2562,11 +2562,27 @@ function renderBuzzScores(scores) {
 }
 const buzzNames = {}; // playerId → name, learned from buzz events
 
-socket.on('buzz-start', ({ prompt, question, scores, hostTemplate, show }) => {
+// A listed round (2026-10-04): the question's words go up big with
+// "Question 2 of 5" over them, Next hides on the last one (Finish moves on).
+// Without a list, the step's own line and "Question 3" as before.
+let buzzOnLast = false;
+let buzzLinePrompt = '';
+function showBuzzQuestion(question, questionText, total) {
+  const n = question || 1;
+  if (questionText) setRichText(buzzPrompt, questionText);
+  else setRichText(buzzPrompt, buzzLinePrompt || 'Listen for the question!');
+  buzzQuestionNum.textContent = total
+    ? UiLang.t('Question {n} of {total}').replace('{n}', String(n)).replace('{total}', String(total))
+    : 'Question ' + n;
+  buzzOnLast = !!total && n >= total;
+  buzzNextBtn.hidden = buzzOnLast;
+}
+
+socket.on('buzz-start', ({ prompt, question, questionText, total, scores, hostTemplate, show }) => {
   showSection(buzzSection);
-  setRichText(buzzPrompt, prompt || 'Listen for the question!');
-  buzzQuestionNum.textContent = 'Question ' + (question || 1);
-  buzzStatus.textContent = 'Buzzer is OPEN, ask away!';
+  buzzLinePrompt = prompt || '';
+  showBuzzQuestion(question, questionText, total);
+  buzzStatus.textContent = questionText ? 'Buzzer is OPEN!' : 'Buzzer is OPEN, ask away!';
   buzzStatus.classList.remove('buzz-status-locked');
   buzzJudgeRow.hidden = true;
   renderBuzzScores(scores);
@@ -2591,7 +2607,7 @@ socket.on('buzz-result', ({ correct, playerId, playerName, scores, points }) => 
   buzzNames[playerId] = playerName;
   buzzJudgeRow.hidden = true;
   if (correct) {
-    buzzStatus.textContent = '✓ ' + playerName + ' +' + points + ', click "Next question" when ready';
+    buzzStatus.textContent = '✓ ' + playerName + ' +' + points + (buzzOnLast ? ', click "Finish round" when ready' : ', click "Next question" when ready');
     if (J) J.sound('tada');
   } else {
     buzzStatus.textContent = '✗ ' + playerName + ', buzzer reopened!';
@@ -2601,9 +2617,9 @@ socket.on('buzz-result', ({ correct, playerId, playerName, scores, points }) => 
   renderBuzzScores(scores);
 });
 
-socket.on('buzz-open', ({ question, scores }) => {
-  buzzQuestionNum.textContent = 'Question ' + question;
-  buzzStatus.textContent = 'Buzzer is OPEN, ask away!';
+socket.on('buzz-open', ({ question, questionText, total, scores }) => {
+  showBuzzQuestion(question, questionText, total);
+  buzzStatus.textContent = questionText ? 'Buzzer is OPEN!' : 'Buzzer is OPEN, ask away!';
   buzzStatus.classList.remove('buzz-status-locked');
   buzzJudgeRow.hidden = true;
   renderBuzzScores(scores);

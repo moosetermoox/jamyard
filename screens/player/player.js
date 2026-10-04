@@ -2367,9 +2367,19 @@ const buzzPlayerPrompt = document.getElementById('buzz-player-prompt');
 const buzzTapBtn = document.getElementById('buzz-tap-btn');
 const buzzPlayerStatus = document.getElementById('buzz-player-status');
 
-socket.on('buzz-start', ({ prompt, playerTemplate, show }) => {
+// A listed round (2026-10-04): the question's words over the buzzer, with
+// "Question 2 of 5" above them; never the answer (the server never sends it).
+let buzzLinePrompt = '';
+function showBuzzQuestion(question, questionText, total) {
+  if (!questionText) { setRichText(buzzPlayerPrompt, buzzLinePrompt || 'Listen for the question!'); return; }
+  const count = total ? UiLang.t('Question {n} of {total}').replace('{n}', String(question || 1)).replace('{total}', String(total)) : '';
+  setRichText(buzzPlayerPrompt, (count ? count + '\n\n' : '') + '**' + questionText.replace(/\*\*/g, '') + '**');
+}
+
+socket.on('buzz-start', ({ prompt, question, questionText, total, playerTemplate, show }) => {
   showSection(buzzSection);
-  setRichText(buzzPlayerPrompt, prompt || 'Listen for the question!');
+  buzzLinePrompt = prompt || '';
+  showBuzzQuestion(question, questionText, total);
   buzzTapBtn.disabled = false;
   buzzPlayerStatus.textContent = '';
   applyTemplate(buzzSection, playerTemplate);
@@ -2430,7 +2440,8 @@ socket.on('buzz-result', ({ correct, playerId, playerName, points }) => {
   }
 });
 
-socket.on('buzz-open', () => {
+socket.on('buzz-open', ({ question, questionText, total } = {}) => {
+  if (questionText) showBuzzQuestion(question, questionText, total);
   buzzTapBtn.disabled = false;
   buzzPlayerStatus.textContent = '';
 });

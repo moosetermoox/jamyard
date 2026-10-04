@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { normalizeBuzzQuestions, buzzQuestionView, buzzTeacherView, isLastBuzzQuestion } from '../phases/buzz-questions.js';
 
 /**
  * buzz — first-tap-wins buzzer rounds (trivia bee, spelling bee, mental math).
@@ -38,7 +39,9 @@ export function createBuzzState(phase = {}) {
     buzzedBy: null,
     lockedOut: new Set(),
     scores: {},
-    question: 1
+    question: 1,
+    // The teacher's own list (engine/phases/buzz-questions.js); empty = asked out loud
+    questions: normalizeBuzzQuestions(phase.questions)
   };
 }
 
@@ -76,12 +79,19 @@ export function applyJudge(state, correct) {
   return { type: 'wrong', playerId };
 }
 
-/** Teacher moved to the next question: clear lockouts, reopen. */
+/**
+ * Teacher moved to the next question: clear lockouts, reopen. With a
+ * question list, Next on the last question does nothing (Finish is the way
+ * on) and answers false.
+ * @returns {boolean} whether the round moved to a new question
+ */
 export function applyNextQuestion(state) {
+  if (isLastBuzzQuestion(state)) return false;
   state.question++;
   state.buzzedBy = null;
   state.lockedOut.clear();
   state.open = true;
+  return true;
 }
 
 registerHandler('buzz', {
@@ -101,6 +111,7 @@ registerHandler('buzz', {
       prompt,
       points: state.points,
       question: state.question,
+      ...buzzQuestionView(state),
       scores: state.scores,
       hostTemplate: sc.hostTemplate, playerTemplate: sc.playerTemplate,
       show: sc.hostShow || sc.playerShow || null
@@ -109,6 +120,9 @@ registerHandler('buzz', {
     for (const player of ctx.engine.players.list()) {
       ctx.emitToPlayer(player.id, EVENTS.BUZZ_START, payload);
     }
+    // The answer goes to the consoles only, never in a payload the class gets
+    const teacherView = buzzTeacherView(state);
+    if (teacherView) ctx.emitToTeachers(EVENTS.TEACHER_BUZZ_QUESTION, teacherView);
   },
 
   onReconnect(ctx, socket) {
@@ -118,6 +132,7 @@ registerHandler('buzz', {
       prompt: state.prompt || '',
       points: state.points,
       question: state.question,
+      ...buzzQuestionView(state),
       scores: state.scores
     });
     if (state.buzzedBy) {

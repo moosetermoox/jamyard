@@ -214,6 +214,7 @@ export const EVENTS = {
   CLOSE_ESTIMATES:      'close-estimates',     // host -> server: reveal + score
   ESTIMATE_SET_ANSWER:  'estimate-set-answer', // console -> server: the true number, typed before the close (the jar count)
   TEACHER_ESTIMATE_ANSWER: 'teacher-estimate-answer', // server -> consoles: the answer now on the open estimate step
+  TEACHER_BUZZ_QUESTION: 'teacher-buzz-question',     // server -> consoles: the buzzer's current listed question and its answer
   ESTIMATE_RESULTS:     'estimate-results',    // server -> all: answer, stats, ranked guesses
 
   // --- Match Phase (pair two lists: vocab ↔ definitions) ---

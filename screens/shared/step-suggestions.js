@@ -2656,6 +2656,16 @@
         if (typeof step.points === 'number' && step.points >= 1 && step.points <= 1000) {
           built.points = Math.round(step.points);
         }
+        // The teacher's own questions (2026-10-04): shown in turn on the
+        // projector and the screens, the answers on the console only
+        if (Array.isArray(step.questions)) {
+          var buzzQs = step.questions.filter(function (q) {
+            return q && typeof q.question === 'string' && q.question.trim();
+          }).slice(0, 50).map(function (q) {
+            return { question: q.question.trim(), answer: typeof q.answer === 'string' ? q.answer.trim() : '' };
+          });
+          if (buzzQs.length) built.questions = buzzQs;
+        }
         var standingsId = freshId(phases, 'standings');
         phases[lastId].next = standingsId;
         phases[standingsId] = { type: 'leaderboard', from: id + '.scores', style: 'full' };

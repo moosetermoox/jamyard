@@ -224,6 +224,7 @@ import { applyIterationScoring } from './engine/phases/foreach-scoring.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
 import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
+import { buzzQuestionView, buzzTeacherView } from './engine/phases/buzz-questions.js';
 import { scoreEstimates, estimateStats, scoreByDistance, withSpeedBonus } from './engine/phases/estimate-scoring.js';
 import { scoreMatching, matchStats, buildResultsList } from './engine/phases/match-scoring.js';
 import { autoFill } from './engine/phases/team-grouping.js';
@@ -2242,6 +2243,8 @@ function notifyTeachersClosed(code, room) {
     closed: true,
     discussionPrompt: discussionPromptFor(phase),
     estimateAnswer: estimateAnswerFor(room, phase),
+    // A buzzer round's listed question and its answer (consoles only)
+    buzzQuestion: buzzQuestionFor(room, phase),
     audience: audienceKeyFor(engine, phase),
     stepText: stepTextFor(phase, engine)
   });
@@ -2295,6 +2298,15 @@ function estimateAnswerFor(room, phase) {
   return (typeof phase.answer === 'number' && Number.isFinite(phase.answer)) ? phase.answer : null;
 }
 
+// A buzzer round's current listed question with its answer, for the
+// consoles (engine/phases/buzz-questions.js). Null without a list or off a
+// buzz step. Never sent to the projector or a student.
+function buzzQuestionFor(room, phase) {
+  if (!phase || phase.type !== 'buzz') return null;
+  const ps = room && room.phaseState;
+  return ps && ps.kind === 'buzz' && ps.phaseId === phase.id ? buzzTeacherView(ps) : null;
+}
+
 // Everything a console needs to render when it joins mid-game.
 function buildTeacherSnapshot(code, room) {
   const engine = room.engine;
@@ -2333,6 +2345,7 @@ function buildTeacherSnapshot(code, room) {
     snap.timer = phase.timer || null;
     snap.discussionPrompt = discussionPromptFor(phase);
     snap.estimateAnswer = estimateAnswerFor(room, phase);
+    snap.buzzQuestion = buzzQuestionFor(room, phase);
     snap.audience = audienceKeyFor(engine, phase);
     snap.stepText = stepTextFor(phase, engine);
     // The finished chains of a return-to-author reveal, for Show
@@ -2618,6 +2631,8 @@ async function handlePhase(code, room) {
     // An estimate step's answer as it stands (null = poll mode; the
     // console offers a box to type the teacher's own number before the close)
     estimateAnswer: estimateAnswerFor(room, phase),
+    // A buzzer round's listed question and its answer (consoles only)
+    buzzQuestion: buzzQuestionFor(room, phase),
     // Who sees the answers, so the Live entries hint fits the step
     audience: audienceKeyFor(engine, phase),
     // The words on the projector, so a console on a phone knows the step
@@ -6488,12 +6503,16 @@ io.on('connection', (socket) => {
     if (roomToHost.get(code) !== socket.id) return; // host only
     const state = room.phaseState;
 
-    applyNextQuestion(state);
+    // A listed round stops at its last question: Finish is the way on
+    if (!applyNextQuestion(state)) return;
     recordEvent(room, 'buzz-next', { question: state.question });
     io.to(code).emit(EVENTS.BUZZ_OPEN, {
-      question: state.question, scores: state.scores,
+      question: state.question, ...buzzQuestionView(state), scores: state.scores,
       phaseInstanceId: room.phaseInstanceId
     });
+    // The answer, to the consoles only
+    const teacherView = buzzTeacherView(state);
+    if (teacherView) io.to(teachersChannel(code)).emit(EVENTS.TEACHER_BUZZ_QUESTION, { ...teacherView, phaseInstanceId: room.phaseInstanceId });
   });
 
   socket.on(EVENTS.BUZZ_FINISH, async (payload = {}) => {

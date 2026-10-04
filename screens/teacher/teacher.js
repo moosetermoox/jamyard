@@ -85,6 +85,24 @@ if (setAnswerBtn) {
     if (e.key === 'Enter') { e.preventDefault(); setAnswerBtn.click(); }
   });
 }
+// A buzzer round's listed question and its answer (2026-10-04): console only.
+// Null (no list, another step) hides the card. The answer is the teacher's
+// text, so it goes in as text.
+var buzzAnswerBlock = document.getElementById('buzz-answer-block');
+function showBuzzQuestion(q) {
+  if (!buzzAnswerBlock) return;
+  var has = !!(q && typeof q.text === 'string' && q.text);
+  buzzAnswerBlock.hidden = !has;
+  if (!has) return;
+  document.getElementById('buzz-answer-count').textContent = 'Question ' + q.number + ' of ' + q.total;
+  document.getElementById('buzz-answer-question').textContent = q.text;
+  document.getElementById('buzz-answer-text').textContent = q.answer || '(none given)';
+}
+socket.on('teacher-buzz-question', function (data) {
+  if (!data || (data.phaseInstanceId && data.phaseInstanceId !== currentPhaseInstanceId)) return;
+  showBuzzQuestion(data);
+});
+
 socket.on('teacher-estimate-answer', function (data) {
   if (!data || data.phaseInstanceId !== currentPhaseInstanceId) return;
   showAnswerSet(data.answer);
@@ -540,6 +558,8 @@ function setPhase(data) {
       showAnswerSet(known);
     }
   }
+  // A buzzer round with its own questions: the one up now and its answer
+  showBuzzQuestion(phaseType === 'buzz' && !data.closed ? data.buzzQuestion : null);
   if (discussionBlock) {
     discussionBlock.hidden = !prompt;
     discussionText.textContent = prompt;
