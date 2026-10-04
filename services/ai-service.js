@@ -4,6 +4,7 @@ import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schema
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
 import { stripPlayerIdRefs } from '../engine/ai-name-fill.js';
+import { pickIdeaQuestions } from '../engine/idea-questions.js';
 import { LANGUAGES as LANGUAGE_NAMES, detectLanguage, resolveLanguage } from '../engine/i18n/index.js';
 
 /**
@@ -1777,6 +1778,66 @@ Return ONLY JSON: {"questions":[{"question":"...","label":"...","kind":"choice",
       if (error && error.name === 'AiBudgetError') throw error;
       console.error('[AIService] generateCustomizeQuestions error:', error.message);
       // Question generation is a nicety — an empty list means "skip to the copy".
+      return { questions: [] };
+    }
+  }
+
+  // The Create page's follow-up questions (2026-10-04, owner): before a typed
+  // idea is matched or planned, zero, one, or two short questions, only when
+  // the answer changes the activity's steps or its content. Asking nothing
+  // is the default and the common case; engine/idea-questions.js drops what
+  // the builder already settles. Haiku: one short call, teacher text only.
+  // Every failure asks nothing, so Create always goes on to build.
+  async generateIdeaQuestions(description, { classDescription = '' } = {}) {
+    if (this.mode === 'mock') return { questions: [] };
+    const idea = String(description || '').trim().slice(0, 1200);
+    if (!idea) return { questions: [] };
+    const classDesc = String(classDescription || '').trim().slice(0, 160);
+    try {
+      const message = await this._callClaude({
+        model: MODELS.haiku,
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: `A teacher typed this idea for a whole-class activity into a builder. The builder turns ideas into activities that run on a projector with students on their own devices. Before it builds, decide whether to ask the teacher one or two short questions.
+
+ASKING NOTHING IS THE DEFAULT. Most ideas are clear enough, and the builder fills in sensible defaults. Ask only when BOTH are true: the idea does not already say it, and the answer would change WHICH STEPS the activity has or WHAT CONTENT it shows. When in doubt, ask nothing.
+
+Good reasons to ask:
+1. The activity runs on a LIST of content only the teacher has, and the idea gives none: the questions for a quiz, trivia, Jeopardy, or buzzer game; the words and meanings for a matching game; the items to rank, sort, or choose between; the facts for a bluffing game. Ask for that list as a "text" question. The teacher can paste the list, or name a topic so the builder drafts it; say so in the placeholder. A SINGLE question, prompt, or topic is NOT a reason to ask: the builder writes one and the teacher edits it on the next page. Never ask how many of anything.
+2. A fork the idea leaves open that changes the steps: students alone or in teams; keep score with a winner, or no scores; everyone answers then the class sees the answers, or answers stay with the teacher. Ask as a "choice" question with 2-4 short choices, most likely first.
+
+NEVER ask about: timing, minutes, how long it runs, how many of anything, group sizes, grade, age, subject, student names, anonymity, language, or the tone or style of the answers. Never ask the teacher to describe, explain, or confirm the idea. Never ask about something the idea already says.${classDesc ? `\nWe already know their class: ${classDesc}.` : ''}
+
+Each question: plain everyday words, under ten words, one question for the whole activity (never one per round). Give a "label" of 2-4 words naming what it settles (e.g. "The questions", "Teams or alone"). A "choice" question never lists its choices in the question text. A "text" question gets a short "placeholder" (under eight words).
+
+Examples:
+- "A quick poll on our favorite season, choices are spring summer fall winter" -> {"questions":[]}
+- "Students write a question about the reading, then vote on the best one" -> {"questions":[]}
+- "Everyone answers one big question alone, then pairs combine their answers" -> {"questions":[]}
+- "Guess how many jelly beans are in the jar" -> {"questions":[]}
+- "A Jeopardy style buzzer game to review the unit" -> {"questions":[{"question":"Which questions should the game ask?","label":"The questions","kind":"text","choices":[],"placeholder":"Paste them, or name a topic"}]}
+- "Debate whether zoos should exist" -> {"questions":[{"question":"Debate in pairs, or as two class teams?","label":"Pairs or teams","kind":"choice","choices":["Pairs","Two class teams"],"placeholder":""}]}
+
+Idea:
+"""${idea}"""
+
+Return ONLY JSON: {"questions":[]} or {"questions":[{"question":"...","label":"...","kind":"text"|"choice","choices":[],"placeholder":""}]}`
+        }]
+      });
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      const questions = pickIdeaQuestions(parsed && parsed.questions).map(q => AIService.shapeCustomizeQuestion(q));
+      return { questions };
+    } catch (error) {
+      console.error('[AIService] generateIdeaQuestions error:', error.message);
       return { questions: [] };
     }
   }
