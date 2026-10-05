@@ -399,15 +399,15 @@ describe('the yard on the home page', () => {
     expect(html).toContain('play: !playedOnce,');
   });
 
-  it('the title row is the name and the search plank; the chip row is its own sticky row under it', () => {
+  it('the title row is the name alone (the search plank left 2026-10-05); the chip row is its own sticky row under it', () => {
     const head = html.slice(html.indexOf('<div class="yard-head">'), html.indexOf('<div class="yard-moments"'));
     expect(head).toContain('<h2>The yard</h2>');
-    expect(head).toContain('id="yard-search"');
+    expect(head).not.toContain('id="yard-search"');
     expect(head).not.toContain('class="yard-tools"');
     expect(head).toMatch(/<\/div>\s*<div class="yard-chips" id="yard-chips"/);
     expect(html).toMatch(/\.yard-chips\s*\{[^}]*position:\s*sticky[^}]*background:\s*var\(--t-gesso\)/);
     expect(html).not.toMatch(/\.yard-head\s*\{[^}]*position:\s*sticky/);
-    expect(html).toMatch(/\.yard-search\s*\{[^}]*width:\s*300px[^}]*height:\s*44px/);
+    expect(html).not.toContain('.yard-search');
     // the chip's swatch is a 10×10 square
     expect(html).toMatch(/\.goal-chip\[data-goal\]::before\s*\{[^}]*width:\s*10px;\s*height:\s*10px/);
   });

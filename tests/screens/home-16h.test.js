@@ -232,10 +232,14 @@ describe('home page 16h fold', () => {
     expect(how).toBeGreaterThan(html.indexOf('</section>')); // after the fold
     expect(how).toBeLessThan(yard);
     expect((html.match(/class="how-step"/g) || []).length).toBe(3);
-    expect(html).toContain('Find one in the yard and make it yours');
+    // step one names the thing, not the place (owner 2026-10-05: visitors did not know what a tile was)
+    expect(html).toContain('<strong>Pick an activity template and make it yours,</strong> or create your own with AI.');
+    expect(html).not.toContain('Find one in the yard and make it yours');
     expect(html).toContain('Students join with a four letter code');
-    // The line the carousel's head carried moved beside the yard's name
-    expect(html).toContain('<span class="yard-sub">Activities ready to be made to fit your class</span>');
+    // The line the carousel's head carried sat beside the yard's name until
+    // 2026-10-05 (owner: the home reads as a lot; no subtext by the yard)
+    expect(html).not.toContain('class="yard-sub"');
+    expect(html).not.toContain('Activities ready to be made to fit your class');
   });
 
   it('the plank ways show on hover again (owner 2026-09-22, to compare with always-on)', () => {

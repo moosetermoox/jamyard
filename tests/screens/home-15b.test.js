@@ -141,8 +141,11 @@ describe('home page 15b', () => {
 
   it('uses the teacher vocabulary the owner fixed', () => {
     expect(html).not.toMatch(/Practice run/i);
-    expect(html).not.toMatch(/Pick an activity/i);
-    expect(html).not.toMatch(/Pick a template/i);
+    // "Pick an activity" and "Pick a template" were the old headings; the owner's
+    // step one since 2026-10-05 reads "Pick an activity template and make it
+    // yours", a verb for a visitor who did not know what a tile was, so only
+    // the two old forms stay forbidden as HEADINGS
+    expect(html).not.toMatch(/<h[1-6][^>]*>\s*Pick an? (activity|template)\s*</i);
   });
 
   it('never says the old domain', async () => {

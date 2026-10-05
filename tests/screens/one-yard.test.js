@@ -32,7 +32,10 @@ describe('the home is the yard', () => {
     expect(html.indexOf('id="my-yard"')).toBeLessThan(html.indexOf('id="yard"'));
     expect(html).toContain('<h2>The yard</h2>');
     expect(html).not.toContain('The whole yard</h2>');
-    expect(html).toContain('id="yard-search"');
+    // The search box left the page 2026-10-05 (owner: the home reads as a
+    // lot); the filter and the ?q= deep link stay for its return
+    expect(html).not.toContain('id="yard-search"');
+    expect(html).toContain("if (searchEl) searchEl.addEventListener('input'");
     expect(html).toContain('MyYard.split(games, { query: query })');
     expect(html).toContain('MyYard.buildShelf(mine, shed, { onOpen: openShelfPopup, onChange: onShelfChange })');
     expect(html).toContain('function handleDeepLinks');
@@ -45,6 +48,17 @@ describe('the home is the yard', () => {
     for (const dep of ['/shared/my-yard.js', '/shared/activity-prefs.js', '/shared/host-launch.js', '/shared/yard-prints.js']) {
       expect(html.indexOf('<script src="' + dep + '"'), dep + ' before the page script').toBeLessThan(inline);
     }
+  });
+
+  it('the For when row is folded until its lead is pressed, and folding it clears a picked moment (owner 2026-10-05)', async () => {
+    const html = await read('screens/home/index.html');
+    expect(html).toContain("var lead = el('button', 'moment-lead' + (open ? ' is-open' : ''), 'For when');");
+    expect(html).toContain("lead.setAttribute('aria-expanded', open ? 'true' : 'false');");
+    expect(html).toContain('var open = momentsOpen || activeMoment !== null;');
+    expect(html).toContain('if (!momentsOpen && activeMoment !== null) { activeMoment = null; renderGrid(); }');
+    expect(html).toContain('if (!open) return;');
+    expect(html).toMatch(/\.moment-lead\s*\{[^}]*cursor:\s*pointer/);
+    expect(html).toMatch(/\.moment-lead\.is-open::after\s*\{[^}]*border-bottom/);
   });
 
   it('a search that matches nothing anywhere shows everything with an honest line; a shelf hit is never called nothing', async () => {
