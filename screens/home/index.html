@@ -475,22 +475,13 @@
     }
     /* With no class set yet (2026-10-05, owner: people scrolled past
        it, and the examples are better with it): the chip is lit like a
-       picked job, reads "Set your class", and a pencil line beside it says
-       what it does. It wobbles once as the row first paints. Set, it goes
-       back to sanded with the class on it. */
+       picked job and reads "Set your class". It wobbles once as the row
+       first paints. Set, it goes back to sanded with the class on it. (A
+       line beside it lasted a day: the owner wants no subtext there.) */
     .goal-chip.class-chip.is-unset {
       background: var(--t-yellow);
       background-image: var(--t-grain);
       animation: class-chip-wobble 1.1s ease-out 0.8s 1;
-    }
-    .class-nudge {
-      flex: 1 1 auto;
-      min-width: 140px;
-      max-width: 300px;
-      font-size: 14px;
-      font-style: italic;
-      color: rgba(50, 35, 15, 0.72);
-      line-height: 1.2;
     }
     @keyframes class-chip-wobble {
       0%, 100% { transform: rotate(var(--rot, 0deg)); }
@@ -501,10 +492,6 @@
     }
     @media (prefers-reduced-motion: reduce) {
       .goal-chip.class-chip.is-unset { animation: none; }
-    }
-    @media (max-width: 1280px) {
-      /* the five job chips and the class chip fill the row by here */
-      .class-nudge { display: none; }
     }
     .goal-chip.class-chip::after {
       content: '';
@@ -535,26 +522,6 @@
 
     .yard-grid { min-height: 220px; }
 
-    /* The search beside the name: a sanded plank with a pencil line */
-    .yard-search {
-      width: 300px;
-      max-width: 100%;
-      height: 44px;
-      flex: none;
-      border: none;
-      background: var(--t-sanded);
-      background-image: var(--t-grain);
-      border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
-      padding: 12px 16px;
-      font-family: var(--t-body);
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--t-ink);
-    }
-
-    .yard-search::placeholder { color: #8A7455; font-weight: 500; }
-    .yard-search:focus { outline: none; box-shadow: inset 0 0 0 3px var(--t-ink); }
-
     /* A search that matches nothing shows everything, and says so */
     .yard-note {
       font-size: 14px;
@@ -573,13 +540,37 @@
       margin: 14px 0 6px;
     }
     .yard-moments[hidden] { display: none; }
+    /* The lead is the fold's button: folded it is the only thing on the
+       row, open the chips follow it (owner 2026-10-05) */
     .moment-lead {
+      font-family: inherit;
       font-size: 13px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--t-muted-caps, #8A7B62);
       margin-right: 2px;
+      padding: 4px 0;
+      border: 0;
+      background: none;
+      cursor: pointer;
+    }
+    .moment-lead:hover, .moment-lead:focus-visible { color: var(--t-ink); }
+    .moment-lead:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+    .moment-lead::after {
+      content: '';
+      display: inline-block;
+      width: 0;
+      height: 0;
+      margin-left: 8px;
+      vertical-align: 2px;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid currentColor;
+    }
+    .moment-lead.is-open::after {
+      border-top: 0;
+      border-bottom: 5px solid currentColor;
     }
     .moment-chip {
       font-family: var(--t-body);
@@ -713,15 +704,9 @@
     .start-browse:hover { color: var(--t-ink); }
     .start-here[hidden] { display: none; }
 
-    /* The yard's head: the name, and beside it what the prints are (the
-       line the carousel's head carried, owner 2026-09-22) */
+    /* The yard's head: the name alone (the subline and the search left
+       2026-10-05, owner: the home reads as a lot) */
     .yard-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-
-    .yard-sub {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--t-muted);
-    }
 
     /* ── The activity popup (a print's click): what it is, the map, then
        the one red door to the make page ── */
@@ -1112,8 +1097,7 @@
          page is the owner's curation console now. -->
     <section class="yard" id="yard" hidden aria-label="The yard">
       <div class="yard-head">
-        <div class="yard-title"><h2>The yard</h2><span class="yard-sub">Activities ready to be made to fit your class</span></div>
-        <input type="search" id="yard-search" class="yard-search" placeholder="Search the yard…" aria-label="Search the yard" autocomplete="off" spellcheck="false">
+        <div class="yard-title"><h2>The yard</h2></div>
       </div>
       <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
       <!-- Your class (2026-09-24): grade band + subjects, saved on this
@@ -1227,7 +1211,6 @@
         var s = window.TeacherProfile ? TeacherProfile.short() : '';
         return s ? 'Your class: ' + s : 'Set your class';
       }
-      var CLASS_NUDGE = 'Every card shows an example for your grade and subject.';
       function setClassOpen(open) {
         classOpen = !!open;
         if (classPanel) classPanel.hidden = !classOpen;
@@ -1301,8 +1284,6 @@
           cls.setAttribute('aria-controls', 'class-panel');
           cls.addEventListener('click', function () { setClassOpen(!classOpen); });
           set.appendChild(cls);
-          // No class yet: a line beside the chip says what it does
-          if (unset && !classOpen) set.appendChild(el('span', 'class-nudge', CLASS_NUDGE));
           chipsEl.appendChild(set);
         }
         groups.forEach(function (group, i) {
@@ -1367,7 +1348,9 @@
           (Array.isArray(g.keywords) ? g.keywords.join(' ') : '') + ' ' + exampleWords(g)).toLowerCase();
         return hay.indexOf(query) !== -1;
       }
-      searchEl.addEventListener('input', function () {
+      // The search box left the page (owner 2026-10-05: the home reads as
+      // a lot); the filter stays for the ?q= deep link and for its return
+      if (searchEl) searchEl.addEventListener('input', function () {
         query = searchEl.value.trim().toLowerCase();
         renderGrid();
       });
@@ -1389,12 +1372,26 @@
       ];
       var momentsEl = document.getElementById('yard-moments');
       var activeMoment = null; // an index into MOMENTS, or null
+      // The row is folded until "For when" is pressed (owner 2026-10-05:
+      // the home reads as a lot). Folding it with a moment picked clears
+      // the pick, so the grid is never filtered by something out of sight.
+      var momentsOpen = false;
       function byMoment(g) {
         return activeMoment === null || MOMENTS[activeMoment].ids.indexOf(g.id) !== -1;
       }
       function renderMoments() {
         momentsEl.textContent = '';
-        momentsEl.appendChild(el('span', 'moment-lead', 'For when'));
+        var open = momentsOpen || activeMoment !== null;
+        var lead = el('button', 'moment-lead' + (open ? ' is-open' : ''), 'For when');
+        lead.type = 'button';
+        lead.setAttribute('aria-expanded', open ? 'true' : 'false');
+        lead.addEventListener('click', function () {
+          momentsOpen = !open;
+          if (!momentsOpen && activeMoment !== null) { activeMoment = null; renderGrid(); }
+          renderMoments();
+        });
+        momentsEl.appendChild(lead);
+        if (!open) return;
         MOMENTS.forEach(function (m, i) {
           var chip = el('button', 'moment-chip t-lift' + (i === activeMoment ? ' active' : ''), m.label);
           chip.type = 'button';
@@ -1510,7 +1507,7 @@
             (params.toString() ? '?' + params.toString() : '') + '#yard');
         } catch (e) { /* old browser */ }
         if (q) {
-          searchEl.value = q;
+          if (searchEl) searchEl.value = q;
           query = q.trim().toLowerCase();
           renderGrid();
         }

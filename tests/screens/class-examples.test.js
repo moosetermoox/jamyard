@@ -358,20 +358,15 @@ describe('the pages', () => {
     expect(html).toContain("'goal-chip class-chip t-lift'");
     expect(html).toContain("cls.setAttribute('aria-controls', 'class-panel')");
     // No class set yet (owner 2026-10-05, people scrolled past it): the chip
-    // is lit, reads "Set your class", a line beside it says what it does,
-    // and it wobbles once (never under reduced motion); set, the class is on it
+    // is lit, reads "Set your class", and wobbles once (never under reduced
+    // motion); set, the class is on it. No line beside it (owner, same day:
+    // no subtext there)
     expect(html).toContain("return s ? 'Your class: ' + s : 'Set your class';");
     expect(html).toContain("if (unset) cls.classList.add('is-unset');");
-    expect(html).toContain("if (unset && !classOpen) set.appendChild(el('span', 'class-nudge', CLASS_NUDGE));");
-    const nudge = /var CLASS_NUDGE = '([^']+)'/.exec(html)[1];
-    expect(nudge).toContain('an example for your grade and subject');
-    expect(nudge).not.toMatch(/door|print|plank|fit\b|AI/);
+    expect(html).not.toContain('class-nudge');
     expect(html).toMatch(/\.goal-chip\.class-chip\.is-unset\s*\{[^}]*background:\s*var\(--t-yellow\)/);
     expect(html).toMatch(/\.goal-chip\.class-chip\.is-unset\s*\{[^}]*animation:\s*class-chip-wobble/);
     expect(html).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.goal-chip\.class-chip\.is-unset \{ animation: none; \}/);
-    // the line shrinks and wraps inside the row, never pushing the jobs off it, and goes on a narrow screen
-    expect(html).toMatch(/\.class-nudge\s*\{[^}]*flex:\s*1 1 auto/);
-    expect(html).toMatch(/max-width: 1280px\)\s*\{[^}]*\.class-nudge \{ display: none; \}/);
     // the popup's red door carries the card's example too
     expect(html).toContain('function showActivityPopup(g, card)');
     expect(html).toContain('start.href = makeHref(g, ex);');
