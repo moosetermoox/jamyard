@@ -566,7 +566,9 @@
   // A guess with a speed bonus and no clock of its own gets this one
   var ESTIMATE_SPEED_TIMER = 45;
 
-  function appendQuizChain(step, stepNo, phases, lastId, problems) {
+  // `total` (optional) = the plan's running-total function: the quiz's
+  // scores join the lesson total and its board reads the whole total
+  function appendQuizChain(step, stepNo, phases, lastId, problems, total) {
     var raw = Array.isArray(step.questions) ? step.questions : [];
     var speedBonus = step.speedBonus !== false;
     var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
@@ -644,7 +646,8 @@
 
     var lbId = freshId(phases, 'standings');
     phases[lastId].next = lbId;
-    phases[lbId] = { type: 'leaderboard', from: scoreRefs, style: 'full' };
+    var boardRefs = typeof total === 'function' ? total(scoreRefs) : scoreRefs;
+    phases[lbId] = { type: 'leaderboard', from: boardRefs.slice(), style: 'full' };
     // A teams step earlier in the plan makes this a real team competition:
     // individual points roll up into ranked team totals on the projector.
     var splitId = null;
@@ -2186,6 +2189,30 @@
     var gradedRun = [];
     // Guesses scored by how close share one scoreboard too
     var estimateRun = [];
+    // The lesson's running total (2026-10-05): every per-student score
+    // source so far, in plan order. Every scoreboard the plan gets reads
+    // the whole list, so a board after the quiz still carries the points
+    // from the matching and the fill-ins before it (a reviewer's four
+    // lessons: each board showed only the step before it, so players at
+    // 100 fell to 0 on the next board). The leaderboard handler sums a
+    // list by student. Team-keyed scores (charades) cannot join a
+    // per-student sum and ride on their own board. A step whose own board
+    // is off (standings: false) still counts toward later boards; a
+    // no-winners quiz (leaderboard: false) never ranks anyone, so it stays out.
+    var lessonScores = [];
+    function isTeamRef(ref) { return /\.teamScores$/.test(ref); }
+    function lessonTotal(refs) {
+      var teamRefs = [];
+      var ownRefs = 0;
+      (refs || []).forEach(function (ref) {
+        if (isTeamRef(ref)) { teamRefs.push(ref); return; }
+        ownRefs++;
+        if (lessonScores.indexOf(ref) === -1) lessonScores.push(ref);
+      });
+      // A team-only stretch (charades) keeps its own board
+      if (!ownRefs && teamRefs.length) return teamRefs;
+      return lessonScores.concat(teamRefs);
+    }
 
     steps.forEach(function (step, i) {
       var brick = step && step.brick;
@@ -2242,17 +2269,20 @@
         }
         if (!newLast) return;
         lastId = newLast;
-        if (gradedRef && step.standings !== false) gradedRun.push(gradedRef);
-        // The scoreboard lands after the last graded brick in a row
+        if (gradedRef) gradedRun.push(gradedRef);
+        // The scoreboard lands after the last graded brick in a row and
+        // reads the lesson's running total; standings: false on the last
+        // of the row drops the board, the points still count later
         if (gradedRun.length && !gradedAhead(steps, i)) {
-          lastId = appendStandings(phases, lastId, gradedRun);
+          var runTotal = lessonTotal(gradedRun);
+          if (step.standings !== false) lastId = appendStandings(phases, lastId, runTotal);
           gradedRun = [];
         }
         return;
       }
 
       if (brick === 'quiz') {
-        var quizLast = appendQuizChain(step, i + 1, phases, lastId, problems);
+        var quizLast = appendQuizChain(step, i + 1, phases, lastId, problems, lessonTotal);
         if (quizLast) lastId = quizLast;
         return;
       }
@@ -2666,16 +2696,13 @@
           });
           if (buzzQs.length) built.questions = buzzQs;
         }
-        var standingsId = freshId(phases, 'standings');
-        phases[lastId].next = standingsId;
-        phases[standingsId] = { type: 'leaderboard', from: id + '.scores', style: 'full' };
-        withTeamTotals(phases, standingsId);
-        lastId = standingsId;
+        lastId = appendStandings(phases, lastId, lessonTotal([id + '.scores']));
       }
 
       // A graded open answer's standings (2026-09-30)
-      if (brick === 'collect' && built.correctAnswer && step.standings !== false) {
-        lastId = appendStandings(phases, lastId, [id + '.scores']);
+      if (brick === 'collect' && built.correctAnswer) {
+        var fillTotal = lessonTotal([id + '.scores']);
+        if (step.standings !== false) lastId = appendStandings(phases, lastId, fillTotal);
       }
 
       // Guesses scored by how close (2026-10-01): one scoreboard after the
@@ -2686,7 +2713,7 @@
         var moreGuesses = nextGuess && nextGuess.brick === 'estimate' && nextGuess.scoring === 'distance' &&
           typeof nextGuess.answer === 'number' && nextGuess.standings !== false;
         if (!moreGuesses) {
-          lastId = appendStandings(phases, lastId, estimateRun);
+          lastId = appendStandings(phases, lastId, lessonTotal(estimateRun));
           estimateRun = [];
         }
       }
@@ -2708,8 +2735,9 @@
             : 'The class ranking:\n\n{{' + id + '.rankedList}}'
         };
         lastId = orderId;
-        if (built.correctOrder && step.standings !== false) {
-          lastId = appendStandings(phases, lastId, [id + '.scores']);
+        if (built.correctOrder) {
+          var rankTotal = lessonTotal([id + '.scores']);
+          if (step.standings !== false) lastId = appendStandings(phases, lastId, rankTotal);
         }
       }
     });
