@@ -76,7 +76,7 @@
   },
   "template": {
     "name": "Closer",
-    "description": "Escalating pair conversations, playful to reflective. No winners.",
+    "description": "Partners answer questions out loud, starting light and getting more personal, with a new partner for each set. Nobody types anything, and you can stop after any set.",
     "family": "connection",
     "phases": {
       "lobby": {
