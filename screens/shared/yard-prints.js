@@ -421,7 +421,10 @@
       side.appendChild(nameNode);
       var meta = metaOf(g);
       if (meta) side.appendChild(el('span', 'yard-meta', meta));
-      var line = whenOf(g);
+      // describeWith: 'description' = the popup's own words (what happens,
+      // owner 2026-10-05: one click fewer, the card goes straight to the
+      // make page and the map waits there); else the moment it is for
+      var line = opts.describeWith === 'description' ? descriptionOf(g) : whenOf(g);
       if (line) side.appendChild(el('p', 'yard-when', line));
       card.appendChild(side);
     } else {
@@ -430,6 +433,11 @@
     return card;
   }
 
+  // The description as plain words (the bold markers off), else the when line
+  function descriptionOf(g) {
+    var d = String(g.description || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+    return d || whenOf(g);
+  }
   // The moment it is for, else the description's first sentence
   function whenOf(g) {
     if (typeof g.when === 'string' && g.when.trim()) return g.when.trim();
@@ -499,7 +507,7 @@
     container.classList.add('yard-grid');
     if (pool.length === 0 && opts.empty) container.appendChild(el('p', 'yard-empty', opts.empty));
     for (var i = 0; i < pool.length; i++) {
-      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example, describe: !!opts.describe }));
+      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example, describe: !!opts.describe, describeWith: opts.describeWith }));
     }
     if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref, !!opts.describe));
     if (opts.playOnScroll) playOnScroll(container);

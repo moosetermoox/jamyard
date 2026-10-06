@@ -1449,12 +1449,17 @@
             : '';
         // Time marks on the first card of each duration step; the first
         // card plays its hover once, on the first render only
+        // The try (owner 2026-10-05): the popup's description sits beside
+        // the mat and a click goes straight to the make page, where the
+        // What happens map already is; one click fewer. The popup stays
+        // for the ?about= deep link.
         YardPrints.buildGrid(gridEl, pool, {
           href: makeHref,
-          onClick: showActivityPopup,
+          onClick: null,
           example: exampleFor,
           marks: true,
           describe: true,
+          describeWith: 'description',
           playOnScroll: true,
           play: !playedOnce,
           empty: query
