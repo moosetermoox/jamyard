@@ -354,7 +354,9 @@
     var own = opts.own || null;
     var ex = !own && typeof opts.example === 'function' ? (opts.example(g, i) || null) : null;
     var open = function (e) {
-      if (noHover() && !card.classList.contains('on')) {
+      // with the words beside the mat a tap goes straight through (the
+      // first-tap preview was for a bare picture)
+      if (!opts.describe && noHover() && !card.classList.contains('on')) {
         if (e) e.preventDefault();
         var siblings = card.parentNode ? card.parentNode.querySelectorAll('.yard-card.on') : [];
         for (var s = 0; s < siblings.length; s++) if (siblings[s] !== card) setOn(siblings[s], false);
@@ -385,7 +387,7 @@
     }
     card.setAttribute('data-game-id', g.id);
     if (ex) card.setAttribute('data-example', ex.key);
-    card.setAttribute('aria-label', g.name + ', see what it is');
+    card.setAttribute('aria-label', g.name + (opts.onClick ? ', see what it is' : ', make it yours'));
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
     // A tap fires emulated mouse events too; on a no-hover screen the
     // tap rule above owns the state, so these stand down there
