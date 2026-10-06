@@ -525,8 +525,55 @@ span.pg-arrive { display: inline-block; }
   transform: rotate(-1deg);
 }
 
+/* Two across, the words beside the mat (a try, 2026-10-05: the owner
+   watched visitors look at sixteen small tiles and click nothing; bigger
+   tiles, fewer in view, and a sentence to read beside each). The mat
+   keeps its width, the window grows, the pictogram scales up, and the
+   side column carries the name, the meta line, and the moment it is for. */
+.yard-grid.yard-two-up {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 36px 40px;
+}
+.yard-two-up .yard-card {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20px;
+}
+.yard-two-up .yard-print { flex: 0 0 290px; min-width: 0; }
+.yard-two-up .yard-window { height: 196px; }
+.yard-two-up .yard-pict { zoom: 1.2; }
+.yard-two-up .yard-window-content { padding-top: 14px; }
+.yard-two-up .yard-side {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding-top: 8px;
+}
+.yard-two-up .yard-name-row,
+.yard-two-up .yard-name-block { margin-top: 0; }
+.yard-two-up .yard-name { font-size: 22px; }
+.yard-two-up .yard-meta {
+  font-family: var(--t-body);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  padding: 0 3px;
+}
+.yard-two-up .yard-when {
+  margin: 2px 0 0;
+  padding: 0 3px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--t-ink);
+}
+.yard-two-up .yard-card-make .yard-side { padding-top: 8px; }
+
 @media (max-width: 960px) {
   .yard-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .yard-grid.yard-two-up { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 600px) {
@@ -535,6 +582,12 @@ span.pg-arrive { display: inline-block; }
   /* A window about 160px wide: the widest pictogram (Snowball's three
      piles) fits once scaled */
   .yard-pict { zoom: 0.8; }
+  /* Two-up on a phone: the mat full width, the words under it */
+  .yard-grid.yard-two-up { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .yard-two-up .yard-card { flex-direction: column; align-items: stretch; gap: 10px; }
+  .yard-two-up .yard-print { flex: 0 0 auto; }
+  .yard-two-up .yard-pict { zoom: 1; }
+  .yard-two-up .yard-name { font-size: 18px; }
 }
 
 /* Motion reduced: nothing slides, the arrivals simply appear on hover */

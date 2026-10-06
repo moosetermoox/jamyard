@@ -423,7 +423,10 @@ describe('the yard on the home page', () => {
     // keyboard users see the same arrival
     expect(css).toContain('.yard-card:focus-visible .pg-arrive');
     expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.yard-card, \.yard-pict, \.yard-prompt, \.pg-arrive, \.pg-fill \{ transition: none; \}/);
-    expect(css).not.toContain('.yard-meta');
+    // no meta line at rest on a four-up card; the two-up try (2026-10-05)
+    // carries one beside the mat, under its own class only
+    expect(css).not.toMatch(/^\.yard-meta/m);
+    expect(css).toContain('.yard-two-up .yard-meta');
     expect(css).not.toContain('.yp-mini');
   });
 

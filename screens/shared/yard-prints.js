@@ -406,15 +406,35 @@
     var nameRow = el('div', 'yard-name-row');
     nameRow.appendChild(el('span', 'yard-name', g.name));
     nameRow.appendChild(el('span', 'yard-need ' + paintOf(g)));
+    var nameNode = nameRow;
     if (own) {
       var block = el('div', 'yard-name-block');
       block.appendChild(el('span', 'yard-kicker', own.kicker));
       block.appendChild(nameRow);
-      card.appendChild(block);
+      nameNode = block;
+    }
+    // Two across with words beside the mat (a try, 2026-10-05): the
+    // name, the meta line, and the moment it is for, the hover card's
+    // text at rest
+    if (opts.describe) {
+      var side = el('div', 'yard-side');
+      side.appendChild(nameNode);
+      var meta = metaOf(g);
+      if (meta) side.appendChild(el('span', 'yard-meta', meta));
+      var line = whenOf(g);
+      if (line) side.appendChild(el('p', 'yard-when', line));
+      card.appendChild(side);
     } else {
-      card.appendChild(nameRow);
+      card.appendChild(nameNode);
     }
     return card;
+  }
+
+  // The moment it is for, else the description's first sentence
+  function whenOf(g) {
+    if (typeof g.when === 'string' && g.when.trim()) return g.when.trim();
+    var m = /^(.+?[.!?])(\s|$)/.exec(String(g.description || '').replace(/\s+/g, ' ').trim());
+    return (m ? m[1] : String(g.description || '')).replace(/\*\*/g, '').trim();
   }
 
   // The last card: for when what the class needs is not on the shelf yet
@@ -426,7 +446,7 @@
     when: 'When what your class needs isn\'t on this shelf yet. Say it in a sentence and it gets built while you watch.'
   };
 
-  function buildAiTile(i, href) {
+  function buildAiTile(i, href, describe) {
     var card = el('a', 'yard-card yard-card-make');
     card.href = href || '/designer';
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
@@ -439,7 +459,14 @@
     card.appendChild(print);
     var nameRow = el('div', 'yard-name-row');
     nameRow.appendChild(el('span', 'yard-name', AI_DOOR.name));
-    card.appendChild(nameRow);
+    if (describe) {
+      var side = el('div', 'yard-side');
+      side.appendChild(nameRow);
+      side.appendChild(el('p', 'yard-when', AI_DOOR.when));
+      card.appendChild(side);
+    } else {
+      card.appendChild(nameRow);
+    }
     return card;
   }
 
@@ -472,9 +499,9 @@
     container.classList.add('yard-grid');
     if (pool.length === 0 && opts.empty) container.appendChild(el('p', 'yard-empty', opts.empty));
     for (var i = 0; i < pool.length; i++) {
-      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example }));
+      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example, describe: !!opts.describe }));
     }
-    if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref));
+    if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref, !!opts.describe));
     if (opts.play) playFirst(container);
     return container;
   }
