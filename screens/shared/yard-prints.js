@@ -502,8 +502,33 @@
       container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example, describe: !!opts.describe }));
     }
     if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref, !!opts.describe));
-    if (opts.play) playFirst(container);
+    if (opts.playOnScroll) playOnScroll(container);
+    else if (opts.play) playFirst(container);
     return container;
+  }
+
+  // Every card plays its hover state once as it scrolls into view (a
+  // try, 2026-10-05, one across: a visitor sees each one move as they
+  // reach it). Half the card on screen starts it; it settles after the
+  // same beat as the load play; a card under the mouse is left alone.
+  // Reduced motion, or no observer, means no play at all.
+  var SCROLL_PLAY_AT = 0.5;
+  var SCROLL_PLAY_DWELL = 1900;
+  function playOnScroll(container) {
+    if (reducedMotion() || typeof IntersectionObserver !== 'function') return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var card = entry.target;
+        if (!entry.isIntersecting || card._played) return;
+        card._played = true;
+        io.unobserve(card);
+        if (card.matches(':hover')) return;
+        setOn(card, true);
+        setTimeout(function () { if (card.isConnected && !card.matches(':hover')) setOn(card, false); }, SCROLL_PLAY_DWELL);
+      });
+    }, { threshold: SCROLL_PLAY_AT });
+    var cards = container.querySelectorAll('.yard-card:not(.yard-card-make)');
+    for (var i = 0; i < cards.length; i++) io.observe(cards[i]);
   }
 
   window.YardPrints = {

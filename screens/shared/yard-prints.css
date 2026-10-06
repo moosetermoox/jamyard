@@ -571,9 +571,31 @@ span.pg-arrive { display: inline-block; }
 }
 .yard-two-up .yard-card-make .yard-side { padding-top: 8px; }
 
+/* One across (the same try, later the same day): the mat and the
+   pictogram bigger still, the words in a column beside, every card
+   playing its hover once as it scrolls into view. Carries the two-up
+   class too and overrides it. */
+.yard-grid.yard-one-up {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 44px;
+}
+.yard-one-up .yard-card { gap: 36px; max-width: 1040px; }
+.yard-one-up .yard-print { flex: 0 0 420px; }
+.yard-one-up .yard-window { height: 260px; }
+.yard-one-up .yard-pict { zoom: 1.6; }
+.yard-one-up .yard-window-content { padding-top: 16px; }
+.yard-one-up .yard-side { padding-top: 14px; max-width: 520px; gap: 9px; }
+.yard-one-up .yard-name { font-size: 26px; }
+.yard-one-up .yard-when { font-size: 17px; line-height: 1.5; }
+.yard-one-up .yard-prompt-box { font-size: 15px; }
+
 @media (max-width: 960px) {
   .yard-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .yard-grid.yard-two-up { grid-template-columns: minmax(0, 1fr); }
+  .yard-one-up .yard-print { flex: 0 0 300px; }
+  .yard-one-up .yard-window { height: 200px; }
+  .yard-one-up .yard-pict { zoom: 1.2; }
+  .yard-one-up .yard-card { gap: 20px; }
 }
 
 @media (max-width: 600px) {
