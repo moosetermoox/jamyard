@@ -524,21 +524,34 @@
   // Reduced motion, or no observer, means no play at all.
   var SCROLL_PLAY_AT = 0.5;
   var SCROLL_PLAY_DWELL = 1900;
+  // A phone has no hover, so a card that settled back to rest stayed
+  // blank for good (eight content cards keep their words hidden at rest;
+  // the owner on a phone, 2026-10-06: "the second time it just looks
+  // blank"). On a no-hover screen a card stays on once it has played,
+  // and with reduced motion or no observer every card is simply on.
+  // With a mouse a card plays again each time it comes back into view.
   function playOnScroll(container) {
-    if (reducedMotion() || typeof IntersectionObserver !== 'function') return;
+    var cards = container.querySelectorAll('.yard-card:not(.yard-card-make)');
+    var i;
+    var touch = noHover();
+    if (reducedMotion() || typeof IntersectionObserver !== 'function') {
+      if (touch) for (i = 0; i < cards.length; i++) setOn(cards[i], true);
+      return;
+    }
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         var card = entry.target;
-        if (!entry.isIntersecting || card._played) return;
-        card._played = true;
-        io.unobserve(card);
-        if (card.matches(':hover')) return;
+        if (!entry.isIntersecting) { card._inView = false; return; }
+        if (card._inView) return;
+        card._inView = true;
+        if (card.classList.contains('on') || card.matches(':hover')) return;
         setOn(card, true);
-        setTimeout(function () { if (card.isConnected && !card.matches(':hover')) setOn(card, false); }, SCROLL_PLAY_DWELL);
+        if (touch) { io.unobserve(card); return; }
+        clearTimeout(card._settle);
+        card._settle = setTimeout(function () { if (card.isConnected && !card.matches(':hover')) setOn(card, false); }, SCROLL_PLAY_DWELL);
       });
     }, { threshold: SCROLL_PLAY_AT });
-    var cards = container.querySelectorAll('.yard-card:not(.yard-card-make)');
-    for (var i = 0; i < cards.length; i++) io.observe(cards[i]);
+    for (i = 0; i < cards.length; i++) io.observe(cards[i]);
   }
 
   window.YardPrints = {
@@ -559,6 +572,7 @@
     ownDetails: ownDetails,
     buildCard: buildCard,
     buildAiTile: buildAiTile,
-    buildGrid: buildGrid
+    buildGrid: buildGrid,
+    _playOnScroll: playOnScroll
   };
 })();
