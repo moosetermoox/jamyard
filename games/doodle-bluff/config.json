@@ -1,6 +1,6 @@
 {
   "name": "Doodle Bluff",
-  "description": "Draw a classmate's strange phrase, then write fake titles for each drawing and hunt for the real one. Fool the class to score.",
+  "description": "Each student draws a phrase a classmate wrote. For every drawing, the class writes fake titles and tries to pick the real one. Points for spotting it and for fooling others.",
   "when": "When the room needs a laugh and twenty minutes of everyone in on the same game.",
   "featured": true,
   "playTime": "~20 min",

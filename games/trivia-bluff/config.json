@@ -1,6 +1,6 @@
 {
   "name": "Trivia Bluff",
-  "description": "A fact with a blank and believable lies. Pick the truth to score; fool the class to score too.",
+  "description": "Each round shows a real fact with one word missing. Students write a fake answer that sounds true, then everyone tries to pick the real one. Points for finding it and for fooling classmates.",
   "when": "When the class is flat and you want a bluffing game that teaches the facts on the way.",
   "featured": true,
   "recipe": {
