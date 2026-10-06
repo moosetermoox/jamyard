@@ -354,7 +354,9 @@
     var own = opts.own || null;
     var ex = !own && typeof opts.example === 'function' ? (opts.example(g, i) || null) : null;
     var open = function (e) {
-      if (noHover() && !card.classList.contains('on')) {
+      // with the words beside the mat a tap goes straight through (the
+      // first-tap preview was for a bare picture)
+      if (!opts.describe && noHover() && !card.classList.contains('on')) {
         if (e) e.preventDefault();
         var siblings = card.parentNode ? card.parentNode.querySelectorAll('.yard-card.on') : [];
         for (var s = 0; s < siblings.length; s++) if (siblings[s] !== card) setOn(siblings[s], false);
@@ -385,7 +387,7 @@
     }
     card.setAttribute('data-game-id', g.id);
     if (ex) card.setAttribute('data-example', ex.key);
-    card.setAttribute('aria-label', g.name + ', see what it is');
+    card.setAttribute('aria-label', g.name + (opts.onClick ? ', see what it is' : ', make it yours'));
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
     // A tap fires emulated mouse events too; on a no-hover screen the
     // tap rule above owns the state, so these stand down there
@@ -406,15 +408,43 @@
     var nameRow = el('div', 'yard-name-row');
     nameRow.appendChild(el('span', 'yard-name', g.name));
     nameRow.appendChild(el('span', 'yard-need ' + paintOf(g)));
+    var nameNode = nameRow;
     if (own) {
       var block = el('div', 'yard-name-block');
       block.appendChild(el('span', 'yard-kicker', own.kicker));
       block.appendChild(nameRow);
-      card.appendChild(block);
+      nameNode = block;
+    }
+    // Two across with words beside the mat (a try, 2026-10-05): the
+    // name, the meta line, and the moment it is for, the hover card's
+    // text at rest
+    if (opts.describe) {
+      var side = el('div', 'yard-side');
+      side.appendChild(nameNode);
+      var meta = metaOf(g);
+      if (meta) side.appendChild(el('span', 'yard-meta', meta));
+      // describeWith: 'description' = the popup's own words (what happens,
+      // owner 2026-10-05: one click fewer, the card goes straight to the
+      // make page and the map waits there); else the moment it is for
+      var line = opts.describeWith === 'description' ? descriptionOf(g) : whenOf(g);
+      if (line) side.appendChild(el('p', 'yard-when', line));
+      card.appendChild(side);
     } else {
-      card.appendChild(nameRow);
+      card.appendChild(nameNode);
     }
     return card;
+  }
+
+  // The description as plain words (the bold markers off), else the when line
+  function descriptionOf(g) {
+    var d = String(g.description || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+    return d || whenOf(g);
+  }
+  // The moment it is for, else the description's first sentence
+  function whenOf(g) {
+    if (typeof g.when === 'string' && g.when.trim()) return g.when.trim();
+    var m = /^(.+?[.!?])(\s|$)/.exec(String(g.description || '').replace(/\s+/g, ' ').trim());
+    return (m ? m[1] : String(g.description || '')).replace(/\*\*/g, '').trim();
   }
 
   // The last card: for when what the class needs is not on the shelf yet
@@ -426,7 +456,7 @@
     when: 'When what your class needs isn\'t on this shelf yet. Say it in a sentence and it gets built while you watch.'
   };
 
-  function buildAiTile(i, href) {
+  function buildAiTile(i, href, describe) {
     var card = el('a', 'yard-card yard-card-make');
     card.href = href || '/designer';
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
@@ -439,7 +469,14 @@
     card.appendChild(print);
     var nameRow = el('div', 'yard-name-row');
     nameRow.appendChild(el('span', 'yard-name', AI_DOOR.name));
-    card.appendChild(nameRow);
+    if (describe) {
+      var side = el('div', 'yard-side');
+      side.appendChild(nameRow);
+      side.appendChild(el('p', 'yard-when', AI_DOOR.when));
+      card.appendChild(side);
+    } else {
+      card.appendChild(nameRow);
+    }
     return card;
   }
 
@@ -472,11 +509,36 @@
     container.classList.add('yard-grid');
     if (pool.length === 0 && opts.empty) container.appendChild(el('p', 'yard-empty', opts.empty));
     for (var i = 0; i < pool.length; i++) {
-      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example }));
+      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example, describe: !!opts.describe, describeWith: opts.describeWith }));
     }
-    if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref));
-    if (opts.play) playFirst(container);
+    if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref, !!opts.describe));
+    if (opts.playOnScroll) playOnScroll(container);
+    else if (opts.play) playFirst(container);
     return container;
+  }
+
+  // Every card plays its hover state once as it scrolls into view (a
+  // try, 2026-10-05, one across: a visitor sees each one move as they
+  // reach it). Half the card on screen starts it; it settles after the
+  // same beat as the load play; a card under the mouse is left alone.
+  // Reduced motion, or no observer, means no play at all.
+  var SCROLL_PLAY_AT = 0.5;
+  var SCROLL_PLAY_DWELL = 1900;
+  function playOnScroll(container) {
+    if (reducedMotion() || typeof IntersectionObserver !== 'function') return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var card = entry.target;
+        if (!entry.isIntersecting || card._played) return;
+        card._played = true;
+        io.unobserve(card);
+        if (card.matches(':hover')) return;
+        setOn(card, true);
+        setTimeout(function () { if (card.isConnected && !card.matches(':hover')) setOn(card, false); }, SCROLL_PLAY_DWELL);
+      });
+    }, { threshold: SCROLL_PLAY_AT });
+    var cards = container.querySelectorAll('.yard-card:not(.yard-card-make)');
+    for (var i = 0; i < cards.length; i++) io.observe(cards[i]);
   }
 
   window.YardPrints = {
