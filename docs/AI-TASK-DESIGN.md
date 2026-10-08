@@ -27,8 +27,8 @@ The AI should never directly decide eliminations or scores via unstructured text
 
 | Task Type | Recommended Model | Reasoning |
 |-----------|------------------|-----------|
-| `summarize` | claude-haiku-4-5 | Simple aggregation, speed matters |
-| `generate` | claude-haiku-4-5 | Creative but straightforward |
+| `summarize` | claude-haiku-5-5 | Simple aggregation, speed matters |
+| `generate` | claude-haiku-5-5 | Creative but straightforward |
 | `generate-choices` | claude-sonnet-5 | Needs accuracy for correct answers |
 | `compare` | claude-sonnet-5 | Semantic understanding is critical |
 | `rank` | claude-sonnet-5 | Fair judgment requires nuance |
@@ -37,7 +37,7 @@ The AI should never directly decide eliminations or scores via unstructured text
 **Notes:**
 1. **Override in config**: Model can be specified per `ai-process` phase in game config if needed (e.g., use Sonnet for a particularly important poem)
 2. **Mock mode**: Model selection is ignored in mock mode — no API calls are made
-3. **Cost**: Haiku is ~10x cheaper than Sonnet. For a typical game session with 5 AI calls, expect ~$0.01-0.05 depending on task mix
+3. **Cost**: Haiku 5.5 is ~20x cheaper than Sonnet 5.5 per token ($0.10/$0.50 against $2/$10 per MTok). For a typical game session with 5 AI calls, expect ~$0.01-0.05 depending on task mix
 
 ---
 
@@ -634,8 +634,8 @@ The AIService should select the model based on task type:
 
 ```javascript
 const TASK_MODELS = {
-  summarize: 'claude-haiku-4-5',
-  generate: 'claude-haiku-4-5',
+  summarize: 'claude-haiku-5-5',
+  generate: 'claude-haiku-5-5',
   'generate-choices': 'claude-sonnet-5',
   compare: 'claude-sonnet-5',
   rank: 'claude-sonnet-5',
@@ -648,7 +648,7 @@ function getModelForTask(taskType, configOverride = null) {
     return configOverride;
   }
   // Fall back to recommended model for task type
-  return TASK_MODELS[taskType] || 'claude-haiku-4-5';
+  return TASK_MODELS[taskType] || 'claude-haiku-5-5';
 }
 ```
 

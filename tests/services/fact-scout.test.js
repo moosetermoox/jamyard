@@ -83,7 +83,7 @@ describe('scoutFacts', () => {
       return { content: [{ type: 'text', text }] };
     };
     const out = await scoutFacts({ topic: 'penguins', aiService: ai, fetchImpl: fakeFetch(), pages: 1 });
-    expect(prompts.map((p) => p.model)).toEqual(['claude-haiku-4-5-20251001', 'claude-sonnet-5-5', 'claude-haiku-4-5-20251001']);
+    expect(prompts.map((p) => p.model)).toEqual(['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']);
     expect(prompts[1].prompt).toContain('HIT: "Augustus prohibited');
     expect(out.pages).toEqual([{ title: 'Penguin', url: 'https://en.wikipedia.org/wiki/Penguin' }]);
     // the invented one (quote not in the page) and the bare one (checkable 2) are gone

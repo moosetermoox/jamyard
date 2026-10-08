@@ -550,9 +550,29 @@ INPUT SAFETY RULES (always apply):
 // thinking is on unless disabled, sampling params (temperature/top_p/top_k)
 // and assistant prefills 400, and its tokenizer spends ~30% more tokens on
 // the same text. _callClaude applies the per-model policy (SONNET_POLICY).
+// Haiku 5.5 replaced Haiku 4.5 on 2026-10-08: a tenth of the price
+// ($0.10/$0.50 per MTok against $1/$5, prompts under 100k tokens), and
+// measured on the same work: the matcher leg of the golden corpus 47/66
+// against 4.5's 41/66 at a 1.6 s median against 2.1 s, moderation and a
+// tapped word's translation in half the time, the summarize path the same.
+// Its request surface is Sonnet's (adaptive thinking on by default,
+// sampling params and prefills 400, ~30% more tokens per text). Thinking
+// is turned OFF for every Haiku call (HAIKU_POLICY): with it on the matcher
+// was slower (3.4 s) and no more accurate, the 60 and 80 token caps on the
+// moderation and translation calls would be spent on thinking, and the
+// fake-answer writer declined its prompt. Haiku 5.5 caches at 512 tokens
+// (4.5 needed 4096).
 export const MODELS = {
-  haiku: 'claude-haiku-4-5-20251001',
+  haiku: 'claude-haiku-5-5',
   sonnet: 'claude-sonnet-5-5'
+};
+
+// What every Haiku call gets unless the caller says otherwise: no thinking
+// (allowed at effort high or below) and low effort, the fast path the
+// 4.5 calls were written for.
+const HAIKU_POLICY = {
+  thinking: { type: 'disabled' },
+  output_config: { effort: 'low' }
 };
 
 // What every Sonnet call gets unless the caller says otherwise: adaptive
@@ -1052,6 +1072,9 @@ export class AIService {
       if (!styled.thinking) styled.thinking = SONNET_POLICY.thinking;
       if (!styled.output_config) styled.output_config = SONNET_POLICY.output_config;
       styled.max_tokens = Math.max(styled.max_tokens || 0, SONNET_POLICY.minMaxTokens);
+    } else if (styled.model === MODELS.haiku) {
+      if (!styled.thinking) styled.thinking = HAIKU_POLICY.thinking;
+      if (!styled.output_config) styled.output_config = HAIKU_POLICY.output_config;
     }
     return styled;
   }
@@ -1284,10 +1307,12 @@ Respond with ONLY this JSON: {"translation": "..."}`,
       var message = await this._callClaude({
         model: MODELS.haiku,
         max_tokens: 1024,
-        system: `You generate fake responses that blend in with real student answers. Your goal is to make responses that are indistinguishable from human ones, match the tone, length, creativity level, and writing style. Some should be slightly better, some slightly worse, to feel natural.`,
+        // Says what the answers are for (2026-10-08): Haiku 5.5 read the old
+        // "indistinguishable from human ones" as a deception and declined.
+        system: `You write answers for a classroom guessing game (Human vs AI). The class knows that some of the answers on the screen were written by the computer and tries to spot which ones. Write the computer's answers in the same tone, length, creativity level, and writing style as the students' answers so the guessing is a fair challenge: some a little better, some a little worse.`,
         messages: [{
           role: 'user',
-          content: `${instruction}\n\nHere are the real student responses for reference (match their style):\n${examples}\n\nGenerate exactly ${count} fake responses. Return ONLY a JSON array of objects with "text" field:\n[{"text": "fake response 1"}, {"text": "fake response 2"}]`
+          content: `The question the students answered: ${instruction}\n\nThe students' answers (match their style):\n${examples}\n\nWrite exactly ${count} computer answers for the game. Return ONLY a JSON array of objects with a "text" field:\n[{"text": "answer 1"}, {"text": "answer 2"}]`
         }]
       });
 
