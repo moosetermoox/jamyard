@@ -1,6 +1,6 @@
 {
  "note": "The Create page example ideas, answered ahead of time. Recorded by scripts/record-example-ideas.js; see engine/example-ideas.js.",
- "recordedAt": "2026-10-04",
+ "recordedAt": "2026-10-08",
  "examples": [
   {
    "idea": "I want my class to laugh together",
@@ -12,22 +12,23 @@
      "recipe": "doodle-bluff",
      "params": {
       "phraseSource": "ai",
-      "aiTopic": "strange, funny, drawable scenes",
+      "aiTopic": "silly, absurd, drawable scenes that make a whole class laugh together, like a penguin trying to parallel park or a grandma kayaking through a supermarket",
       "rounds": 8,
       "drawTimer": 90
      },
-     "explanation": "Everyone draws a silly phrase, then writes fake titles for each drawing and hunts for the real one. The comedy comes from the bad drawings and the creative bluffs classmates invent.",
+     "explanation": "Doodle Bluff has students draw silly phrases, invent fake titles for each other's drawings, and vote on the real one, so the laughs come from the class's own bad drawings and bluffs.",
      "missing": [],
      "alternates": [
       {
        "recipe": "creative-vote",
-       "why": "Students write funny captions or responses to a prompt, the class sees them all, then votes for the best one. More verbal humor, less drawing."
+       "why": "Students write funny captions or responses to a prompt, the class sees them all, and everyone votes for the funniest one, which makes for a shared laugh at the reveal."
       },
       {
-       "recipe": "closer",
-       "why": "Pairs answer playful questions and read each other's answers. Quieter laughs, more connection, good for building trust while still being fun."
+       "recipe": "exquisite-corpse",
+       "why": "Sentences pass through six hands, one word at a time, so the final lines come out absurd and nobody knows what their classmates wrote until the end."
       }
-     ]
+     ],
+     "title": "Doodle Bluff: Class Laughs"
     }
    }
   },
@@ -38,25 +39,26 @@
      "questions": []
     },
     "match": {
-     "game": "live-poll",
-     "explanation": "One multiple-choice question whose bar chart grows on the projector as answers come in. Students answer as they arrive, and you end it whenever you like.",
-     "carriesContent": false,
-     "alternates": []
-    },
-    "forced:live-poll": {
-     "recipe": "live-poll",
+     "recipe": "class-poll",
      "params": {
-      "question": "How are you feeling about today's lesson?",
+      "question": "Before lunch, how are you feeling?",
       "choices": [
-       "Got it!",
-       "Mostly got it",
-       "A little confused",
-       "Lost"
-      ]
+       "Starving",
+       "Hungry but can wait",
+       "Full",
+       "Not hungry at all"
+      ],
+      "timer": 60
      },
-     "explanation": "A quick multiple-choice poll students answer as they arrive, with results shown live on the projector. End it whenever you're ready.",
+     "explanation": "A single multiple-choice question students answer quickly, with the results shown as a bar chart, which fits a fast before-lunch check.",
      "missing": [],
-     "alternates": []
+     "alternates": [
+      {
+       "recipe": "live-poll",
+       "why": "The same single question, but the bar chart grows on the projector as answers arrive, with no timer and no waiting for the class."
+      }
+     ],
+     "title": "Class Poll: Before Lunch Check"
     }
    }
   },
@@ -69,16 +71,24 @@
     "match": {
      "recipe": "snowball",
      "params": {
-      "prompt": "What is one big idea or answer you think the class should agree on?"
+      "prompt": "Turn everyone's ideas into one class answer.",
+      "mergeInstruction": "Combine your answers into one stronger answer.",
+      "soloTimer": 90,
+      "snowballAgain": false
      },
-     "explanation": "Snowball funnels everyone's thinking into one shared answer: solo first (no one skips the thinking step), then pairs merge their ideas into one stronger version, then the class sees the final merged answers together.",
+     "explanation": "Snowball has everyone answer alone first, then pairs merge their answers into one stronger answer that the whole class sees, which turns many individual ideas into a single shared answer.",
      "missing": [],
      "alternates": [
       {
+       "recipe": "question-share",
+       "why": "Students answer an open question and the projector shows every answer unedited, but nothing gets merged into one answer."
+      },
+      {
        "recipe": "discussion-starter",
-       "why": "Collects everyone's ideas and AI groups them into themes, but stops short of merging them into one class answer."
+       "why": "Responses are grouped into themes by AI, which summarizes the ideas rather than building one answer the class writes together."
       }
-     ]
+     ],
+     "title": "Snowball: Turn everyone's ideas into one class answer"
     }
    }
   },
@@ -86,28 +96,27 @@
    "idea": "Honest anonymous feedback about how class is going",
    "answers": {
     "questions": {
-     "questions": [
-      {
-       "question": "Do you want to see all responses, or keep them private with you?",
-       "label": "Who sees the feedback",
-       "kind": "choice",
-       "choices": [
-        "Show all responses to the class",
-        "Keep responses private with teacher only"
-       ],
-       "placeholder": ""
-      }
-     ]
+     "questions": []
     },
     "match": {
      "recipe": "anonymous-feedback",
      "params": {
-      "question": "How is class going for you? What's working, what could be better, anything else on your mind.",
+      "question": "How is this class going for you so far? What's working, and what would make it better? Your answers are anonymous to the class.",
       "timer": 120
      },
-     "explanation": "Collects anonymous feedback for you, groups it into themes, then shares a summary with the class so everyone learns what the room is thinking.",
+     "explanation": "Anonymous Feedback collects honest responses from students, groups them into themes for you privately first, then shares a group-level summary with the class without showing any individual answers.",
      "missing": [],
-     "alternates": []
+     "alternates": [
+      {
+       "recipe": "class-poll",
+       "why": "A quick multiple-choice check on how students feel about class, with results as a bar chart, but it gives you no written reasons behind the answers."
+      },
+      {
+       "recipe": "exit-ticket",
+       "why": "A short, private end-of-class question like 'what's one thing that would help you learn better?', useful for a regular check-in but without the theme grouping."
+      }
+     ],
+     "title": "Anonymous Feedback: How Class Is Going"
     }
    }
   },
@@ -118,10 +127,20 @@
      "questions": []
     },
     "match": {
-     "game": "someones-got-you",
-     "explanation": "Everyone shares one small real thing they're working on; a classmate they don't pick writes them one line of genuine encouragement. You review every line before the wall goes up.",
-     "carriesContent": false,
-     "alternates": []
+     "recipe": "someones-got-you",
+     "params": {
+      "notePrompt": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine. One sentence.",
+      "writeTime": 120
+     },
+     "explanation": "Each student shares one small real thing they're working on, then a classmate they didn't pick writes back one line of genuine encouragement, and you review every line before the wall goes up.",
+     "missing": [],
+     "alternates": [
+      {
+       "recipe": "question-share",
+       "why": "Students answer one open question and every answer goes up unedited, so the encouragement would be more about the topic than about each other."
+      }
+     ],
+     "title": "Someone's Got You"
     }
    }
   },
@@ -129,37 +148,47 @@
    "idea": "A bluffing game where students invent fake answers",
    "answers": {
     "questions": {
-     "questions": []
+     "questions": [
+      {
+       "question": "What facts should students bluff about?",
+       "label": "The facts",
+       "kind": "text",
+       "choices": [],
+       "placeholder": "Paste them, or name a topic"
+      }
+     ]
     },
     "match": {
      "recipe": "trivia-bluff",
      "params": {
       "questions": [
        {
-        "question": "In what year did the first successful airplane flight occur?",
-        "truth": "1903",
-        "houseLie": "1901"
+        "question": "The Roman emperor Augustus prohibited serving legionaries from ___, a decree that stayed in force for two centuries.",
+        "truth": "marrying",
+        "houseLie": "owning land"
        },
        {
-        "question": "What is the smallest country in the world by area?",
-        "truth": "Vatican City",
-        "houseLie": "Monaco"
+        "question": "Because of their size, the males of the African driver ant are called \"___\".",
+        "truth": "sausage flies",
+        "houseLie": "thunder beetles"
        },
        {
-        "question": "How many strings does a standard violin have?",
-        "truth": "4",
-        "houseLie": "6"
+        "question": "In 1885 the German writer Heinrich Böhnke-Reich warned against using old ___ as coffee filters.",
+        "truth": "wallpaper",
+        "houseLie": "newspaper"
        }
-      ]
+      ],
+      "lieTimer": 45
      },
-     "explanation": "Students invent believable fake answers to fill in the blanks of trivia facts, then vote for which answer is real. Everyone scores for spotting the truth and for fooling classmates with their lie.",
+     "explanation": "Trivia Bluff shows a real fact with a blank, students write believable fake answers, and the class votes for the truth among the fakes, scoring points for spotting the truth and for fooling classmates.",
      "missing": [],
      "alternates": [
       {
        "recipe": "doodle-bluff",
-       "why": "A slightly different bluff game: draw a phrase someone else wrote, then invent fake titles and hunt for the real one."
+       "why": "Students bluff by inventing fake titles for drawings instead of fake facts, so the fun is visual rather than verbal."
       }
-     ]
+     ],
+     "title": "Trivia Bluff"
     }
    }
   },
@@ -169,11 +198,14 @@
     "questions": {
      "questions": [
       {
-       "question": "What kind of questions should students answer about each other?",
-       "label": "The questions",
-       "kind": "text",
-       "choices": [],
-       "placeholder": "Paste them, or name a topic"
+       "question": "Should students mingle alone, or work in small groups?",
+       "label": "Alone or groups",
+       "kind": "choice",
+       "choices": [
+        "Alone",
+        "Small groups"
+       ],
+       "placeholder": ""
       }
      ]
     },
@@ -197,14 +229,19 @@
       ],
       "partners": "new-each-tier"
      },
-     "explanation": "Closer pairs students for guided conversations that move from playful to reflective, so they hear each other's real answers three times with different classmates. Nothing to type: the screen prompts, you talk.",
+     "explanation": "Closer pairs students to answer the same questions with a new partner each tier, moving from playful warm-ups to more personal reflection, which is built for getting to know classmates.",
      "missing": [],
      "alternates": [
       {
-       "recipe": "snowball",
-       "why": "One shared question distilled by everyone, builds community through finding common ground instead of individual stories."
+       "recipe": "question-share",
+       "why": "You would pose one open question and see everyone's typed answers on the projector, a lighter but whole-class version of getting acquainted."
+      },
+      {
+       "recipe": "doodle-bluff",
+       "why": "Students draw and bluff each other's silly phrases, which breaks the ice through laughter instead of conversation."
       }
-     ]
+     ],
+     "title": "Closer: Getting to Know Each Other"
     }
    }
   }

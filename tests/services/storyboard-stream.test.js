@@ -134,11 +134,22 @@ describe('cached system prompts', () => {
 
   it('leaves an uncached system prompt as the plain string it always was', () => {
     const service = realService();
-    const out = service._prepareParams({ model: 'claude-haiku-4-5-20251001', max_tokens: 100, system: 'Be brief.', messages: [] });
+    const out = service._prepareParams({ model: 'claude-haiku-5-5', max_tokens: 100, system: 'Be brief.', messages: [] });
     expect(typeof out.system).toBe('string');
     expect(out.system.startsWith('Be brief.')).toBe(true);
     expect(out.system).toContain('STYLE RULES');
     expect(out.cache).toBeUndefined();
+  });
+
+  it('a Haiku call runs with thinking off at effort low unless the caller says otherwise', () => {
+    const service = realService();
+    const out = service._prepareParams({ model: 'claude-haiku-5-5', max_tokens: 60, system: 'Judge.', messages: [] });
+    expect(out.thinking).toEqual({ type: 'disabled' });
+    expect(out.output_config).toEqual({ effort: 'low' });
+    expect(out.max_tokens).toBe(60);
+    const own = service._prepareParams({ model: 'claude-haiku-5-5', max_tokens: 60, thinking: { type: 'adaptive' }, output_config: { effort: 'high' }, messages: [] });
+    expect(own.thinking).toEqual({ type: 'adaptive' });
+    expect(own.output_config).toEqual({ effort: 'high' });
   });
 
   it('reviseGame asks for the cache', async () => {
