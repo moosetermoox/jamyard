@@ -6045,7 +6045,7 @@ var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
 // engine/game-loader.js.
 var _topLevelOnlyFields = {
   collect: ['rotateFrom', 'rotateOffset', 'assign', 'pairsFrom', 'oddHandling',
-    'rotatePairsFrom', 'reusePairsFrom', 'prefillFromAssigned', 'appendOnly', 'showTail', 'showOriginal']
+    'rotatePairsFrom', 'reusePairsFrom', 'prefillFromAssigned', 'appendOnly', 'showTail', 'showOriginal', 'showNames']
 };
 
 var VALID_HOST_TOGGLES = {
@@ -6345,6 +6345,11 @@ function validateConfig() {
       } else if (phase.prefillFromAssigned === true) {
         errors.push(label + ': "Show the first piece, not the last reply" cannot go with "Start the box with the passed item", the classmate\'s draft would land in the answer box.');
       }
+    }
+
+    // showNames validation (mirrors engine/game-loader.js)
+    if (phase.type === 'collect' && phase.showNames === true && !phase.rotateFrom) {
+      errors.push(label + ': "Say whose piece it is" needs "Rotate items from" set, there is no handed-over piece to put a name on.');
     }
 
     // pairBy validation (answer-keyed pairing; mirrors engine/game-loader.js)

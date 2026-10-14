@@ -30,9 +30,9 @@ describe('normalizeByPlayer', () => {
 describe('buildChainViews', () => {
   it('follows each origin item through every hop', () => {
     const views = buildChainViews(ringChain());
-    expect(views.get('p1')).toEqual({ original: 'seed one', steps: ['seed one +a', 'seed one +a +x'], complete: true });
-    expect(views.get('p2')).toEqual({ original: 'seed two', steps: ['seed two +b', 'seed two +b +y'], complete: true });
-    expect(views.get('p3')).toEqual({ original: 'seed three', steps: ['seed three +c', 'seed three +c +z'], complete: true });
+    expect(views.get('p1')).toEqual({ original: 'seed one', steps: ['seed one +a', 'seed one +a +x'], authors: ['p2', 'p3'], complete: true });
+    expect(views.get('p2')).toEqual({ original: 'seed two', steps: ['seed two +b', 'seed two +b +y'], authors: ['p3', 'p1'], complete: true });
+    expect(views.get('p3')).toEqual({ original: 'seed three', steps: ['seed three +c', 'seed three +c +z'], authors: ['p1', 'p2'], complete: true });
   });
 
   it('marks the chain incomplete when a link is missing, keeping what exists', () => {
@@ -41,7 +41,7 @@ describe('buildChainViews', () => {
     // p1's chain after the first hop. p2's chain (p2 → p3 → p1) is untouched.
     delete chain[1].assignedFrom.p3;
     const views = buildChainViews(chain);
-    expect(views.get('p1')).toEqual({ original: 'seed one', steps: ['seed one +a'], complete: false });
+    expect(views.get('p1')).toEqual({ original: 'seed one', steps: ['seed one +a'], authors: ['p2'], complete: false });
     expect(views.get('p2').complete).toBe(true);
   });
 
@@ -57,7 +57,7 @@ describe('buildChainViews', () => {
 
   it('handles a single-phase chain (no hops) and empty input', () => {
     const views = buildChainViews([{ byPlayer: { p1: 'only' } }]);
-    expect(views.get('p1')).toEqual({ original: 'only', steps: [], complete: true });
+    expect(views.get('p1')).toEqual({ original: 'only', steps: [], authors: [], complete: true });
     expect(buildChainViews([]).size).toBe(0);
     expect(buildChainViews(null).size).toBe(0);
   });

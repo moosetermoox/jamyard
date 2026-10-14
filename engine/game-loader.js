@@ -572,6 +572,14 @@ export function validate(config, gameId, options) {
         }
       }
 
+      // showNames (a signed hand-off, 2026-10-13) names who wrote the
+      // piece handed over: without a rotation there is no piece
+      if (phase.showNames === true && !phase.rotateFrom) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (collect) sets "showNames" but not "rotateFrom", there is no handed-over piece to put a name on.`
+        );
+      }
+
       // pairBy: answer-keyed pairing. Preference source must be a
       // collect-choice (fixed answers partition cleanly; free text doesn't).
       if (phase.pairBy !== undefined) {
@@ -1793,6 +1801,7 @@ function inferDiagnosticCode(msg, severity) {
 
   // Cross-field rules (showTail fold, template chain display)
   if (/sets "showTail" but not "appendOnly"/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/sets "showNames" but not "rotateFrom"/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
   if (/defeats the fold/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
   if (/"chainTemplate" is missing or has no \{1\}-style slots/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
 

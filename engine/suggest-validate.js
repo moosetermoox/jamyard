@@ -314,6 +314,8 @@ export function validateSuggestions(raw, ctx) {
             hops: cleanHops(s.hops),
             visibility: ['all', 'tail', 'blind'].includes(s.visibility) ? s.visibility : undefined,
             sentence: typeof s.sentence === 'string' ? s.sentence.slice(0, 300) : undefined,
+            // chain, feedback: a signed hand-off and a signed return (2026-10-13)
+            names: (s.brick === 'chain' || s.brick === 'feedback') && s.names === true ? true : undefined,
             piles: cleanPiles(s.piles),
             writeTimer: typeof s.writeTimer === 'number' ? s.writeTimer : undefined,
             // pairs: follow-up rounds with the same partner, two sides to deal

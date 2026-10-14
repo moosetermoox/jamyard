@@ -16,6 +16,7 @@ import { pickRotationShift } from '../phases/rotation-shift.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 import { nobodyCanAnswer } from '../phases/nobody-can-answer.js';
 import { tailOfWords } from '../phases/append-only.js';
+import { joinNames } from '../phases/chain-reveal.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
 import { audienceLine } from '../phases/audience-line.js';
@@ -55,6 +56,48 @@ export function partnerLineFor(engine, phase, playerId) {
   if (names.length === 0) return null;
   const key = names.length === 1 ? 'Your partner: {names}' : 'Your partners: {names}';
   return translate(engine.language, key).replace('{names}', names.join(', '));
+}
+
+/**
+ * Whose piece a rotating step handed this student (collect `showNames`,
+ * 2026-10-13): the classmate who started it and everyone who added to it
+ * since, read off the `assignedFrom` links the deal stored. "Maya wrote
+ * this." on the first hand-off; "Maya started this. Jordan and Sam added
+ * to it." further down an add-only chain; a step that shows the first
+ * piece (`showOriginal`) names the starter only, since the reader never
+ * sees the replies. Null when names are off, the step has no rotation,
+ * or a link is missing (a name on the wrong piece is worse than none).
+ * In an anonymous room the names are the play names.
+ */
+export function handedLineFor(engine, phase, playerId) {
+  if (!phase || phase.showNames !== true || !phase.rotateFrom || !playerId) return null;
+  const phases = (engine.config && engine.config.phases) || {};
+  const links = (engine.phaseData[phase.rotateFrom] || {}).assignedFrom || {};
+  const sender = links[playerId];
+  if (!sender) return null;
+  const holders = [sender];
+  let pid = phase.rotateFrom;
+  let holder = sender;
+  const seen = new Set();
+  while (phases[pid] && phases[pid].rotateFrom && !seen.has(pid)) {
+    seen.add(pid);
+    const prevLinks = (engine.phaseData[phases[pid].rotateFrom] || {}).assignedFrom || {};
+    if (!prevLinks[holder]) return null;
+    holder = prevLinks[holder];
+    holders.unshift(holder);
+    pid = phases[pid].rotateFrom;
+  }
+  const nameOf = (id) => {
+    const p = engine.players.find(id);
+    return p && typeof p.name === 'string' && p.name.trim() !== '' ? p.name.trim() : null;
+  };
+  const starter = nameOf(holders[0]);
+  if (!starter) return null;
+  const added = phase.showOriginal === true ? [] : holders.slice(1).map(nameOf).filter(Boolean);
+  const lang = engine.language;
+  if (added.length === 0) return translate(lang, '{name} wrote this.').replace('{name}', starter);
+  return translate(lang, '{name} started this.').replace('{name}', starter) + ' ' +
+    translate(lang, '{names} added to it.').replace('{names}', joinNames(added, key => translate(lang, key)));
 }
 
 /**
@@ -603,6 +646,8 @@ registerHandler('collect', {
         // What the partner wrote (a pairs round), on its own card
         partnerText,
         partnerLine: partnerLineFor(engine, phase, player.id),
+        // Whose piece this is, when the step says so (showNames)
+        handedLine: handedLineFor(engine, phase, player.id),
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         prefill,
         appendOnly: !!phase.appendOnly,
@@ -680,6 +725,7 @@ registerHandler('collect', {
         ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language, { playerCount: ctx.engine.players.list().length }),
         partnerText: recon.partnerText,
         partnerLine: player ? partnerLineFor(ctx.engine, ctx.phase, player.id) : null,
+        handedLine: player ? handedLineFor(ctx.engine, ctx.phase, player.id) : null,
         inputType: inputTypeOf(ctx.phase),
         ...(inputTypeOf(ctx.phase) === 'classmate' && player ? { classmates: classmatesOf(ctx.engine, player.id) } : {}),
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,

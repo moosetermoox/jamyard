@@ -266,6 +266,11 @@ export const PHASE_SCHEMAS = {
         label: 'Show the first piece, not the last reply',
         helper: 'With "Rotate items from" pointing at an earlier hand-off step: {{sourceId.assigned}} shows the piece that STARTED the chain (a classmate\'s draft) instead of the last classmate\'s reply, so a second peer reader reviews the draft without seeing the first reader\'s comment. The hand-off still runs through the reply, so a return-to-author reveal brings every comment home. Not with "Start the box with the passed item".'
       },
+      showNames: {
+        type: 'boolean', optional: true, contexts: ['topLevel'],
+        label: 'Say whose piece it is',
+        helper: 'With "Rotate items from": the student sees whose piece they were handed, a line with the name of the classmate who started it and of everyone who added to it since ("Maya started this. Jordan added to it."). Off, the piece arrives unsigned. In an anonymous room the names are the play names. Pair it with "Name who added each part" on the return-to-author reveal.'
+      },
       dealItems: {
         type: 'array', item: { type: 'string' }, optional: true, contexts: ['topLevel'],
         label: 'Deal these items out',
@@ -1339,6 +1344,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'Heading over what came back',
         helper: 'With scope "own" and chain display "final" or "steps". The line above what came back (default "A classmate took it from there:" for final, "And then, hand to hand:" for steps). For a personal payoff: "Someone wrote this for you:"; for peer feedback: "What your classmates said:".'
+      },
+      chainNames: {
+        type: 'boolean', optional: true,
+        label: 'Name who added each part',
+        helper: 'With scope "own": every part that came back carries the name of the classmate who wrote it. Chain display "steps" puts the name on each line (or over each card), "final" shows what each classmate added under their name. Off, the parts come back unsigned. In an anonymous room the names are the play names. Pair it with "Say whose piece it is" on the hand-off steps so readers know whose work they are adding to.'
       },
       image: {
         type: 'string', optional: true,

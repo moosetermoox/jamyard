@@ -30,10 +30,11 @@ export function normalizeByPlayer(phaseData) {
  *   Phase data for each phase in the chain, chain order (origin first).
  *   `assignedFrom` on element i links element i+1's recipients back to
  *   element i's contributors.
- * @returns {Map<string, {original: string, steps: string[], complete: boolean}>}
+ * @returns {Map<string, {original: string, steps: string[], authors: string[], complete: boolean}>}
  *   Keyed by the ORIGIN contributor's playerId. `steps` holds each hop's
  *   text in order (missing hops are skipped; `complete` is false when any
- *   link or hop text was missing).
+ *   link or hop text was missing); `authors` the playerId who wrote each
+ *   kept hop, in the same order (a named return, 2026-10-13).
  */
 export function buildChainViews(chainDatas) {
   const views = new Map();
@@ -44,6 +45,7 @@ export function buildChainViews(chainDatas) {
 
   for (const [ownerId, original] of Object.entries(origin)) {
     const steps = [];
+    const authors = [];
     let complete = true;
     let holderId = ownerId;
 
@@ -64,13 +66,57 @@ export function buildChainViews(chainDatas) {
         if (!hiddenHop) complete = false;
       } else {
         steps.push(text);
+        authors.push(recipient);
       }
       holderId = recipient;
     }
 
-    views.set(ownerId, { original, steps, complete });
+    views.set(ownerId, { original, steps, authors, complete });
   }
   return views;
+}
+
+/**
+ * The part each hop ADDED, when every hop starts with the text before it
+ * (an add-only chain: the server joins the inherited text and the
+ * addition with a newline, engine/phases/append-only.js). Null when any
+ * hop does not (a blind chain, a hidden hop, a step that rewrote the
+ * piece), so the caller falls back to the whole last version.
+ * @param {{original: string, steps: string[]}} view
+ * @returns {string[]|null} one addition per step
+ */
+export function chainAdditions(view) {
+  if (!view || typeof view.original !== 'string' || !Array.isArray(view.steps)) return null;
+  const out = [];
+  let prev = view.original.trim();
+  for (const text of view.steps) {
+    const whole = typeof text === 'string' ? text.trim() : '';
+    if (prev !== '' && !whole.startsWith(prev)) return null;
+    out.push(whole.slice(prev.length).trim());
+    prev = whole;
+  }
+  return out;
+}
+
+// English and the row in every language table (engine/i18n): the names
+// on a returned chain, filled where the chain comes back
+const NAME_WROTE = '{name} wrote:';
+const NAME_ADDED = '{name} added:';
+const NAMES_TOOK_IT = '{names} took it from there:';
+const PAIR_AND = '{a} and {b}';
+
+/**
+ * "Maya", "Maya and Jordan", "Maya, Jordan and Sam": names joined for a
+ * sentence, the last pair through the language's "and" row.
+ * @param {string[]} names
+ * @param {(key: string) => string} t
+ */
+export function joinNames(names, t = (s) => s) {
+  const list = (names || []).filter(n => typeof n === 'string' && n.trim() !== '');
+  if (list.length === 0) return '';
+  if (list.length === 1) return list[0];
+  const head = list.slice(0, -1).join(', ');
+  return t(PAIR_AND).replace('{a}', head).replace('{b}', list[list.length - 1]);
 }
 
 /**
@@ -100,6 +146,13 @@ function fillSlotTemplate(template, view) {
  *                slots (blind grammar chains, exquisite corpse). Falls
  *                back to 'steps' when no template string is set; the
  *                validator flags that config before a game can run.
+ *   names      — one name per hop in `view.steps` (reveal `chainNames`,
+ *                2026-10-13): each hop comes back signed. 'steps' puts the
+ *                name on the line, a quoted return names the card, and
+ *                'final' shows what each classmate ADDED under their name
+ *                when the hops accumulate (else the last version under
+ *                the names). A template chain ignores it.
+ *   t          — translator for the fixed name lines (default identity)
  */
 export function formatChainContent(view, opts = {}) {
   if (!view || view.original === undefined) {
@@ -109,6 +162,11 @@ export function formatChainContent(view, opts = {}) {
   const display = opts.display === 'final' ? 'final'
     : (opts.display === 'template' && hasTemplate) ? 'template'
     : 'steps';
+  const t = typeof opts.t === 'function' ? opts.t : (s) => s;
+  const names = Array.isArray(opts.names) && opts.names.length === view.steps.length
+    ? opts.names.map(n => (typeof n === 'string' && n.trim() !== '') ? n.trim() : null)
+    : null;
+  const nameLine = (key, i) => t(key).replace('{name}', names[i]);
   // Optional headings from the reveal (chainHeading / chainGrewHeading):
   // "You wrote:" / "Someone wrote this for you:" turns a returned chain
   // into a personal payoff (Someone's Got You, outside review #2).
@@ -125,23 +183,43 @@ export function formatChainContent(view, opts = {}) {
       const grew = (typeof opts.grewHeading === 'string' && opts.grewHeading.trim() !== '')
         ? opts.grewHeading.trim() : 'And then, hand to hand:';
       out.push('', grew);
-      view.steps.forEach(text => out.push('', `“${text}”`));
+      view.steps.forEach((text, i) => {
+        // A signed card: the reader's name over it
+        if (names && names[i]) out.push('', nameLine(NAME_WROTE, i));
+        out.push('', `“${text}”`);
+      });
     }
     if (!view.complete) out.push('', '(Part of the chain went missing along the way, wifi happens.)');
     return out.join('\n');
   }
   const lines = [heading, `“${view.original}”`];
 
+  // Named additions on an accumulating chain: what each classmate added,
+  // under their name, instead of the whole last version (the celebration
+  // chain: "the original message ends up with two people giving
+  // compliments", and the author should know whose is whose)
+  const additions = (display === 'final' && names && names.every(Boolean)) ? chainAdditions(view) : null;
+  const signed = additions
+    ? additions.map((add, i) => ({ add, i })).filter(x => x.add !== '')
+    : [];
+
   if (display === 'template') {
     lines.push('', 'Hand by hand, it became:', `“${fillSlotTemplate(opts.template, view)}”`);
   } else if (view.steps.length === 0) {
     lines.push('', 'No one got to add to it this time.');
+  } else if (display === 'final' && signed.length > 0) {
+    if (typeof opts.grewHeading === 'string' && opts.grewHeading.trim() !== '') {
+      lines.push('', opts.grewHeading.trim());
+    }
+    signed.forEach(({ add, i }) => lines.push('', nameLine(NAME_ADDED, i), `“${add}”`));
   } else if (display === 'final') {
     const grew = (typeof opts.grewHeading === 'string' && opts.grewHeading.trim() !== '')
       ? opts.grewHeading.trim()
-      : view.steps.length === 1
-        ? 'A classmate took it from there:'
-        : `${view.steps.length} classmates took it from there:`;
+      : (names && names.every(Boolean))
+        ? t(NAMES_TOOK_IT).replace('{names}', joinNames(names, t))
+        : view.steps.length === 1
+          ? 'A classmate took it from there:'
+          : `${view.steps.length} classmates took it from there:`;
     lines.push('', grew, `“${view.steps[view.steps.length - 1]}”`);
   } else {
     // A peer-feedback reveal names what came back ("What your classmates
@@ -149,7 +227,7 @@ export function formatChainContent(view, opts = {}) {
     const grew = (typeof opts.grewHeading === 'string' && opts.grewHeading.trim() !== '')
       ? opts.grewHeading.trim() : 'And then, hand to hand:';
     lines.push('', grew);
-    view.steps.forEach((text, i) => lines.push(`${i + 1}. ${text}`));
+    view.steps.forEach((text, i) => lines.push(`${i + 1}. ${names && names[i] ? names[i] + ': ' : ''}${text}`));
   }
 
   if (!view.complete) {
@@ -192,6 +270,8 @@ export function buildChainRecords(views, nameOf, opts = {}) {
     const text = chainResultText(view, opts);
     if (text === '') continue;
     const row = { playerId, name: (nameOf && nameOf(playerId)) || 'Someone', text, original: view.original, steps: view.steps.slice(), complete: view.complete };
+    // Who wrote each kept hop (teacher surfaces and a signed return read it)
+    row.authors = (view.authors || []).map(id => ({ playerId: id, name: (nameOf && nameOf(id)) || 'Someone' }));
     // A steps chain keeps its hops apart too, so a gallery can show one
     // per line (Idea Chain's arrow-joined paragraph ran off the projector,
     // a reviewer 2026-10-02); `text` stays the one-string form
