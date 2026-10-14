@@ -97,10 +97,10 @@ if (useRecipeLink) {
 (function () {
   var params = new URLSearchParams(window.location.search);
   var idea = (params.get('idea') || '').trim();
-  if (idea.length >= 10) {
-    if (ideaInput) ideaInput.value = idea;
-    showAIGenerateModal(idea);
-  }
+  // A short idea (the home's Make it plank sends whatever was typed) is
+  // put in the box to finish; ten letters on, the build starts at once.
+  if (idea && ideaInput) ideaInput.value = idea;
+  if (idea.length >= 10) showAIGenerateModal(idea);
 })();
 
 async function fetchGames() {
