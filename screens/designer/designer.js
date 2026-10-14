@@ -2974,6 +2974,9 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       if (step.brick === 'quiet' && typeof step.talk === 'string' && step.talk.trim()) {
         list.appendChild(addedRow(SB_BRICK_LABELS.announce || 'Announcement', 'added after the quiet: ' + step.talk.trim()));
       }
+      if (step.brick === 'chain' && step.names === true) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'with names: every hand-off says whose piece it is, and it comes home with the name of whoever added each part'));
+      }
       if (step.brick === 'feedback') {
         if (typeof step.draft === 'string' && step.draft.trim()) {
           list.appendChild(addedRow(SB_BRICK_LABELS.collect || 'Open answer', 'added: everyone writes the piece: ' + step.draft.trim()));
@@ -2981,6 +2984,9 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', step.readers === 2
           ? 'added: two classmates each read the piece, and it comes back to its writer with both comments, privately'
           : 'added: a classmate reads the piece, and it comes back to its writer with the comment, privately'));
+        if (step.names === true) {
+          list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'with names: each reader sees whose piece it is, and the comments come back signed'));
+        }
       }
       if (step.brick === 'write-quiz') {
         list.appendChild(addedRow(SB_BRICK_LABELS['solo-quiz'] || 'Self-paced quiz', 'added: a quiz over every complete question the class wrote, at each student\'s own pace'));

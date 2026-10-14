@@ -1379,7 +1379,7 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, oneTap, maxPicks, classmates }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, handedLine, oneTap, maxPicks, classmates }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
@@ -1392,6 +1392,13 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
   if (partnerLineEl) {
     partnerLineEl.textContent = partnerLine || '';
     partnerLineEl.hidden = !partnerLine;
+  }
+  // Whose piece this is (a rotating step with names on, server-sent;
+  // names are student text, so textContent)
+  const handedLineEl = document.getElementById('handed-line');
+  if (handedLineEl) {
+    handedLineEl.textContent = handedLine || '';
+    handedLineEl.hidden = !handedLine;
   }
   const partnerNote = document.getElementById('partner-note');
   if (partnerNote) {

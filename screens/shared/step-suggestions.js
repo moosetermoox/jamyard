@@ -515,6 +515,8 @@
   //     hops?: string[],        // chain only: one instruction per hand-off (1-6)
   //     visibility?: string,    // chain only: 'all'|'tail'|'blind' (default 'all')
   //     sentence?: string,      // chain only, blind: "The {1} {2}." slot template
+  //     names?: boolean,        // chain and feedback: every hand-off says whose piece
+  //                             //   it is, and the return names who wrote each part
   //     draft?: string,         // feedback only: the piece each student writes first
   //                             //   (else the last plain collect is the piece)
   //     readers?: number,       // feedback only: 1 (default) or 2 classmates read it
@@ -698,6 +700,13 @@
     }
     var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
       ? Math.round(step.timer) : null;
+    // names (2026-10-13): every hand-off says whose piece it is, and the
+    // return names who added each part. Never on a blind chain: the
+    // writer is not meant to know what, or whose, they are adding to.
+    var names = step.names === true && !blind;
+    if (step.names === true && blind) {
+      problems.push('Step ' + stepNo + ': names were left off, a blind chain hides what each writer received, so whose it is stays hidden too.');
+    }
 
     // Blindness is structural: a {{...}} token in a blind prompt would
     // hand the writer the very text the fold hides.
@@ -729,6 +738,7 @@
       }
       if (timer) hopPhase.timer = timer;
       if (sentence) hopPhase.maxLength = 40;
+      if (names) hopPhase.showNames = true;
       phases[lastId].next = hopId;
       phases[hopId] = hopPhase;
       chainIds.push(hopId);
@@ -737,6 +747,7 @@
 
     var revealId = freshId(phases, 'unfold');
     var reveal = { type: 'reveal', scope: 'own', chainFrom: chainIds };
+    if (names) reveal.chainNames = true;
     if (sentence) {
       reveal.chainDisplay = 'template';
       reveal.chainTemplate = sentence;
@@ -793,6 +804,9 @@
     var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 900)
       ? Math.round(step.timer) : null;
     var draft = (typeof step.draft === 'string') ? step.draft.trim() : '';
+    // names (2026-10-13): each reader sees whose piece it is, and the
+    // writer gets every comment back signed
+    var names = step.names === true;
 
     var draftId;
     if (draft) {
@@ -834,6 +848,7 @@
         rotateFrom: prevId
       };
       if (r > 0) fb.showOriginal = true;
+      if (names) fb.showNames = true;
       if (timer) fb.timer = timer;
       // boxes (owner 2026-10-01): "two stars and a wish" as three labelled
       // boxes, stored one labelled line each so the writer reads them back
@@ -859,6 +874,7 @@
       // surprise", a reviewer 2026-10-01)
       content: 'Everyone is reading the feedback on their own work. Give it a minute, then ask what someone will change because of it.'
     };
+    if (names) phases[revealId].chainNames = true;
     return revealId;
   }
 

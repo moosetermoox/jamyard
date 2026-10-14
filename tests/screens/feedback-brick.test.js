@@ -189,6 +189,6 @@ describe('feedback brick: wiring', () => {
   it('the editor mirrors the rule and keeps the field top-level only', () => {
     const editor = read('screens/designer/editor.js');
     expect(editor).toMatch(/phase\.showOriginal === true/);
-    expect(editor).toMatch(/'showTail', 'showOriginal'\]/);
+    expect(editor).toMatch(/'showTail', 'showOriginal', 'showNames']/);
   });
 });

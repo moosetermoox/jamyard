@@ -10,6 +10,7 @@ import { buildPairViews, buildPairContent } from '../phases/pair-reveal.js';
 import { buildChainViews, formatChainContent, buildChainRecords } from '../phases/chain-reveal.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
 import { PER_PLAYER_TOKEN } from '../resolver-grammar.js';
+import { translate } from '../i18n/index.js';
 
 // {{x.mine}} or {{x.assigned}}: each player gets their own resolved copy.
 const PER_PLAYER_REF = PER_PLAYER_TOKEN;
@@ -54,10 +55,18 @@ function getChainViews(ctx) {
 }
 
 function ownContentFor(ctx, views, playerId) {
-  return formatChainContent(views.get(playerId), {
+  const view = views.get(playerId);
+  // chainNames (2026-10-13): each hop comes back signed with the name of
+  // the classmate who wrote it (the room's play names in an anonymous room)
+  const names = ctx.phase.chainNames === true && view
+    ? (view.authors || []).map(id => { const p = ctx.engine.players.find(id); return p ? p.name : null; })
+    : null;
+  return formatChainContent(view, {
     display: ctx.phase.chainDisplay, template: ctx.phase.chainTemplate,
     heading: ctx.phase.chainHeading, grewHeading: ctx.phase.chainGrewHeading,
-    quoted: ctx.phase.chainQuoted === true
+    quoted: ctx.phase.chainQuoted === true,
+    names,
+    t: (key) => translate(ctx.engine.language, key)
   });
 }
 

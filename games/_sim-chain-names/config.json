@@ -1,0 +1,53 @@
+{
+  "name": "Sim Chain Names",
+  "description": "Hidden fixture: the chain brick with names on, two celebrations that travel and come home signed (scripts/simulate-chain-names.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "chain-start"
+    },
+    "chain-start": {
+      "type": "collect",
+      "prompt": "Write one thing you did this month that you are proud of.",
+      "timer": 90,
+      "next": "pass"
+    },
+    "pass": {
+      "type": "collect",
+      "prompt": "Read what your classmate is proud of. Add a line celebrating it.",
+      "rotateFrom": "chain-start",
+      "prefillFromAssigned": true,
+      "appendOnly": true,
+      "timer": 90,
+      "showNames": true,
+      "next": "pass-2"
+    },
+    "pass-2": {
+      "type": "collect",
+      "prompt": "Read the pride and the first celebration. Add a celebration of your own.",
+      "rotateFrom": "pass",
+      "prefillFromAssigned": true,
+      "appendOnly": true,
+      "timer": 90,
+      "showNames": true,
+      "next": "unfold"
+    },
+    "unfold": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": [
+        "chain-start",
+        "pass",
+        "pass-2"
+      ],
+      "chainNames": true,
+      "chainDisplay": "final",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Everyone got two cheers. Keep them."
+    }
+  }
+}

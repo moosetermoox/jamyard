@@ -37,7 +37,40 @@
       },
       "note": "Nearest current match; a dedicated folded-story recipe on collect.showTail is the natural follow-on. story-builder is a defensible pick (same chain, no fold)."
     },
-    {
+        {
+      "id": "celebration-chain-signed",
+      "prompt": "Everyone writes something they are proud of this month. It goes to a classmate who writes a celebration under it, then the message plus that celebration goes to a second classmate who adds another celebration, and it comes back to the writer. I want names on who wrote each celebration.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Two Cheers",
+          "description": "Write what you are proud of, two classmates each add a cheer, and it comes home signed.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Think of one thing you did this month that you are proud of. Two classmates are going to cheer you on."
+            },
+            {
+              "brick": "chain",
+              "start": "Write one thing you did this month that you are proud of.",
+              "hops": [
+                "Read what your classmate is proud of. Add a line celebrating it.",
+                "Read the pride and the first celebration. Add a celebration of your own."
+              ],
+              "visibility": "all",
+              "names": true,
+              "timer": 90
+            },
+            {
+              "brick": "end",
+              "text": "Everyone got two cheers today. Keep them."
+            }
+          ]
+        }
+      },
+      "note": "2026-10-13: the owner built this on the Create page and the plan could not say who wrote what. The chain brick takes names: true (every hand-off says whose piece it is, the return names who added each part)."
+    },
+{
       "id": "kahoot-style-quiz",
       "prompt": "A fast-paced quiz with points for speed and a leaderboard at the end. I have my own multiple choice questions.",
       "expect": {

@@ -66,8 +66,8 @@ describe('hideStoredResponse', () => {
     expect(write.hiddenByPlayer).toEqual({ p2: 'mean' });
     const views = buildChainViews([notes, write]);
     // p1's note went to p2, whose reply is hidden: no hop, and not a wifi loss
-    expect(views.get('p1')).toEqual({ original: 'my note', steps: [], complete: true });
-    expect(views.get('p2')).toEqual({ original: 'their note', steps: ['kind'], complete: true });
+    expect(views.get('p1')).toEqual({ original: 'my note', steps: [], authors: [], complete: true });
+    expect(views.get('p2')).toEqual({ original: 'their note', steps: ['kind'], authors: ['p1'], complete: true });
     hideStoredResponse(room, 'p2', false);
     expect(write.byPlayer).toEqual({ p1: 'kind', p2: 'mean' });
     expect(write.hiddenByPlayer).toEqual({});
